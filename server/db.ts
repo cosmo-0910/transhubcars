@@ -24,6 +24,8 @@ db.exec(`
     exterior_color TEXT,
     engine TEXT,
     stock_number TEXT,
+    vendor_id TEXT,
+    approval_status TEXT DEFAULT 'pending',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 `);

@@ -1,5 +1,7 @@
 import { supabase } from './supabase';
 
+export { supabase };
+
 export interface Car {
   id: string;
   make: string;
@@ -18,6 +20,8 @@ export interface Car {
   exterior_color: string;
   engine: string;
   stock_number: string;
+  vendor_id?: string;
+  approval_status?: 'pending' | 'approved' | 'rejected';
 }
 
 export interface Inquiry {
@@ -59,6 +63,36 @@ export interface Order {
 }
 
 export const db = {
+  // Profiles
+  updateProfile: async (userId: string, updates: any) => {
+    const { error } = await supabase
+      .from('profiles')
+      .upsert({ id: userId, ...updates });
+    
+    if (error) throw error;
+  },
+
+  getVendors: async () => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .neq('vendor_status', 'none')
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data || [];
+  },
+
+  getProfiles: async () => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data || [];
+  },
+
   // Cars
   getCars: async (): Promise<Car[]> => {
     const { data, error } = await supabase

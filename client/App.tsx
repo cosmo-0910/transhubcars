@@ -8,16 +8,20 @@ import { DiscoveryGallery } from './components/DiscoveryGallery.tsx';
 import { AuthForm } from './components/AuthForms.tsx';
 import { UserProfile } from './components/UserProfile.tsx';
 import { AuthProvider, useAuth } from '../shared/lib/AuthContext.tsx';
+
 import type { Car } from '../shared/lib/db.ts';
 
 function AppContent() {
   const [showInquiry, setShowInquiry] = useState<{ type: 'Inspection' | 'Purchase' | 'Preorder', carName?: string } | null>(null);
   const [selectedCar, setSelectedCar] = useState<Car | null>(null);
   const [showAuth, setShowAuth] = useState<'login' | 'signup' | null>(null);
+
   const [showProfile, setShowProfile] = useState(false);
   const [discoveryFilter, setDiscoveryFilter] = useState<{ type: 'body' | 'brand', value: string } | null>(null);
   const { user, profile, signOut } = useAuth();
   const isAdmin = profile?.role === 'admin';
+
+
 
   return (
     <div className="min-h-screen">
@@ -177,10 +181,11 @@ function AppContent() {
             {showProfile && (
               <UserProfile onClose={() => setShowProfile(false)} />
             )}
-            <button 
-              onClick={() => { setShowInquiry(null); setShowAuth(null); setShowProfile(false); }}
-              style={{ position: 'absolute', top: '2rem', right: '2rem', background: 'none', border: 'none', color: 'white', cursor: 'pointer', fontSize: '1.5rem' }}
-            >✕</button>
+
+              <button 
+                onClick={() => { setShowInquiry(null); setShowAuth(null); setShowProfile(false); }}
+                style={{ position: 'absolute', top: '2rem', right: '2rem', background: 'none', border: 'none', color: 'white', cursor: 'pointer', fontSize: '1.5rem' }}
+              >✕</button>
           </div>
         )}
       </AnimatePresence>

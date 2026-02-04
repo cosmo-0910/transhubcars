@@ -36,6 +36,7 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, 'index.html'),
         admin: resolve(__dirname, 'admin.html'),
+        vendor: resolve(__dirname, 'vendor.html'),
       },
     },
   },

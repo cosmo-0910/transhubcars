@@ -2,7 +2,10 @@
 CREATE TABLE IF NOT EXISTS profiles (
   id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
   full_name TEXT,
-  role TEXT CHECK (role IN ('customer', 'admin')) DEFAULT 'customer',
+  role TEXT CHECK (role IN ('customer', 'admin', 'vendor')) DEFAULT 'customer',
+  vendor_status TEXT CHECK (vendor_status IN ('none', 'pending', 'approved', 'rejected')) DEFAULT 'none',
+  business_name TEXT,
+  business_details JSONB,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -25,6 +28,8 @@ CREATE TABLE IF NOT EXISTS cars (
   exterior_color TEXT,
   engine TEXT,
   stock_number TEXT,
+  vendor_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  approval_status TEXT CHECK (approval_status IN ('pending', 'approved', 'rejected')) DEFAULT 'pending',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -84,17 +89,47 @@ ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Public Read Profiles" ON profiles;
 CREATE POLICY "Public Read Profiles" ON profiles FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Users Insert Own Profile" ON profiles;
+CREATE POLICY "Users Insert Own Profile" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
+
 DROP POLICY IF EXISTS "Users Update Own Profile" ON profiles;
 CREATE POLICY "Users Update Own Profile" ON profiles FOR UPDATE USING (auth.uid() = id);
+
+
+-- Function to check if current user is admin (bypasses RLS)
+CREATE OR REPLACE FUNCTION is_admin()
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM profiles 
+    WHERE id = auth.uid() AND role = 'admin'
+  );
+END;
+$$;
+
+DROP POLICY IF EXISTS "Admin Update Profiles" ON profiles;
+CREATE POLICY "Admin Update Profiles" ON profiles FOR UPDATE USING (is_admin());
 
 -- CARS
 ALTER TABLE cars ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Public Read Access" ON cars;
-CREATE POLICY "Public Read Access" ON cars FOR SELECT USING (true);
+CREATE POLICY "Public Read Access" ON cars FOR SELECT USING (
+  approval_status = 'approved' OR 
+  (vendor_id = auth.uid()) OR 
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+);
 
 DROP POLICY IF EXISTS "Admin All Access" ON cars;
 CREATE POLICY "Admin All Access" ON cars FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+);
+
+DROP POLICY IF EXISTS "Vendors Manage Own Cars" ON cars;
+CREATE POLICY "Vendors Manage Own Cars" ON cars FOR ALL USING (
+  vendor_id = auth.uid()
 );
 
 -- ORDERS
@@ -148,14 +183,15 @@ CREATE POLICY "Users Delete Own Cart" ON cart_items FOR DELETE USING (auth.uid()
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.profiles (id, full_name, role)
+  INSERT INTO public.profiles (id, full_name, role, vendor_status)
   VALUES (
     new.id, 
     new.raw_user_meta_data->>'full_name',
     CASE 
       WHEN new.email = 'admin@transhub.com' THEN 'admin'
       ELSE 'customer'
-    END
+    END,
+    'none'
   );
   RETURN new;
 END;

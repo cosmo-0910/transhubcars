@@ -2,26 +2,33 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { db, type Order } from '../../shared/lib/db';
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../shared/lib/AuthContext';
-import { 
-  Package, 
-  Clock, 
-  ShieldCheck, 
-  X, 
-  User, 
-  Mail, 
-  Calendar, 
-  CreditCard, 
+import { VendorApplication } from './VendorApplication';
+import {
+  Package,
+  Clock,
+  ShieldCheck,
+  X,
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  Calendar,
+  ChevronRight,
+  Store,
+  ExternalLink,
+  CreditCard,
   Settings,
   LayoutGrid,
-  ChevronRight,
-  Gem
+  Gem,
+  Building2
 } from 'lucide-react';
 
 export const UserProfile = ({ onClose }: { onClose: () => void }) => {
   const { user, profile } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'acquisitions' | 'details' | 'membership'>('acquisitions');
+  const [activeTab, setActiveTab] = useState<'acquisitions' | 'details' | 'membership' | 'vendor'>('acquisitions');
+  const [showVendorApp, setShowVendorApp] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -43,6 +50,10 @@ export const UserProfile = ({ onClose }: { onClose: () => void }) => {
     acquisitionCount: orders.length,
     membershipTier: orders.length > 5 ? 'PLATINUM' : orders.length > 2 ? 'GOLD' : 'SILVER'
   }), [orders]);
+
+  if (showVendorApp) {
+    return <VendorApplication onClose={() => setShowVendorApp(false)} />;
+  }
 
   return (
     <motion.div 
@@ -70,7 +81,7 @@ export const UserProfile = ({ onClose }: { onClose: () => void }) => {
         <X size={20} />
       </button>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', minHeight: '600px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(250px, 300px) 1fr', minHeight: '600px' }}>
         {/* Sidebar */}
         <div style={{ background: 'rgba(255,255,255,0.02)', padding: '3rem 2rem', borderRight: '1px solid var(--border-glass)' }}>
           <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
@@ -101,6 +112,7 @@ export const UserProfile = ({ onClose }: { onClose: () => void }) => {
             <NavTab active={activeTab === 'acquisitions'} onClick={() => setActiveTab('acquisitions')} icon={<LayoutGrid size={18} />} label="ACQUISITIONS" />
             <NavTab active={activeTab === 'details'} onClick={() => setActiveTab('details')} icon={<User size={18} />} label="ACCOUNT INFO" />
             <NavTab active={activeTab === 'membership'} onClick={() => setActiveTab('membership')} icon={<ShieldCheck size={18} />} label="MEMBERSHIP" />
+            <NavTab active={activeTab === 'vendor'} onClick={() => setActiveTab('vendor')} icon={<Store size={18} />} label="VENDOR PORTAL" />
             <div style={{ height: '1px', background: 'var(--border-glass)', margin: '1rem 0' }} />
             <NavTab active={false} onClick={() => {}} icon={<Settings size={18} />} label="SETTINGS" />
           </div>
@@ -210,6 +222,67 @@ export const UserProfile = ({ onClose }: { onClose: () => void }) => {
                     <Benefit label="Pre-market Catalog Previews" active={true} />
                   </div>
                 </div>
+              </motion.div>
+            )}
+
+            {activeTab === 'vendor' && (
+              <motion.div
+                key="vendor"
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+              >
+                <header style={{ marginBottom: '3rem' }}>
+                  <h3 className="luxury-font" style={{ fontSize: '2.2rem' }}>Vendor Portal.</h3>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '0.5rem' }}>Manage your dealership presence and inventory.</p>
+                </header>
+
+                {(!profile?.vendor_status || profile.vendor_status === 'none' || profile.vendor_status === 'rejected') && (
+                  <div className="glass" style={{ padding: '3rem', borderRadius: '2rem', textAlign: 'center', border: '1px solid var(--border-glass)' }}>
+                    <div style={{ width: '80px', height: '80px', margin: '0 auto 2rem', background: 'rgba(255,255,255,0.05)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Building2 size={40} color="var(--accent-gold)" />
+                    </div>
+                    <h4 className="luxury-font" style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Become a Partner</h4>
+                    <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', maxWidth: '400px', margin: '0 auto 2rem' }}>
+                      Join our exclusive network of certified dealers. List your luxury inventory on Transhub and reach discerning clients worldwide.
+                      {profile?.vendor_status === 'rejected' && <span style={{ display: 'block', color: '#ef4444', marginTop: '1rem' }}>Your previous application was passed. You may re-apply below.</span>}
+                    </p>
+                    <button onClick={() => setShowVendorApp(true)} className="btn-gold">APPLY FOR PARTNERSHIP</button>
+                  </div>
+                )}
+
+                {profile?.vendor_status === 'pending' && (
+                  <div className="glass" style={{ padding: '3rem', borderRadius: '2rem', textAlign: 'center', border: '1px solid var(--border-glass)' }}>
+                     <div style={{ width: '80px', height: '80px', margin: '0 auto 2rem', background: 'rgba(234, 179, 8, 0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Clock size={40} color="#eab308" />
+                    </div>
+                    <h4 className="luxury-font" style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Application Under Review</h4>
+                    <p style={{ color: 'var(--text-muted)', maxWidth: '400px', margin: '0 auto' }}>
+                      Your application is currently being reviewed by our administrative team. We will notify you once a decision has been made.
+                    </p>
+                  </div>
+                )}
+
+                {profile?.vendor_status === 'approved' && (
+                  <div className="glass" style={{ padding: '3rem', borderRadius: '2rem', textAlign: 'center', border: '1px solid var(--accent-gold)' }}>
+                     <div style={{ width: '80px', height: '80px', margin: '0 auto 2rem', background: 'rgba(74, 222, 128, 0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <ShieldCheck size={40} color="#4ade80" />
+                    </div>
+                    <h4 className="luxury-font" style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Verified Partner</h4>
+                    <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>
+                      Welcome back, <strong style={{ color: 'white' }}>{profile.business_name}</strong>. Access your dashboard to manage inventory and view insights.
+                    </p>
+                    <button 
+                      onClick={() => window.location.href = '/vendor.html'} 
+                      className="btn-gold" 
+                      style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 auto' }}
+                    >
+                      <Store size={18} />
+                      OPEN VENDOR PORTAL
+                      <ExternalLink size={14} />
+                    </button>
+                  </div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>

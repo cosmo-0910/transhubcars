@@ -7,6 +7,7 @@ interface AuthContextType {
   profile: any | null;
   loading: boolean;
   signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -19,9 +20,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession()
-      .then(({ data: { session } }) => {
+      .then(async ({ data: { session } }) => {
         setUser(session?.user ?? null);
-        if (session?.user) fetchProfile(session.user.id);
+        if (session?.user) {
+          await fetchProfile(session.user.id);
+        }
       })
       .catch(err => {
         console.error('Supabase session error:', err);
@@ -61,12 +64,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (error && error.code !== 'PGRST116') console.error('Error fetching profile:', error);
   };
 
+  const refreshProfile = async () => {
+    if (user) await fetchProfile(user.id);
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
   };
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signOut }}>
+    <AuthContext.Provider value={{ user, profile, loading, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );
