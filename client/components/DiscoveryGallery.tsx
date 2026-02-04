@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { db, type Car } from '../../shared/lib/db';
 import { ArrowLeft, Search } from 'lucide-react';
+import { formatPrice } from '../../shared/lib/formatters';
 
 interface DiscoveryGalleryProps {
   filter: { type: 'body' | 'brand', value: string };
@@ -108,7 +109,7 @@ export const DiscoveryGallery = ({ filter, onClose, onInquiry }: DiscoveryGaller
                         <h3 className="luxury-font" style={{ fontSize: '1.8rem', marginTop: '0.5rem' }}>{car.make} {car.model}</h3>
                     </div>
                     <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--accent-gold)' }}>${car.price.toLocaleString()}</div>
+                        <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--accent-gold)' }}>{formatPrice(car.price)}</div>
                         <button className="btn-gold" style={{ padding: '0.6rem 1.2rem', fontSize: '0.7rem' }} onClick={() => onInquiry(car)}>DETAILS</button>
                     </div>
                 </div>

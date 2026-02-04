@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { db, type Car } from '../../shared/lib/db';
 import { useAuth } from '../../shared/lib/AuthContext';
 import { CreditCard, ShieldCheck, Truck, ArrowRight } from 'lucide-react';
+import { formatPrice } from '../../shared/lib/formatters';
 
 export const Checkout = ({ car, onClose }: { car: Car, onClose: () => void }) => {
   const { user } = useAuth();
@@ -62,7 +63,7 @@ export const Checkout = ({ car, onClose }: { car: Car, onClose: () => void }) =>
 
           <div style={{ marginTop: 'auto', paddingTop: '4rem' }}>
             <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Investment Amount</div>
-            <div style={{ fontSize: '2rem', fontWeight: 600 }}>${car.price.toLocaleString()}</div>
+            <div style={{ fontSize: '2rem', fontWeight: 600 }}>{formatPrice(car.price)}</div>
           </div>
         </div>
 
@@ -80,7 +81,7 @@ export const Checkout = ({ car, onClose }: { car: Car, onClose: () => void }) =>
                 <div style={{ background: 'rgba(255,255,255,0.05)', padding: '1.5rem', borderRadius: '0.5rem', marginBottom: '2rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
                     <span style={{ color: 'var(--text-muted)' }}>Acquisition Price</span>
-                    <span>${car.price.toLocaleString()}</span>
+                    <span>{formatPrice(car.price)}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
                     <span style={{ color: 'var(--text-muted)' }}>Logistics Fee</span>
@@ -89,7 +90,7 @@ export const Checkout = ({ car, onClose }: { car: Car, onClose: () => void }) =>
                   <div style={{ height: '1px', background: 'rgba(255,255,255,0.1)', margin: '1rem 0' }} />
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600 }}>
                     <span>Total</span>
-                    <span>${car.price.toLocaleString()}</span>
+                    <span>{formatPrice(car.price)}</span>
                   </div>
                 </div>
 

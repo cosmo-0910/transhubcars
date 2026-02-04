@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { db, type Car } from '../../shared/lib/db';
 import { useAuth } from '../../shared/lib/AuthContext';
+import { formatPrice } from '../../shared/lib/formatters';
 import { 
   X, 
   Plus, 
@@ -130,7 +131,7 @@ export const VendorDashboard = ({ onClose }: { onClose: () => void }) => {
                 </div>
                 <div style={{ padding: '1.5rem' }}>
                   <div style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '0.5rem' }}>{car.year} {car.make} {car.model}</div>
-                  <div style={{ fontSize: '1.2rem', color: 'var(--accent-gold)', marginBottom: '1.5rem' }}>${car.price.toLocaleString()}</div>
+                  <div style={{ fontSize: '1.2rem', color: 'var(--accent-gold)', marginBottom: '1.5rem' }}>{formatPrice(car.price)}</div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Clock size={14} /> {car.mileage.toLocaleString()} mi</span>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><CarFront size={14} /> {car.transmission}</span>

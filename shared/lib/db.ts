@@ -93,6 +93,24 @@ export const db = {
     return data || [];
   },
 
+  async uploadImage(file: File, bucket: string = 'car-images'): Promise<string> {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+    const filePath = `${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from(bucket)
+      .upload(filePath, file);
+
+    if (uploadError) throw uploadError;
+
+    const { data: { publicUrl } } = supabase.storage
+      .from(bucket)
+      .getPublicUrl(filePath);
+
+    return publicUrl;
+  },
+
   // Cars
   getCars: async (): Promise<Car[]> => {
     const { data, error } = await supabase
@@ -242,5 +260,45 @@ export const db = {
       .eq('id', id);
     
     if (error) throw error;
+  },
+
+  // Vendor-specific functions
+  getOrdersForVendor: async (vendorId: string): Promise<Order[]> => {
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*, cars!inner(*)')
+      .eq('cars.vendor_id', vendorId)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data || [];
+  },
+
+  getVendorStats: async (vendorId: string) => {
+    const { data: cars, error: carsError } = await supabase
+      .from('cars')
+      .select('price, approval_status')
+      .eq('vendor_id', vendorId);
+    
+    if (carsError) throw carsError;
+
+    const { data: orders, error: ordersError } = await supabase
+      .from('orders')
+      .select('amount, status, cars!inner(vendor_id)')
+      .eq('cars.vendor_id', vendorId)
+      .eq('status', 'Paid');
+    
+    if (ordersError) throw ordersError;
+
+    const totalEarnings = orders?.reduce((sum, order) => sum + Number(order.amount), 0) || 0;
+    const activeListings = cars?.filter(c => c.approval_status === 'approved').length || 0;
+    const pendingApprovals = cars?.filter(c => c.approval_status === 'pending' || !c.approval_status).length || 0;
+
+    return {
+      totalEarnings,
+      activeListings,
+      totalSales: orders?.length || 0,
+      pendingApprovals
+    };
   }
 };

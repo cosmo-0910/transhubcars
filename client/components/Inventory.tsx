@@ -3,6 +3,7 @@ import { db } from '../../shared/lib/db';
 import type { Car } from '../../shared/lib/db';
 import { Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { formatPrice } from '../../shared/lib/formatters';
 
 
 const BodyTypeCard = ({ label, icon, active, onClick }: { label: string, icon: any, active: boolean, onClick: () => void }) => (
@@ -217,7 +218,7 @@ export const Inventory = ({ onInquiry, onDiscoverySelect }: {
                   <div>
                     <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', letterSpacing: '1px', fontWeight: 600 }}>INVESTMENT</div>
                     <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--accent-gold)' }}>
-                      ${car.price.toLocaleString()}
+                      {formatPrice(car.price)}
                     </div>
                   </div>
                   <button 

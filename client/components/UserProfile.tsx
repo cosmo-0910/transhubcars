@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { db, type Order } from '../../shared/lib/db';
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../shared/lib/AuthContext';
+import { formatPrice } from '../../shared/lib/formatters';
 import { VendorApplication } from './VendorApplication';
 import {
   Package,
@@ -134,7 +135,7 @@ export const UserProfile = ({ onClose }: { onClose: () => void }) => {
                 </header>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '3rem' }}>
-                  <StatCard label="TOTAL VALUE" value={`$${stats.totalInvestment.toLocaleString()}`} />
+                  <StatCard label="TOTAL VALUE" value={formatPrice(stats.totalInvestment)} />
                   <StatCard label="ASSETS" value={stats.acquisitionCount} />
                 </div>
 
@@ -160,7 +161,7 @@ export const UserProfile = ({ onClose }: { onClose: () => void }) => {
                           </div>
                         </div>
                         <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontSize: '1.2rem', fontWeight: 700 }}>${order.amount.toLocaleString()}</div>
+                          <div style={{ fontSize: '1.2rem', fontWeight: 700 }}>{formatPrice(order.amount)}</div>
                           <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.4rem', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.4rem' }}>
                             <Clock size={12} /> {new Date(order.created_at).toLocaleDateString()}
                           </div>
@@ -188,7 +189,7 @@ export const UserProfile = ({ onClose }: { onClose: () => void }) => {
                   <InfoItem icon={<User size={20} />} label="FULL NAME" value={profile?.full_name || 'Not Provided'} />
                   <InfoItem icon={<Mail size={20} />} label="SECURE EMAIL" value={user?.email || 'Not Provided'} />
                   <InfoItem icon={<Calendar size={20} />} label="MEMBER SINCE" value={new Date(profile?.created_at || user?.created_at || '').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} />
-                  <InfoItem icon={<CreditCard size={20} />} label="PREFERRED CURRENCY" value="USD ($)" />
+                  <InfoItem icon={<CreditCard size={20} />} label="PREFERRED CURRENCY" value="NGN (₦)" />
                 </div>
               </motion.div>
             )}

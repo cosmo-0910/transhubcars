@@ -4,6 +4,7 @@ import { X, Zap, Gauge, Settings, Droplets, Palette, Fingerprint, Hash } from 'l
 import type { Car } from '../../shared/lib/db';
 import { useAuth } from '../../shared/lib/AuthContext';
 import { Checkout } from './Checkout';
+import { formatPrice } from '../../shared/lib/formatters';
 
 interface VehicleDetailProps {
   car: Car;
@@ -135,7 +136,7 @@ export const VehicleDetail = ({ car, onClose, onInquiry }: VehicleDetailProps) =
               </div>
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', letterSpacing: '2px', fontWeight: 700 }}>RESERVE FOR</div>
-                <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--accent-gold)' }}>${car.price.toLocaleString()}</div>
+                <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--accent-gold)' }}>{formatPrice(car.price)}</div>
               </div>
             </div>
 
@@ -159,9 +160,28 @@ export const VehicleDetail = ({ car, onClose, onInquiry }: VehicleDetailProps) =
 
             <div style={{ marginBottom: '3rem' }}>
                 <h4 style={{ fontSize: '0.75rem', color: 'var(--text-muted)', letterSpacing: '3px', marginBottom: '1rem', fontWeight: 800 }}>CURATOR'S ANALYSIS</h4>
-                <p style={{ lineHeight: '1.8', color: 'rgba(255,255,255,0.7)', fontSize: '1rem', fontStyle: 'italic' }}>
+                <p style={{ lineHeight: '1.8', color: 'rgba(255,255,255,0.7)', fontSize: '1rem', fontStyle: 'italic', marginBottom: '2rem' }}>
                   {car.description || "This specimen represents a peak in automotive engineering, offering a unique blend of heritage and contemporary performance."}
                 </p>
+                
+                {car.gallery_urls && car.gallery_urls.length > 0 && (
+                  <div>
+                    <h4 style={{ fontSize: '0.75rem', color: 'var(--text-muted)', letterSpacing: '3px', marginBottom: '1.5rem', fontWeight: 800 }}>VISUAL ASSET DOSSIER</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                      {car.gallery_urls.map((url, idx) => (
+                        <motion.img 
+                          key={idx}
+                          initial={{ opacity: 0, y: 10 }}
+                          whileInView={{ opacity: 1, y: 0 }}
+                          viewport={{ once: true }}
+                          transition={{ delay: idx * 0.1 }}
+                          src={url} 
+                          style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '1rem', border: '1px solid var(--border-glass)' }} 
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
             </div>
           </div>
 

@@ -2,6 +2,7 @@
 
 import { db, supabase } from '../shared/lib/db';
 import type { Car, Order } from '../shared/lib/db';
+import { formatPrice } from '../shared/lib/formatters';
 import { useState, useEffect, useMemo } from 'react';
 import { 
   LayoutDashboard, Users, ShoppingBag, CarFront, Store, 
@@ -364,7 +365,7 @@ export const AdminDashboard = () => {
                    {/* Stats Grid */}
                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem' }}>
                      <KpiCard title="TOTAL USERS" value={stats.totalUsers} icon={Users} trend="12% MTD" />
-                     <KpiCard title="TOTAL REVENUE" value={`$${stats.totalRevenue.toLocaleString()}`} icon={DollarSign} trend="8% MTD" />
+                     <KpiCard title="TOTAL REVENUE" value={formatPrice(stats.totalRevenue)} icon={DollarSign} trend="8% MTD" />
                      <KpiCard title="ACTIVE ORDERS" value={stats.activeOrders} icon={ShoppingBag} subtext="Processing or Shipped" />
                      <KpiCard title="SYSTEM STATUS" value={stats.systemStatus} icon={Activity} subtext="All systems operational" />
                    </div>
@@ -528,7 +529,7 @@ export const AdminDashboard = () => {
                             {activeSection === 'inventory' && (
                               <>
                                 <td style={{ padding: '1.5rem' }}>{item.year} {item.make} {item.model}</td>
-                                <td style={{ padding: '1.5rem' }}>${item.price.toLocaleString()}</td>
+                                <td style={{ padding: '1.5rem' }}>{formatPrice(item.price)}</td>
                                 <td style={{ padding: '1.5rem' }}>{item.vendor_id ? 'Vendor' : 'Official'}</td>
                                 <td style={{ padding: '1.5rem' }}>
                                   <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -551,7 +552,7 @@ export const AdminDashboard = () => {
                             {activeSection === 'orders' && (
                               <>
                                 <td style={{ padding: '1.5rem', color: 'var(--text-muted)' }}>#{item.id.slice(0, 8)}</td>
-                                <td style={{ padding: '1.5rem' }}>${item.amount.toLocaleString()}</td>
+                                <td style={{ padding: '1.5rem' }}>{formatPrice(item.amount)}</td>
                                 <td style={{ padding: '1.5rem' }}><StatusBadge status={item.status} /></td>
                                 <td style={{ padding: '1.5rem', textAlign: 'right' }}>
                                   <button style={{ background: 'none', border: 'none', color: 'var(--text-muted)' }}>Manage</button>

@@ -1,7 +1,9 @@
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
-import { db, type Car } from '../shared/lib/db';
+import { db, type Car, type Order } from '../shared/lib/db';
+import { formatPrice } from '../shared/lib/formatters';
 import { useAuth } from '../shared/lib/AuthContext';
+import AddCarModal from './components/AddCarModal';
 import { 
   Plus, 
   Search, 
@@ -14,31 +16,63 @@ import {
   Settings,
   LogOut,
   Store,
-  TrendingUp
+  TrendingUp,
+  DollarSign,
+  Package,
+  ArrowRight,
+  Eye,
+  Trash2,
+  Edit
 } from 'lucide-react';
 
 export default function VendorDashboard() {
   const { user, profile, signOut } = useAuth();
   const [cars, setCars] = useState<Car[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [stats, setStats] = useState({
+    totalEarnings: 0,
+    activeListings: 0,
+    totalSales: 0,
+    pendingApprovals: 0
+  });
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [activeSection, setActiveSection] = useState('inventory');
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editingCar, setEditingCar] = useState<Car | null>(null);
 
   useEffect(() => {
     if (!user) return;
-    fetchInventory();
+    loadDashboardData();
   }, [user]);
 
-  const fetchInventory = async () => {
+  const loadDashboardData = async () => {
+    if (!user) return;
     try {
       setLoading(true);
-      const allCars = await db.getCars();
-      // Filter for cars owned by this vendor
-      setCars(allCars.filter(car => car.vendor_id === user?.id));
+      const [inventory, vendorOrders, vendorStats] = await Promise.all([
+        db.getCars(),
+        db.getOrdersForVendor(user.id),
+        db.getVendorStats(user.id)
+      ]);
+      
+      setCars(inventory.filter(car => car.vendor_id === user.id));
+      setOrders(vendorOrders);
+      setStats(vendorStats);
     } catch (err) {
-      console.error('Failed to fetch inventory:', err);
+      console.error('Failed to load dashboard data:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteCar = async (id: string) => {
+    if (!window.confirm('Are you sure you want to decommission this asset?')) return;
+    try {
+      await db.deleteCar(id);
+      loadDashboardData();
+    } catch (err) {
+      alert('Failed to delete asset');
     }
   };
 
@@ -67,7 +101,10 @@ export default function VendorDashboard() {
           borderRight: '1px solid var(--border-glass)',
           display: 'flex',
           flexDirection: 'column',
-          padding: '2rem 0'
+          padding: '2rem 0',
+          position: 'sticky',
+          top: 0,
+          height: '100vh'
         }}
       >
         {/* Logo */}
@@ -95,9 +132,6 @@ export default function VendorDashboard() {
 
         {/* Navigation */}
         <nav style={{ flex: 1, padding: '0 1rem' }}>
-          <div style={{ fontSize: '0.7rem', letterSpacing: '2px', color: 'var(--text-muted)', padding: '0 1rem', marginBottom: '1rem' }}>
-            MANAGEMENT
-          </div>
           {[
             { id: 'inventory', icon: CarFront, label: 'Inventory' },
             { id: 'orders', icon: ShoppingBag, label: 'Orders' },
@@ -131,26 +165,6 @@ export default function VendorDashboard() {
         {/* Bottom Actions */}
         <div style={{ padding: '0 1rem', borderTop: '1px solid var(--border-glass)', paddingTop: '1rem' }}>
           <button
-            onClick={() => setActiveSection('settings')}
-            style={{
-              width: '100%',
-              padding: '1rem',
-              marginBottom: '0.5rem',
-              background: 'transparent',
-              border: '1px solid transparent',
-              borderRadius: '0.8rem',
-              color: 'var(--text-muted)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '1rem',
-              fontSize: '0.9rem'
-            }}
-          >
-            <Settings size={18} />
-            Settings
-          </button>
-          <button
             onClick={signOut}
             style={{
               width: '100%',
@@ -175,109 +189,197 @@ export default function VendorDashboard() {
       {/* Main Content */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         {/* Header */}
-        <div style={{ padding: '2rem', borderBottom: '1px solid var(--border-glass)', background: 'rgba(0,0,0,0.4)' }}>
+        <div style={{ padding: '2rem', borderBottom: '1px solid var(--border-glass)', background: 'rgba(0,0,0,0.4)', position: 'sticky', top: 0, zIndex: 10, backdropFilter: 'blur(10px)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
               <h2 className="luxury-font" style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>
                 {activeSection === 'inventory' && 'Inventory Management'}
-                {activeSection === 'orders' && 'Orders'}
-                {activeSection === 'analytics' && 'Analytics'}
-                {activeSection === 'settings' && 'Settings'}
+                {activeSection === 'orders' && 'Order Control'}
+                {activeSection === 'analytics' && 'Strategic Intelligence'}
               </h2>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                {activeSection === 'inventory' && `${cars.length} vehicles in your inventory`}
-                {activeSection === 'orders' && 'View and manage your orders'}
-                {activeSection === 'analytics' && 'Track your performance'}
-                {activeSection === 'settings' && 'Manage your account'}
+                {activeSection === 'inventory' && `${cars.length} assets under management`}
+                {activeSection === 'orders' && `${orders.length} transaction records`}
+                {activeSection === 'analytics' && 'Real-time performance metrics'}
               </p>
             </div>
             {activeSection === 'inventory' && (
-              <button className="btn-gold" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '1rem 2rem' }}>
+              <button 
+                onClick={() => { setEditingCar(null); setShowAddModal(true); }}
+                className="btn-gold" 
+                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '1rem 2rem' }}
+              >
                 <Plus size={18} />
-                ADD LISTING
+                ADD ASSET
               </button>
             )}
           </div>
         </div>
 
         {/* Content Area */}
-        {activeSection === 'inventory' && (
-          <>
-            {/* Toolbar */}
-            <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid var(--border-glass)', display: 'flex', gap: '1rem', alignItems: 'center' }}>
-              <div style={{ position: 'relative', flex: 1 }}>
-                <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                <input 
-                  type="text" 
-                  placeholder="Search inventory by make, model, or VIN..."
-                  style={{ width: '100%', padding: '1rem 1rem 1rem 3rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-glass)', borderRadius: '0.8rem', color: 'white', outline: 'none' }}
-                />
+        <div style={{ flex: 1, overflowY: 'auto', padding: '2rem' }}>
+          {activeSection === 'inventory' && (
+            <>
+              {/* Toolbar */}
+              <div style={{ marginBottom: '2rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                <div style={{ position: 'relative', flex: 1 }}>
+                  <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                  <input 
+                    type="text" 
+                    placeholder="Search by model, VIN or stock number..."
+                    style={{ width: '100%', padding: '1rem 1rem 1rem 3rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-glass)', borderRadius: '0.8rem', color: 'white', outline: 'none' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(255,255,255,0.03)', padding: '0.3rem', borderRadius: '0.8rem', border: '1px solid var(--border-glass)' }}>
+                  {['all', 'approved', 'pending', 'rejected'].map(s => (
+                    <button 
+                      key={s}
+                      onClick={() => setFilter(s)}
+                      style={{ padding: '0.6rem 1.2rem', borderRadius: '0.6rem', border: 'none', background: filter === s ? 'var(--accent-gold)' : 'transparent', color: filter === s ? 'black' : 'var(--text-muted)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, textTransform: 'capitalize' }}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(255,255,255,0.03)', padding: '0.3rem', borderRadius: '0.8rem', border: '1px solid var(--border-glass)' }}>
-                {['all', 'approved', 'pending', 'rejected'].map(s => (
-                  <button 
-                    key={s}
-                    onClick={() => setFilter(s)}
-                    style={{ padding: '0.6rem 1.2rem', borderRadius: '0.6rem', border: 'none', background: filter === s ? 'var(--accent-gold)' : 'transparent', color: filter === s ? 'black' : 'var(--text-muted)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, textTransform: 'capitalize' }}
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-            </div>
 
-            {/* Inventory Grid */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '2rem' }}>
               {loading ? (
-                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', letterSpacing: '2px', fontSize: '0.8rem' }}>LOADING INVENTORY...</div>
+                <div style={{ height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>SYNCHRONIZING...</div>
               ) : filteredCars.length === 0 ? (
-                <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem', opacity: 0.5 }}>
+                <div style={{ height: '300px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem', opacity: 0.5 }}>
                   <CarFront size={48} />
-                  <p>{filter === 'all' ? 'No vehicles in your inventory yet.' : `No ${filter} vehicles.`}</p>
+                  <p>No assets found in the selected category.</p>
                 </div>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
                   {filteredCars.map(car => (
-                    <div key={car.id} className="glass-hover" style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '1.2rem', overflow: 'hidden', border: '1px solid var(--border-glass)' }}>
+                    <motion.div 
+                      key={car.id} 
+                      layout
+                      className="glass-hover" 
+                      style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '1.2rem', overflow: 'hidden', border: '1px solid var(--border-glass)' }}
+                    >
                       <div style={{ height: '180px', background: 'black', position: 'relative' }}>
                         <img src={car.image_url} alt={car.model} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.8 }} />
                         <div style={{ position: 'absolute', top: '1rem', right: '1rem', padding: '0.3rem 0.8rem', borderRadius: '1rem', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(10px)', border: `1px solid ${getStatusColor(car.approval_status || 'pending')}`, color: getStatusColor(car.approval_status || 'pending'), fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                          {car.approval_status === 'approved' && <CheckCircle2 size={12} />}
-                          {car.approval_status === 'rejected' && <AlertCircle size={12} />}
-                          {(!car.approval_status || car.approval_status === 'pending') && <Clock size={12} />}
+                          {car.approval_status === 'approved' ? <CheckCircle2 size={12} /> : car.approval_status === 'rejected' ? <AlertCircle size={12} /> : <Clock size={12} />}
                           {car.approval_status || 'pending'}
                         </div>
                       </div>
                       <div style={{ padding: '1.5rem' }}>
                         <div style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '0.5rem' }}>{car.year} {car.make} {car.model}</div>
-                        <div style={{ fontSize: '1.2rem', color: 'var(--accent-gold)', marginBottom: '1.5rem' }}>${car.price.toLocaleString()}</div>
+                        <div style={{ fontSize: '1.2rem', color: 'var(--accent-gold)', marginBottom: '1.5rem' }}>{formatPrice(car.price)}</div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                           <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Clock size={14} /> {car.mileage.toLocaleString()} mi</span>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><CarFront size={14} /> {car.transmission}</span>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><ArrowRight size={14} /> Details</span>
                         </div>
                       </div>
                       <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border-glass)', display: 'flex', gap: '1rem' }}>
-                        <button style={{ flex: 1, padding: '0.6rem', background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: '0.5rem', color: 'white', cursor: 'pointer', fontSize: '0.8rem' }}>EDIT</button>
-                        <button style={{ flex: 1, padding: '0.6rem', background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: '0.5rem', color: 'white', cursor: 'pointer', fontSize: '0.8rem' }}>VIEW</button>
+                        <button 
+                          onClick={() => { setEditingCar(car); setShowAddModal(true); }}
+                          style={{ flex: 1, padding: '0.6rem', background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: '0.5rem', color: 'white', cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                        >
+                          <Edit size={14} /> EDIT
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteCar(car.id)}
+                          style={{ flex: 1, padding: '0.6rem', background: 'rgba(239, 68, 68, 0.05)', border: 'none', borderRadius: '0.5rem', color: '#ef4444', cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                        >
+                          <Trash2 size={14} /> DELETE
+                        </button>
                       </div>
-                    </div>
+                    </motion.div>
                   ))}
                 </div>
               )}
-            </div>
-          </>
-        )}
+            </>
+          )}
 
-        {/* Other sections placeholders */}
-        {activeSection !== 'inventory' && (
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
-            <div style={{ textAlign: 'center' }}>
-              <Store size={48} style={{ margin: '0 auto 1rem', opacity: 0.3 }} />
-              <p>This section is coming soon...</p>
+          {activeSection === 'analytics' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem' }}>
+                <KpiCard title="TOTAL REVENUE" value={formatPrice(stats.totalEarnings)} icon={DollarSign} color="var(--accent-gold)" />
+                <KpiCard title="ACTIVE ASSETS" value={stats.activeListings} icon={CarFront} color="#4ade80" />
+                <KpiCard title="TOTAL SALES" value={stats.totalSales} icon={ShoppingBag} color="white" />
+                <KpiCard title="AWAITING APPR." value={stats.pendingApprovals} icon={Clock} color="#eab308" />
+              </div>
+
+              <div className="glass" style={{ padding: '2rem', borderRadius: '1.5rem' }}>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '1.5rem' }}>Sales Distribution</h3>
+                <div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', border: '1px dashed var(--border-glass)', borderRadius: '1rem' }}>
+                  Visualization engine initializing...
+                </div>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+
+          {activeSection === 'orders' && (
+            <div className="glass" style={{ borderRadius: '1.5rem', overflow: 'hidden' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid var(--border-glass)' }}>
+                    <th style={{ padding: '1.2rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--text-muted)' }}>ORDER ID</th>
+                    <th style={{ padding: '1.2rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--text-muted)' }}>VEHICLE</th>
+                    <th style={{ padding: '1.2rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--text-muted)' }}>AMOUNT</th>
+                    <th style={{ padding: '1.2rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--text-muted)' }}>STATUS</th>
+                    <th style={{ padding: '1.2rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--text-muted)' }}>DATE</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {orders.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-muted)' }}>No completed transactions.</td>
+                    </tr>
+                  ) : (
+                    orders.map(order => (
+                      <tr key={order.id} style={{ borderBottom: '1px solid var(--border-glass)' }}>
+                        <td style={{ padding: '1.2rem', fontSize: '0.9rem' }}>#{order.id.slice(0, 8)}</td>
+                        <td style={{ padding: '1.2rem' }}>
+                          <div style={{ fontWeight: 600 }}>{order.cars?.year} {order.cars?.make} {order.cars?.model}</div>
+                        </td>
+                        <td style={{ padding: '1.2rem', color: 'var(--accent-gold)', fontWeight: 600 }}>{formatPrice(order.amount)}</td>
+                        <td style={{ padding: '1.2rem' }}>
+                          <span style={{ padding: '0.4rem 0.8rem', borderRadius: '0.5rem', background: 'rgba(255,255,255,0.05)', fontSize: '0.75rem', fontWeight: 600 }}>
+                            {order.status.toUpperCase()}
+                          </span>
+                        </td>
+                        <td style={{ padding: '1.2rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                          {new Date(order.created_at).toLocaleDateString()}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
+
+      <AnimatePresence>
+        {showAddModal && (
+          <AddCarModal 
+            editingCar={editingCar}
+            onClose={() => setShowAddModal(false)}
+            onSuccess={() => {
+              setShowAddModal(false);
+              loadDashboardData();
+            }}
+          />
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function KpiCard({ title, value, icon: Icon, color }: { title: string, value: string | number, icon: any, color: string }) {
+  return (
+    <div className="glass" style={{ padding: '1.5rem', borderRadius: '1.2rem', border: '1px solid var(--border-glass)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+        <span style={{ fontSize: '0.7rem', letterSpacing: '2px', color: 'var(--text-muted)' }}>{title}</span>
+        <Icon size={16} color={color} />
+      </div>
+      <div style={{ fontSize: '1.8rem', fontWeight: 700, color: color }}>{value}</div>
     </div>
   );
 }
