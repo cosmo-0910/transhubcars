@@ -1,32 +1,31 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, ChevronDown } from 'lucide-react';
+import { Search, Loader2, X } from 'lucide-react';
+import { db } from '../lib/db';
 
 interface Suggestion {
   value: string;
   label: string;
 }
 
-interface LuxuryAutocompleteProps {
-  name: string;
-  label: string;
-  placeholder: string;
-  defaultValue?: string;
-  required?: boolean;
-  onSelect?: (value: string) => void;
-  fetchSuggestions: (query: string) => Promise<Suggestion[]>;
+interface SearchAutocompleteProps {
+  placeholder?: string;
+  onSearch: (value: string) => void;
+  className?: string;
+  style?: React.CSSProperties;
+  autoFocus?: boolean;
+  enableSuggestions?: boolean;
 }
 
-export default function LuxuryAutocomplete({ 
-  name, 
-  label, 
-  placeholder, 
-  defaultValue, 
-  required, 
-  onSelect,
-  fetchSuggestions 
-}: LuxuryAutocompleteProps) {
-  const [query, setQuery] = useState(defaultValue || '');
+export default function SearchAutocomplete({ 
+  placeholder = "SEARCH...", 
+  onSearch,
+  className,
+  style,
+  autoFocus,
+  enableSuggestions = true
+}: SearchAutocompleteProps) {
+  const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -34,10 +33,10 @@ export default function LuxuryAutocomplete({
 
   useEffect(() => {
     const timer = setTimeout(async () => {
-      if (query.length > 0 && isOpen) {
+      if (query.length >= 2 && isOpen && enableSuggestions) {
         setLoading(true);
         try {
-          const results = await fetchSuggestions(query);
+          const results = await db.getSearchSuggestions(query);
           setSuggestions(results);
         } catch (error) {
           console.error('Fetch error:', error);
@@ -63,29 +62,70 @@ export default function LuxuryAutocomplete({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const handleSelect = (value: string) => {
+    setQuery(value);
+    setIsOpen(false);
+    onSearch(value);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      onSearch(query);
+      setIsOpen(false);
+    }
+  };
+
   return (
-    <div ref={containerRef} style={{ position: 'relative', width: '100%' }}>
-      <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
-        {label}
-      </label>
-      
+    <div ref={containerRef} style={{ position: 'relative', width: '100%', ...style }} className={className}>
       <div style={{ position: 'relative' }}>
+        <Search 
+          size={16} 
+          style={{ 
+            position: 'absolute', 
+            left: '1rem', 
+            top: '50%', 
+            transform: 'translateY(-50%)', 
+            color: 'var(--text-muted)',
+            pointerEvents: 'none'
+          }} 
+        />
         <input
-          name={name}
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
             setIsOpen(true);
+            // Also notify search immediately for live filtering if desired
+            onSearch(e.target.value);
           }}
           onFocus={() => setIsOpen(true)}
-          required={required}
+          onKeyDown={handleKeyDown}
           autoComplete="off"
-          className="admin-input"
-          style={{ width: '100%', paddingRight: '2.5rem' }}
+          autoFocus={autoFocus}
+          style={{ 
+            width: '100%', 
+            padding: '0.7rem 2.8rem',
+            background: 'transparent',
+            border: 'none',
+            borderBottom: '1px solid rgba(255,255,255,0.1)',
+            color: 'white',
+            outline: 'none',
+            fontSize: 'var(--font-size-small, 0.75rem)',
+            letterSpacing: '2px'
+          }}
           placeholder={placeholder}
         />
-        <div style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }}>
-          {loading ? <Loader2 size={16} className="animate-spin" /> : <ChevronDown size={16} />}
+        <div style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          {loading && <Loader2 size={14} className="animate-spin" style={{ color: 'var(--accent-gold)' }} />}
+          {query && (
+            <X 
+              size={14} 
+              style={{ color: 'var(--text-muted)', cursor: 'pointer' }} 
+              onClick={() => {
+                setQuery('');
+                onSearch('');
+              }}
+            />
+          )}
         </div>
       </div>
 
@@ -103,33 +143,29 @@ export default function LuxuryAutocomplete({
               zIndex: 1000,
               background: '#0a0a0a',
               border: '1px solid var(--border-glass)',
-              borderRadius: '0.8rem',
+              borderRadius: '0.5rem',
               overflow: 'hidden',
               boxShadow: '0 20px 40px rgba(0,0,0,0.6)',
               backdropFilter: 'blur(20px)',
-              maxHeight: '200px',
+              maxHeight: '250px',
               overflowY: 'auto'
             }}
           >
             {suggestions.map((suggestion, index) => (
               <div
                 key={index}
-                onClick={() => {
-                  setQuery(suggestion.label);
-                  setIsOpen(false);
-                  if (onSelect) onSelect(suggestion.value);
-                }}
-                className="smooth-transition"
+                onClick={() => handleSelect(suggestion.value)}
                 style={{
-                  padding: '1rem',
+                  padding: '0.8rem 1.2rem',
                   cursor: 'pointer',
                   borderBottom: index !== suggestions.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
-                  fontSize: '0.9rem',
+                  fontSize: '0.8rem',
                   color: 'rgba(255,255,255,0.7)',
-                  background: 'transparent'
+                  background: 'transparent',
+                  transition: 'all 0.2s'
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                  e.currentTarget.style.background = 'rgba(197, 160, 89, 0.1)';
                   e.currentTarget.style.color = 'var(--accent-gold)';
                 }}
                 onMouseLeave={(e) => {

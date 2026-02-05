@@ -82,10 +82,10 @@ export const InquiryForm = ({ carId, carName, type, onClose }: { carId?: string,
       <button onClick={onClose} style={{ position: 'absolute', top: '2rem', right: '2rem', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
 
       <motion.div variants={itemVariants}>
-        <h2 className="luxury-font" style={{ marginBottom: '0.5rem', fontSize: '2.5rem', letterSpacing: '-1px' }}>
+        <h2 className="luxury-font" style={{ marginBottom: '0.5rem', fontSize: 'clamp(1.8rem, 6vw, 2.5rem)', letterSpacing: '-1px' }}>
           {type === 'Preorder' ? 'Priority Sourcing' : 'Acquisition Inquiry'}
         </h2>
-        <p style={{ color: 'var(--accent-gold)', fontSize: '0.7rem', letterSpacing: '3px', fontWeight: 600, marginBottom: '3rem' }}>
+        <p style={{ color: 'var(--accent-gold)', fontSize: '0.65rem', letterSpacing: '2px', fontWeight: 600, marginBottom: 'clamp(1.5rem, 5vw, 3rem)' }}>
           {carName ? `FOR ${carName.toUpperCase()}` : 'SPECIFY YOUR REQUIREMENTS'}
         </p>
       </motion.div>
@@ -140,7 +140,7 @@ export const InquiryForm = ({ carId, carName, type, onClose }: { carId?: string,
 
         <motion.div variants={itemVariants} className="luxury-input-group">
           <label className="luxury-label">Additional Message</label>
-          <textarea rows={3} name="message" className="luxury-textarea" placeholder="Special requirements, preferred timing, etc." />
+          <textarea rows={3} name="message" className="luxury-textarea" placeholder="Provide any specific requirements, timing, or heritage concerns..." />
         </motion.div>
 
         <motion.button 
@@ -149,7 +149,7 @@ export const InquiryForm = ({ carId, carName, type, onClose }: { carId?: string,
           whileTap={{ scale: 0.98 }}
           type="submit" 
           className="btn-gold" 
-          style={{ height: '4rem', fontSize: '0.9rem', letterSpacing: '4px', marginTop: '1rem' }}
+          style={{ height: '4rem', fontSize: '0.9rem', letterSpacing: '4px', marginTop: '1rem', color: 'var(--text-fixed-white)' }}
         >
           CONFIRM REQUEST
         </motion.button>

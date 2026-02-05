@@ -3,7 +3,9 @@ import { useState, useEffect } from 'react';
 import { db, type Car, type Order } from '../shared/lib/db';
 import { formatPrice } from '../shared/lib/formatters';
 import { useAuth } from '../shared/lib/AuthContext';
+import SearchAutocomplete from '../shared/components/SearchAutocomplete';
 import AddCarModal from './components/AddCarModal';
+import UpgradeToPreorderModal from './components/UpgradeToPreorderModal';
 import { 
   Plus, 
   Search, 
@@ -22,8 +24,11 @@ import {
   ArrowRight,
   Eye,
   Trash2,
-  Edit
+  Edit,
+  Menu,
+  X
 } from 'lucide-react';
+import { ThemeToggle } from '../shared/components/ThemeToggle';
 
 export default function VendorDashboard() {
   const { user, profile, signOut } = useAuth();
@@ -39,7 +44,10 @@ export default function VendorDashboard() {
   const [filter, setFilter] = useState('all');
   const [activeSection, setActiveSection] = useState('inventory');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [editingCar, setEditingCar] = useState<Car | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -51,12 +59,12 @@ export default function VendorDashboard() {
     try {
       setLoading(true);
       const [inventory, vendorOrders, vendorStats] = await Promise.all([
-        db.getCars(),
+        db.getVendorCars(user.id),
         db.getOrdersForVendor(user.id),
         db.getVendorStats(user.id)
       ]);
       
-      setCars(inventory.filter(car => car.vendor_id === user.id));
+      setCars(inventory);
       setOrders(vendorOrders);
       setStats(vendorStats);
     } catch (err) {
@@ -85,14 +93,30 @@ export default function VendorDashboard() {
     }
   };
 
-  const filteredCars = filter === 'all' 
-    ? cars 
-    : cars.filter(car => (car.approval_status || 'pending') === filter);
+  const filteredCars = cars.filter(car => {
+    const matchesFilter = filter === 'all' || (car.approval_status || 'pending') === filter;
+    const matchesSearch = `${car.make} ${car.model} ${car.vin || ''}`.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesFilter && matchesSearch;
+  });
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#000' }}>
+    <div className="logo-grid-bg dashboard-container">
+      <div style={{ position: 'fixed', inset: 0, background: 'var(--bg-deep)', zIndex: -2 }}></div>
+      
+      {/* Mobile Toggle */}
+      <div className="mobile-only-flex" style={{ position: 'fixed', bottom: '2rem', right: '2rem', zIndex: 3000 }}>
+        <button 
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          className="glass" 
+          style={{ width: '56px', height: '56px', borderRadius: '50%', color: 'var(--accent-gold)', border: '1px solid var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.8)' }}
+        >
+          {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
+      </div>
+
       {/* Sidebar */}
       <motion.div
+        className={`dashboard-sidebar ${isSidebarOpen ? 'mobile-sidebar-open' : ''}`}
         initial={{ x: -20, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         style={{
@@ -101,17 +125,12 @@ export default function VendorDashboard() {
           borderRight: '1px solid var(--border-glass)',
           display: 'flex',
           flexDirection: 'column',
-          padding: '2rem 0',
-          position: 'sticky',
-          top: 0,
-          height: '100vh'
+          zIndex: 2000
         }}
       >
         {/* Logo */}
         <div style={{ padding: '0 2rem', marginBottom: '3rem' }}>
-          <div className="luxury-font" style={{ fontSize: '1.8rem', marginBottom: '0.5rem' }}>
-            Transhub.
-          </div>
+          <img src="/logo.png" alt="Transhub Logo" style={{ height: '32px', width: 'auto', marginBottom: '0.5rem' }} />
           <div style={{ fontSize: '0.7rem', letterSpacing: '2px', color: 'var(--accent-gold)' }}>
             VENDOR PORTAL
           </div>
@@ -129,6 +148,26 @@ export default function VendorDashboard() {
             {profile?.full_name}
           </div>
         </div>
+
+        {/* Upgrade Banner */}
+        {profile?.preorder_status !== 'approved' && (
+          <div style={{ margin: '0 1rem 2rem 1rem' }}>
+             <button 
+               onClick={() => setShowUpgradeModal(true)}
+               disabled={profile?.preorder_status === 'pending'}
+               className="glass-hover"
+               style={{ width: '100%', padding: '1rem', borderRadius: '1rem', background: 'linear-gradient(45deg, rgba(212, 175, 55, 0.1), rgba(0,0,0,0))', border: '1px solid var(--accent-gold)', color: 'var(--accent-gold)', textAlign: 'left', cursor: profile?.preorder_status === 'pending' ? 'default' : 'pointer' }}
+             >
+               <div style={{ fontSize: '0.7rem', fontWeight: 700, marginBottom: '0.3rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                 {profile?.preorder_status === 'pending' ? <Clock size={14} /> : <Store size={14} />}
+                 {profile?.preorder_status === 'pending' ? 'REVIEW IN PROGRESS' : 'UNLOCK PREORDERS'}
+               </div>
+               <div style={{ fontSize: '0.7rem', opacity: 0.8 }}>
+                 {profile?.preorder_status === 'pending' ? 'Applications under review.' : 'Verify store for preorder access.'}
+               </div>
+             </button>
+          </div>
+        )}
 
         {/* Navigation */}
         <nav style={{ flex: 1, padding: '0 1rem' }}>
@@ -163,7 +202,10 @@ export default function VendorDashboard() {
         </nav>
 
         {/* Bottom Actions */}
-        <div style={{ padding: '0 1rem', borderTop: '1px solid var(--border-glass)', paddingTop: '1rem' }}>
+        <div style={{ padding: '0 1rem', borderTop: '1px solid var(--border-glass)', paddingTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <ThemeToggle />
+          </div>
           <button
             onClick={signOut}
             style={{
@@ -222,14 +264,11 @@ export default function VendorDashboard() {
             <>
               {/* Toolbar */}
               <div style={{ marginBottom: '2rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                <div style={{ position: 'relative', flex: 1 }}>
-                  <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                  <input 
-                    type="text" 
-                    placeholder="Search by model, VIN or stock number..."
-                    style={{ width: '100%', padding: '1rem 1rem 1rem 3rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-glass)', borderRadius: '0.8rem', color: 'white', outline: 'none' }}
-                  />
-                </div>
+                <SearchAutocomplete 
+                  placeholder="Search by model, VIN or stock number..."
+                  onSearch={setSearchQuery}
+                  style={{ flex: 1 }}
+                />
                 <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(255,255,255,0.03)', padding: '0.3rem', borderRadius: '0.8rem', border: '1px solid var(--border-glass)' }}>
                   {['all', 'approved', 'pending', 'rejected'].map(s => (
                     <button 
@@ -364,6 +403,15 @@ export default function VendorDashboard() {
             onSuccess={() => {
               setShowAddModal(false);
               loadDashboardData();
+            }}
+          />
+        )}
+        {showUpgradeModal && (
+          <UpgradeToPreorderModal 
+            onClose={() => setShowUpgradeModal(false)}
+            onSuccess={() => {
+              setShowUpgradeModal(false);
+              window.location.reload(); // Refresh to update profile status
             }}
           />
         )}

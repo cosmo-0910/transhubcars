@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Zap, Gauge, Settings, Droplets, Palette, Fingerprint, Hash } from 'lucide-react';
 import type { Car } from '../../shared/lib/db';
@@ -16,15 +16,27 @@ export const VehicleDetail = ({ car, onClose, onInquiry }: VehicleDetailProps) =
   const allImages = [car.image_url, ...(car.gallery_urls || [])].filter(Boolean);
   const [activeImg, setActiveImg] = useState(0);
   const [showCheckout, setShowCheckout] = useState(false);
+  const [fullscreenImg, setFullscreenImg] = useState<string | null>(null);
   const { user } = useAuth();
+
+  // Auto-play gallery
+  useEffect(() => {
+    if (fullscreenImg || showCheckout) return;
+    
+    const interval = setInterval(() => {
+      setActiveImg((prev) => (prev + 1) % allImages.length);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [allImages.length, fullscreenImg, showCheckout]);
 
   if (showCheckout) {
     return (
-      <div style={{ position: 'fixed', inset: 0, zIndex: 4000, background: 'rgba(0,0,0,0.95)', backdropFilter: 'blur(20px)', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '1rem' }}>
+      <div className="elite-modal-overlay">
         <Checkout car={car} onClose={onClose} />
         <button 
           onClick={() => setShowCheckout(false)}
-          style={{ position: 'absolute', top: '2rem', right: '2rem', background: 'none', border: 'none', color: 'white', cursor: 'pointer', fontSize: '1.5rem', zIndex: 100 }}
+          style={{ position: 'absolute', top: '2rem', right: '2rem', background: 'none', border: 'none', color: 'var(--text-main)', cursor: 'pointer', fontSize: '1.5rem', zIndex: 100 }}
         >✕</button>
       </div>
     );
@@ -35,117 +47,136 @@ export const VehicleDetail = ({ car, onClose, onInquiry }: VehicleDetailProps) =
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        zIndex: 3000,
-        background: 'rgba(0,0,0,0.92)',
-        backdropFilter: 'blur(15px)',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: '1rem'
-      }}
+      className="elite-modal-overlay"
     >
-      <motion.div 
-        initial={{ y: 50, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ y: 50, opacity: 0 }}
-        className="glass"
-        style={{
-          width: '100%',
-          maxWidth: '1200px',
-          height: 'min(95vh, 900px)',
-          borderRadius: '2rem',
-          overflow: 'hidden',
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(500px, 1fr))',
-          position: 'relative',
-          border: '1px solid rgba(255,255,255,0.1)'
-        }}
-      >
+        <motion.div 
+          initial={{ y: 50, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: 50, opacity: 0 }}
+          className="glass vehicle-detail-modal"
+          style={{
+            width: '100%',
+            maxWidth: '1200px',
+            height: 'min(95vh, 900px)',
+            borderRadius: '2.5rem',
+            overflow: 'hidden',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 500px), 1fr))',
+            position: 'relative',
+            border: '1px solid var(--border-glass)',
+            overflowY: 'auto',
+            background: 'var(--bg-deep)'
+          }}
+        >
         <button 
           onClick={onClose}
-          style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', zIndex: 10, background: 'rgba(0,0,0,0.5)', border: 'none', color: 'white', padding: '0.5rem', borderRadius: '50%', cursor: 'pointer' }}
+          style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', zIndex: 10, background: 'var(--bg-glass)', border: 'none', color: 'var(--text-main)', padding: '0.5rem', borderRadius: '50%', cursor: 'pointer' }}
         >
           <X size={24} />
         </button>
 
         {/* Gallery Section */}
-        <div style={{ position: 'relative', height: '100%', background: '#0a0a0a', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ position: 'relative', height: '100%', background: 'black', display: 'flex', flexDirection: 'column' }}>
           <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-            <AnimatePresence mode="wait">
+            <AnimatePresence mode="popLayout" initial={false}>
               <motion.img 
                 key={activeImg}
                 src={allImages[activeImg]} 
-                initial={{ opacity: 0, scale: 1.1 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.5 }}
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                initial={{ opacity: 0, x: 50, scale: 1.05 }}
+                animate={{ opacity: 1, x: 0, scale: 1 }}
+                exit={{ opacity: 0, x: -50, scale: 0.95 }}
+                transition={{ 
+                  duration: 0.6, 
+                  ease: [0.16, 1, 0.3, 1] 
+                }}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer', position: 'absolute' }}
+                onClick={() => setFullscreenImg(allImages[activeImg])}
               />
             </AnimatePresence>
           </div>
           
           {allImages.length > 1 && (
-            <div style={{ padding: '1.5rem', display: 'flex', gap: '1rem', overflowX: 'auto', background: 'rgba(0,0,0,0.4)' }}>
+            <div className="no-scrollbar" style={{ padding: 'clamp(1rem, 3vw, 1.5rem)', display: 'flex', gap: '0.8rem', overflowX: 'auto', background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(5px)', zIndex: 5 }}>
               {allImages.map((img, idx) => (
                 <img 
                   key={idx}
                   src={img}
                   onClick={() => setActiveImg(idx)}
                   style={{ 
-                    width: '80px', 
-                    height: '60px', 
+                    width: 'clamp(60px, 15vw, 80px)', 
+                    height: 'clamp(45px, 11vw, 60px)', 
                     objectFit: 'cover', 
                     borderRadius: '0.5rem', 
                     cursor: 'pointer',
                     opacity: activeImg === idx ? 1 : 0.4,
-                    border: activeImg === idx ? '2px solid var(--accent-gold)' : '2px solid transparent',
-                    transition: '0.3s'
+                    border: activeImg === idx ? '1.5px solid var(--accent-gold)' : '1.5px solid transparent',
+                    transition: '0.3s',
+                    flexShrink: 0
                   }}
                 />
               ))}
             </div>
           )}
           
-          <div style={{ position: 'absolute', bottom: allImages.length > 1 ? '110px' : '0', left: 0, right: 0, padding: '2.5rem', background: 'linear-gradient(transparent, rgba(0,0,0,0.9))' }}>
-            <h2 className="luxury-font" style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>{car.make} {car.model}</h2>
-            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                <span style={{ color: 'var(--accent-gold)', fontWeight: 600, letterSpacing: '2px' }}>{car.year} EDITION</span>
-                <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'rgba(255,255,255,0.3)' }} />
-                <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>SN: {car.stock_number}</span>
+          <div style={{ position: 'absolute', bottom: allImages.length > 1 ? 'clamp(80px, 15vh, 110px)' : '0', left: 0, right: 0, padding: 'clamp(1rem, 5vw, 2.5rem)', background: 'linear-gradient(transparent, var(--overlay-bg))', color: 'var(--text-main)', zIndex: 4 }}>
+            <h2 className="luxury-font" style={{ fontSize: 'clamp(1.8rem, 8vw, 3rem)', marginBottom: '0.5rem', color: 'var(--text-main)' }}>{car.make} {car.model}</h2>
+            <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                <span style={{ color: 'var(--accent-gold)', fontWeight: 600, letterSpacing: '2px', fontSize: '0.7rem' }}>{car.year} EDITION</span>
+                <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'var(--border-glass)' }} />
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>SN: {car.stock_number}</span>
+                
+                {/* Transhub Official Badge */}
+                {!car.vendor_id && (
+                  <>
+                    <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'var(--border-glass)' }} />
+                    <div className="glass" style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '0.4rem',
+                      padding: '0.3rem 0.6rem', 
+                      borderRadius: '2rem',
+                      background: 'var(--accent-gold-soft)',
+                      border: '1px solid var(--accent-gold)'
+                    }}>
+                      <img src="/logo.png" alt="Transhub" style={{ width: '12px', height: '12px' }} />
+                      <span style={{ 
+                        fontSize: '0.55rem', 
+                        fontWeight: 800,
+                        letterSpacing: '1px',
+                        color: 'var(--accent-gold)'
+                      }}>
+                        OFFICIAL
+                      </span>
+                    </div>
+                  </>
+                )}
             </div>
           </div>
         </div>
 
-        {/* Content Section */}
-        <div style={{ padding: '3.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', background: 'rgba(255,255,255,0.02)' }}>
+        <div className="mobile-detail-content" style={{ padding: 'clamp(1.5rem, 5vw, 3.5rem)', overflowY: 'auto', display: 'flex', flexDirection: 'column', background: 'var(--bg-glass)' }}>
           <div style={{ marginBottom: '3rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2.5rem', flexWrap: 'wrap', gap: '1rem' }}>
               <div>
-                <h3 className="luxury-font" style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>{car.make} {car.model}</h3>
-                <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                <h3 className="luxury-font" style={{ fontSize: 'clamp(1.8rem, 6vw, 2.5rem)', marginBottom: '0.5rem' }}>{car.make} {car.model}</h3>
+                <div style={{ display: 'flex', gap: '1.2rem', alignItems: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                   <span>{car.year}</span>
                   <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'var(--accent-gold)' }} />
                   <span>{car.stock_number}</span>
                 </div>
               </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', letterSpacing: '2px', fontWeight: 700 }}>RESERVE FOR</div>
-                <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--accent-gold)' }}>{formatPrice(car.price)}</div>
+              <div style={{ textAlign: 'left' }}>
+                <div style={{ fontSize: '0.55rem', color: 'var(--text-muted)', letterSpacing: '2px', fontWeight: 700 }}>RESERVE FOR</div>
+                <div style={{ fontSize: 'clamp(1.5rem, 6vw, 2rem)', fontWeight: 800, color: 'var(--accent-gold)' }}>{formatPrice(car.price)}</div>
               </div>
             </div>
 
             {/* Carwow-style Spec Summary Bar */}
-            <div className="glass" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', padding: '1.5rem', borderRadius: '1rem', gap: '1rem', marginBottom: '3rem' }}>
-              <QuickSummary label="MILEAGE" value={`${car.mileage.toLocaleString()} KM`} icon={<Gauge size={18} />} />
-              <QuickSummary label="ENGINE" value={car.engine?.split(' ')[0] || car.engine} icon={<Settings size={18} />} />
-              <QuickSummary label="TRANS" value={car.transmission?.slice(0, 9)} icon={<Zap size={18} />} />
-              <QuickSummary label="FUEL" value={car.fuel_type} icon={<Droplets size={18} />} />
+            <div className="glass mobile-spec-summary" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))', padding: '1.2rem', borderRadius: '1rem', gap: '1.2rem', marginBottom: '2.5rem' }}>
+              <QuickSummary label="MILEAGE" value={`${car.mileage.toLocaleString()} KM`} icon={<Gauge size={16} />} />
+              <QuickSummary label="ENGINE" value={car.engine?.split(' ')[0] || car.engine} icon={<Settings size={16} />} />
+              <QuickSummary label="TRANS" value={car.transmission?.slice(0, 9)} icon={<Zap size={16} />} />
+              <QuickSummary label="FUEL" value={car.fuel_type} icon={<Droplets size={16} />} />
             </div>
 
             <div style={{ marginBottom: '3rem' }}>
@@ -160,14 +191,14 @@ export const VehicleDetail = ({ car, onClose, onInquiry }: VehicleDetailProps) =
 
             <div style={{ marginBottom: '3rem' }}>
                 <h4 style={{ fontSize: '0.75rem', color: 'var(--text-muted)', letterSpacing: '3px', marginBottom: '1rem', fontWeight: 800 }}>CURATOR'S ANALYSIS</h4>
-                <p style={{ lineHeight: '1.8', color: 'rgba(255,255,255,0.7)', fontSize: '1rem', fontStyle: 'italic', marginBottom: '2rem' }}>
+                <p style={{ lineHeight: '1.8', color: 'var(--text-main)', opacity: 0.8, fontSize: '1rem', fontStyle: 'italic', marginBottom: '2rem' }}>
                   {car.description || "This specimen represents a peak in automotive engineering, offering a unique blend of heritage and contemporary performance."}
                 </p>
                 
                 {car.gallery_urls && car.gallery_urls.length > 0 && (
                   <div>
                     <h4 style={{ fontSize: '0.75rem', color: 'var(--text-muted)', letterSpacing: '3px', marginBottom: '1.5rem', fontWeight: 800 }}>VISUAL ASSET DOSSIER</h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(clamp(140px, 40vw, 300px), 1fr))', gap: '1rem' }}>
                       {car.gallery_urls.map((url, idx) => (
                         <motion.img 
                           key={idx}
@@ -175,9 +206,10 @@ export const VehicleDetail = ({ car, onClose, onInquiry }: VehicleDetailProps) =
                           whileInView={{ opacity: 1, y: 0 }}
                           viewport={{ once: true }}
                           transition={{ delay: idx * 0.1 }}
-                          src={url} 
-                          style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '1rem', border: '1px solid var(--border-glass)' }} 
-                        />
+                           src={url} 
+                           onClick={() => setFullscreenImg(url)}
+                           style={{ width: '100%', height: 'clamp(150px, 30vh, 200px)', objectFit: 'cover', borderRadius: '1rem', border: '1px solid var(--border-glass)', cursor: 'pointer' }} 
+                         />
                       ))}
                     </div>
                   </div>
@@ -195,15 +227,80 @@ export const VehicleDetail = ({ car, onClose, onInquiry }: VehicleDetailProps) =
             </button>
             <button 
               onClick={onInquiry}
-              className="smooth-transition"
-              style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', borderRadius: '0.8rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.75rem' }}
+              className="smooth-transition glass-hover"
+              style={{ flex: 1, background: 'var(--bg-glass)', border: '1px solid var(--border-glass)', color: 'var(--text-main)', borderRadius: '0.8rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.75rem' }}
             >
               INQUIRE
             </button>
           </div>
         </div>
       </motion.div>
-    </motion.div>
+ 
+       {/* Lightbox Overlay */}
+       <AnimatePresence>
+         {fullscreenImg && (
+           <motion.div
+             initial={{ opacity: 0 }}
+             animate={{ opacity: 1 }}
+             exit={{ opacity: 0 }}
+             onClick={() => setFullscreenImg(null)}
+             style={{
+               position: 'fixed',
+               inset: 0,
+               zIndex: 5000,
+               background: 'rgba(0,0,0,0.95)',
+               backdropFilter: 'blur(10px)',
+               display: 'flex',
+               justifyContent: 'center',
+               alignItems: 'center',
+               cursor: 'zoom-out',
+               padding: '2rem'
+             }}
+           >
+             <motion.button
+               initial={{ opacity: 0, scale: 0.8 }}
+               animate={{ opacity: 1, scale: 1 }}
+               onClick={(e) => { e.stopPropagation(); setFullscreenImg(null); }}
+               style={{
+                 position: 'absolute',
+                 top: '2rem',
+                 right: '2rem',
+                 background: 'var(--bg-glass)',
+                 color: 'white',
+                 width: '44px',
+                 height: '44px',
+                 borderRadius: '50%',
+                 display: 'flex',
+                 alignItems: 'center',
+                 justifyContent: 'center',
+                 cursor: 'pointer',
+                 zIndex: 5100,
+                 backdropFilter: 'blur(5px)',
+                 border: '1px solid rgba(255,255,255,0.1)'
+               }}
+             >
+               <X size={24} />
+             </motion.button>
+ 
+             <motion.img
+               initial={{ opacity: 0, scale: 0.9, y: 20 }}
+               animate={{ opacity: 1, scale: 1, y: 0 }}
+               exit={{ opacity: 0, scale: 0.9, y: 20 }}
+               src={fullscreenImg}
+               alt="Enlarged vehicle view"
+               onClick={(e) => e.stopPropagation()}
+               style={{
+                 maxWidth: '100%',
+                 maxHeight: '100%',
+                 objectFit: 'contain',
+                 borderRadius: '0.5rem',
+                 boxShadow: '0 20px 50px rgba(0,0,0,0.5)'
+               }}
+             />
+           </motion.div>
+         )}
+       </AnimatePresence>
+     </motion.div>
   );
 };
 

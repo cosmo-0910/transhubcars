@@ -4,8 +4,12 @@ CREATE TABLE IF NOT EXISTS profiles (
   full_name TEXT,
   role TEXT CHECK (role IN ('customer', 'admin', 'vendor')) DEFAULT 'customer',
   vendor_status TEXT CHECK (vendor_status IN ('none', 'pending', 'approved', 'rejected')) DEFAULT 'none',
+  preorder_status TEXT CHECK (preorder_status IN ('none', 'pending', 'approved', 'rejected')) DEFAULT 'none',
+  status TEXT CHECK (status IN ('active', 'suspended', 'banned', 'disabled')) DEFAULT 'active',
   business_name TEXT,
   business_details JSONB,
+  store_video_url TEXT,
+  store_image_url TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -16,7 +20,7 @@ CREATE TABLE IF NOT EXISTS cars (
   model TEXT NOT NULL,
   year INTEGER NOT NULL,
   price DECIMAL NOT NULL,
-  status TEXT CHECK (status IN ('Ready to Ship', 'Preorder')) NOT NULL,
+  status TEXT CHECK (status IN ('Readily Available', 'Preorder')) NOT NULL,
   description TEXT,
   image_url TEXT,
   gallery_urls TEXT[] DEFAULT '{}',

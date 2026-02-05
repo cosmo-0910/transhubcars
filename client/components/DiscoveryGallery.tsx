@@ -18,7 +18,7 @@ export const DiscoveryGallery = ({ filter, onClose, onInquiry }: DiscoveryGaller
     const loadFilteredCars = async () => {
       setLoading(true);
       try {
-        const allCars = await db.getCars();
+        const allCars = await db.getCars({ onlyApproved: true });
         const filtered = allCars.filter(car => {
           if (filter.type === 'brand') {
             return car.make.toUpperCase() === filter.value.toUpperCase();
@@ -47,9 +47,9 @@ export const DiscoveryGallery = ({ filter, onClose, onInquiry }: DiscoveryGaller
         position: 'fixed',
         inset: 0,
         background: 'var(--bg-deep)',
-        zIndex: 1500,
+        zIndex: 2500,
         overflowY: 'auto',
-        padding: '6rem 2rem 4rem'
+        padding: 'clamp(50px, 10vh, 100px) 2rem 5rem'
       }}
     >
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
@@ -73,14 +73,14 @@ export const DiscoveryGallery = ({ filter, onClose, onInquiry }: DiscoveryGaller
           <ArrowLeft size={16} /> BACK TO DASHBOARD
         </button>
 
-        <div style={{ marginBottom: '5rem' }}>
-          <span style={{ fontSize: '0.7rem', color: 'var(--accent-gold)', fontWeight: 800, letterSpacing: '4px' }}>
+        <div style={{ marginBottom: '4rem' }}>
+          <span style={{ fontSize: '0.7rem', color: 'var(--accent-gold)', fontWeight: 800, letterSpacing: '5px' }}>
             {filter.type.toUpperCase()} DISCOVERY
           </span>
-          <h2 className="luxury-font" style={{ fontSize: '4rem', marginTop: '1rem' }}>
-            The {filter.value} Collection.
+          <h2 className="luxury-font" style={{ fontSize: 'clamp(2.5rem, 8vw, 4.5rem)', marginTop: '1.5rem', lineHeight: 1.1 }}>
+            The {filter.value} <span style={{ color: 'var(--accent-gold)' }}>Registry.</span>
           </h2>
-          <div className="glass" style={{ height: '1px', width: '100%', marginTop: '3rem', opacity: 0.2 }}></div>
+          <div className="glass" style={{ height: '1px', width: '100%', marginTop: '3rem', opacity: 0.15 }}></div>
         </div>
 
         {loading ? (

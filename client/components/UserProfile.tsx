@@ -11,8 +11,6 @@ import {
   X,
   User,
   Mail,
-  Phone,
-  MapPin,
   Calendar,
   ChevronRight,
   Store,
@@ -69,7 +67,11 @@ export const UserProfile = ({ onClose }: { onClose: () => void }) => {
         overflowY: 'auto',
         padding: '0',
         borderRadius: '2.5rem',
-        position: 'relative'
+        position: 'relative',
+        background: 'var(--bg-form-card)',
+        backdropFilter: 'blur(40px)',
+        border: '1px solid var(--border-glass)',
+        boxShadow: 'var(--shadow-luxury)'
       }}
     >
       <div className="floating-shimmer" />
@@ -144,7 +146,7 @@ export const UserProfile = ({ onClose }: { onClose: () => void }) => {
                 ) : orders.length === 0 ? (
                   <div style={{ padding: '4rem', textAlign: 'center', border: '1px dashed var(--border-glass)', borderRadius: '2rem' }}>
                     <Package size={48} color="var(--border-glass)" style={{ marginBottom: '1.5rem' }} />
-                    <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Your boutique portfolio is currently awaiting its first acquisition.</p>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Your elite portfolio is currently awaiting its first acquisition.</p>
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>

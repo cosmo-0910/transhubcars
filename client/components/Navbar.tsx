@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Car, Search, Menu, User, LogOut, Shield, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import SearchAutocomplete from '../../shared/components/SearchAutocomplete';
+import { ThemeToggle } from '../../shared/components/ThemeToggle';
 
 interface NavbarProps {
   onAdminToggle: () => void;
@@ -9,11 +11,14 @@ interface NavbarProps {
   onProfileClick?: () => void;
   user?: any | null;
   onSignOut?: () => void;
+  currentView: 'home' | 'preorder' | 'services';
+  onViewChange: (view: 'home' | 'preorder' | 'services') => void;
 }
 
-export const Navbar = ({ onAdminToggle, isAdmin, onAuthClick, onProfileClick, user, onSignOut }: NavbarProps) => {
+export const Navbar = ({ onAdminToggle, isAdmin, onAuthClick, onProfileClick, user, onSignOut, currentView, onViewChange }: NavbarProps) => {
   const [scrolled, setScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -23,10 +28,10 @@ export const Navbar = ({ onAdminToggle, isAdmin, onAuthClick, onProfileClick, us
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const navLinks = [
-    { label: 'INVENTORY', href: '#inventory' },
-    { label: 'PREORDER', href: '#' },
-    { label: 'SERVICES', href: '#' },
+  const navLinks: { label: string, view: 'home' | 'preorder' | 'services' }[] = [
+    { label: 'INVENTORY', view: 'home' },
+    { label: 'PREORDER', view: 'preorder' },
+    { label: 'SERVICES', view: 'services' },
   ];
 
   return (
@@ -50,11 +55,9 @@ export const Navbar = ({ onAdminToggle, isAdmin, onAuthClick, onProfileClick, us
         {/* Brand Area */}
         <div 
           style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', cursor: 'pointer' }} 
-          onClick={() => window.location.href = '/'}
+          onClick={() => onViewChange('home')}
         >
-          <div className="glass" style={{ padding: '0.4rem', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Car size={24} color="var(--accent-gold)" />
-          </div>
+          <img src="/logo.png" alt="Transhub Logo" style={{ height: '40px', width: 'auto' }} />
           <span className="luxury-font" style={{ fontSize: '1.4rem', letterSpacing: '2px', fontWeight: 800 }}>
             TRANSHUB<span style={{ color: 'var(--accent-gold)' }}>.</span>
           </span>
@@ -63,13 +66,58 @@ export const Navbar = ({ onAdminToggle, isAdmin, onAuthClick, onProfileClick, us
         {/* Desktop Navigation Links */}
         <div className="desktop-nav" style={{ display: 'flex', gap: '3rem', alignItems: 'center' }}>
           {navLinks.map(link => (
-            <a key={link.label} href={link.href} className="nav-link">{link.label}</a>
+            <button 
+              key={link.label} 
+              onClick={() => {
+                onViewChange(link.view);
+                if (link.view === 'home') {
+                    setTimeout(() => document.getElementById('inventory')?.scrollIntoView({ behavior: 'smooth' }), 100);
+                }
+              }} 
+              className={`nav-link ${currentView === link.view ? 'active' : ''}`}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+            >
+              {link.label}
+            </button>
           ))}
         </div>
 
         {/* Functional Icons & Auth */}
         <div style={{ display: 'flex', gap: '1.8rem', alignItems: 'center' }}>
-          <Search size={20} color="var(--text-muted)" style={{ cursor: 'pointer' }} className="smooth-transition" />
+          <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
+            <AnimatePresence>
+              {isSearchOpen ? (
+                <motion.div
+                  initial={{ width: 0, opacity: 0 }}
+                  animate={{ width: '250px', opacity: 1 }}
+                  exit={{ width: 0, opacity: 0 }}
+                  style={{ overflow: 'hidden', marginRight: '1rem' }}
+                >
+                  <SearchAutocomplete 
+                    placeholder="SEARCH MODELS..." 
+                    onSearch={(query) => {
+                      if (query) {
+                        window.location.hash = '#inventory';
+                        // We can use a custom event or a shared store if we had one, 
+                        // but for now, we'll let Inventory handle its own filter if it's visible.
+                        // Or we can just set the hash and let the user scroll.
+                      }
+                    }}
+                    autoFocus
+                  />
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
+            <Search 
+              size={20} 
+              color={isSearchOpen ? 'var(--accent-gold)' : 'var(--text-muted)'} 
+              style={{ cursor: 'pointer' }} 
+              className="smooth-transition" 
+              onClick={() => setIsSearchOpen(!isSearchOpen)}
+            />
+          </div>
+
+          <ThemeToggle />
           
           <div className="desktop-nav">
             {user ? (
@@ -92,7 +140,7 @@ export const Navbar = ({ onAdminToggle, isAdmin, onAuthClick, onProfileClick, us
                   <div className="glass" style={{ width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--accent-gold)' }}>
                     <User size={16} color="var(--accent-gold)" />
                   </div>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '1.5px', color: 'white' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '1.5px', color: 'var(--text-main)' }}>
                     {user.email?.split('@')[0].toUpperCase()}
                   </span>
                 </div>
@@ -149,15 +197,20 @@ export const Navbar = ({ onAdminToggle, isAdmin, onAuthClick, onProfileClick, us
             <Car size={64} color="var(--accent-gold)" style={{ marginBottom: '2rem' }} />
 
             {navLinks.map(link => (
-              <a 
+              <button 
                 key={link.label} 
-                href={link.href} 
-                className="nav-link luxury-font" 
-                style={{ fontSize: '1.5rem' }}
-                onClick={() => setIsMobileMenuOpen(false)}
+                className={`nav-link luxury-font ${currentView === link.view ? 'active' : ''}`} 
+                style={{ fontSize: '1.5rem', background: 'none', border: 'none', cursor: 'pointer' }}
+                onClick={() => {
+                  onViewChange(link.view);
+                  setIsMobileMenuOpen(false);
+                  if (link.view === 'home') {
+                      setTimeout(() => document.getElementById('inventory')?.scrollIntoView({ behavior: 'smooth' }), 100);
+                  }
+                }}
               >
                 {link.label}
-              </a>
+              </button>
             ))}
 
             <div style={{ padding: '1px', background: 'var(--accent-gold-soft)', width: '60%', margin: '1rem 0' }}></div>

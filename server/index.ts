@@ -1,7 +1,54 @@
 import express from 'express';
 import cors from 'cors';
-import db from './db.js';
+import db from './db.ts';
 import { randomUUID } from 'crypto';
+import { createClient } from '@supabase/supabase-js';
+import * as fs from 'fs';
+import * as path from 'path';
+
+// Load env vars manually since dotenv is not in package.json
+// This is a simple parser to ensure we get the keys
+const loadEnv = () => {
+  try {
+    const envPath = path.resolve(process.cwd(), '.env');
+    if (fs.existsSync(envPath)) {
+      const envConfig = fs.readFileSync(envPath, 'utf8');
+      envConfig.split('\n').forEach(line => {
+        const parts = line.split('=');
+        if (parts.length >= 2) {
+          const key = parts[0].trim();
+          const value = parts.slice(1).join('=').trim();
+          if (key && value) {
+            process.env[key] = value;
+          }
+        }
+      });
+    }
+  } catch (e) {
+    console.error('Failed to load .env file', e);
+  }
+};
+loadEnv();
+
+const supabaseUrl = process.env.VITE_SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !supabaseServiceKey) {
+  console.warn('Supabase credentials missing in server environment. Admin creation will fail.');
+}
+
+let supabaseAdmin: any = null;
+
+if (supabaseUrl && supabaseServiceKey) {
+  supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  });
+} else {
+  console.warn('Supabase credentials missing in server environment. Admin creation will fail.');
+}
 
 const app = express();
 app.use(cors());
@@ -95,7 +142,42 @@ app.post('/api/preorders', (req, res) => {
 app.put('/api/preorders/:id/status', (req, res) => {
   const { status } = req.body;
   db.prepare('UPDATE preorders SET status = ? WHERE id = ?').run(status, req.params.id);
+  db.prepare('UPDATE preorders SET status = ? WHERE id = ?').run(status, req.params.id);
   res.json({ success: true });
+});
+
+// --- ADMIN MANAGEMENT ---
+app.post('/api/admin/create', async (req, res) => {
+  const { email, password, fullName, permissions } = req.body;
+
+  if (!supabaseAdmin) {
+    res.status(500).json({ error: 'Server misconfigured: Missing Service Role Key in .env file' });
+    return; // Explicit return to stop execution
+  }
+
+  try {
+    // 1. Create User in Supabase Auth
+    const { data: user, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: {
+        full_name: fullName,
+        is_admin: true,
+        permissions: permissions || []
+      }
+    });
+
+    if (authError) throw authError;
+
+    // 2. Profile is automatically created by trigger, but we might want to ensure it synced
+    // The trigger in admin_permissions_setup.sql handles the permissions from metadata.
+    
+    res.json({ success: true, user });
+  } catch (error: any) {
+    console.error('Failed to create admin:', error);
+    res.status(400).json({ error: error.message });
+  }
 });
 
 const PORT = 3001;

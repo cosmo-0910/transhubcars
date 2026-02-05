@@ -65,11 +65,11 @@ export const AuthForm = ({ type: initialType, onSuccess }: { type: 'login' | 'si
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <h2 className="luxury-font auth-title">
+          <h2 className="luxury-font auth-title" style={{ fontSize: 'clamp(2rem, 8vw, 2.5rem)' }}>
             {authType === 'login' ? 'Welcome Back.' : 'Join the Elite.'}
           </h2>
-          <p className="auth-subtitle">
-            {authType === 'login' ? 'Access your automotive portfolio.' : 'Begin your acquisition journey today.'}
+          <p className="auth-subtitle" style={{ letterSpacing: '1px' }}>
+            {authType === 'login' ? 'Access your private automotive portfolio.' : 'Begin your acquisition journey with Transhub.'}
           </p>
         </motion.div>
       </div>
@@ -207,8 +207,8 @@ export const AuthForm = ({ type: initialType, onSuccess }: { type: 'login' | 'si
               setPassword('p0p0p0');
             }}
             style={{
-              background: 'rgba(197, 160, 89, 0.05)',
-              border: '1px solid rgba(197, 160, 89, 0.2)',
+              background: 'var(--accent-gold-soft)',
+              border: '1px solid var(--border-glass)',
               color: 'var(--accent-gold)',
               padding: '0.6rem',
               borderRadius: '0.5rem',

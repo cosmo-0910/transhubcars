@@ -8,7 +8,7 @@ export interface Car {
   model: string;
   year: number;
   price: number;
-  status: 'Ready to Ship' | 'Preorder';
+  status: 'Readily Available' | 'Preorder';
   description: string;
   image_url: string; 
   gallery_urls: string[]; 
@@ -22,6 +22,9 @@ export interface Car {
   stock_number: string;
   vendor_id?: string;
   approval_status?: 'pending' | 'approved' | 'rejected';
+  profiles?: {
+    business_name: string;
+  };
 }
 
 export interface Inquiry {
@@ -62,6 +65,25 @@ export interface Order {
   cars?: Car;
 }
 
+export interface AuditLog {
+  id: string;
+  user_id: string;
+  action: string;
+  target_type?: string;
+  target_id?: string;
+  details: any;
+  created_at: string;
+  profiles?: {
+    full_name: string;
+  };
+}
+
+export interface PlatformSetting {
+  key: string;
+  value: any;
+  updated_at: string;
+}
+
 export const db = {
   // Profiles
   updateProfile: async (userId: string, updates: any) => {
@@ -93,29 +115,116 @@ export const db = {
     return data || [];
   },
 
+  getAdmins: async () => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('role', 'admin')
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data || [];
+  },
+
+  createAdmin: async (adminData: { email: string; password: string; fullName: string; permissions: string[] }) => {
+    const response = await fetch('http://localhost:3001/api/admin/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(adminData)
+    });
+
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.error || 'Failed to create admin');
+    }
+    return result;
+  },
+
+  updateProfileStatus: async (userId: string, status: 'active' | 'suspended' | 'banned' | 'disabled') => {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ status })
+      .eq('id', userId);
+    
+    if (error) throw error;
+  },
+
+  submitPreorderApplication: async (userId: string, videoUrl: string, imageUrl: string) => {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ 
+        preorder_status: 'pending',
+        store_video_url: videoUrl,
+        store_image_url: imageUrl
+      })
+      .eq('id', userId);
+    
+    if (error) throw error;
+  },
+
+  reviewPreorderApplication: async (userId: string, status: 'approved' | 'rejected') => {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ preorder_status: status })
+      .eq('id', userId);
+    
+    if (error) throw error;
+  },
+
   async uploadImage(file: File, bucket: string = 'car-images'): Promise<string> {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
-    const filePath = `${fileName}`;
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
 
-    const { error: uploadError } = await supabase.storage
-      .from(bucket)
-      .upload(filePath, file);
+      const { error: uploadError } = await supabase.storage
+        .from(bucket)
+        .upload(filePath, file);
 
-    if (uploadError) throw uploadError;
+      if (uploadError) {
+        if (uploadError.message.includes('bucket not found') || uploadError.message.includes('does not exist')) {
+          throw new Error(`Storage bucket '${bucket}' not found. Please create it in your Supabase Dashboard (Storage section) and set it to Public.`);
+        }
+        throw uploadError;
+      }
 
-    const { data: { publicUrl } } = supabase.storage
-      .from(bucket)
-      .getPublicUrl(filePath);
+      const { data: { publicUrl } } = supabase.storage
+        .from(bucket)
+        .getPublicUrl(filePath);
 
-    return publicUrl;
+      return publicUrl;
+    } catch (err: any) {
+      console.error('Upload error detail:', err);
+      if (err.message === 'Failed to fetch') {
+        throw new Error('Network error during upload. Please check your internet connection and ensure your Supabase project URL is correct.');
+      }
+      throw err;
+    }
   },
 
   // Cars
-  getCars: async (): Promise<Car[]> => {
+  getCars: async (options?: { onlyApproved?: boolean }): Promise<Car[]> => {
+    let query = supabase
+      .from('cars')
+      .select('*, profiles(business_name)');
+    
+    if (options?.onlyApproved) {
+      query = query.eq('approval_status', 'approved');
+      // Also include cars with null approval_status assuming they are official/legacy
+      // query = query.or('approval_status.eq.approved,approval_status.is.null'); 
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data || [];
+  },
+
+  getVendorCars: async (vendorId: string): Promise<Car[]> => {
     const { data, error } = await supabase
       .from('cars')
       .select('*')
+      .eq('vendor_id', vendorId)
       .order('created_at', { ascending: false });
     
     if (error) throw error;
@@ -300,5 +409,73 @@ export const db = {
       totalSales: orders?.length || 0,
       pendingApprovals
     };
+  },
+
+  getSearchSuggestions: async (query: string): Promise<{ label: string, value: string }[]> => {
+    if (!query) return [];
+    
+    const { data: cars, error } = await supabase
+      .from('cars')
+      .select('make, model')
+      .ilike('model', `%${query}%`)
+      .limit(10);
+    
+    if (error) throw error;
+    
+    // Create unique labels for "Make Model"
+    const suggestions = cars.map(car => ({
+      label: `${car.make} ${car.model}`,
+      value: `${car.make} ${car.model}`
+    }));
+    
+    // Filter out duplicates if any (e.g. multiple cars of same make/model)
+    return suggestions.filter((v, i, a) => a.findIndex(t => t.label === v.label) === i);
+  },
+
+  // Audit Logs
+  getAuditLogs: async (): Promise<AuditLog[]> => {
+    const { data, error } = await supabase
+      .from('audit_logs')
+      .select('*, profiles(full_name)')
+      .order('created_at', { ascending: false })
+      .limit(100);
+    
+    if (error) throw error;
+    return data || [];
+  },
+
+  logAction: async (action: string, targetType?: string, targetId?: string, details: any = {}) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { error } = await supabase
+      .from('audit_logs')
+      .insert([{
+        user_id: user.id,
+        action,
+        target_type: targetType,
+        target_id: targetId,
+        details
+      }]);
+    
+    if (error) console.error('Failed to log action:', error);
+  },
+
+  // Platform Settings
+  getPlatformSettings: async (): Promise<PlatformSetting[]> => {
+    const { data, error } = await supabase
+      .from('platform_settings')
+      .select('*');
+    
+    if (error) throw error;
+    return data || [];
+  },
+
+  updatePlatformSetting: async (key: string, value: any) => {
+    const { error } = await supabase
+      .from('platform_settings')
+      .upsert({ key, value, updated_at: new Date().toISOString() });
+    
+    if (error) throw error;
   }
 };

@@ -1,9 +1,5 @@
 import Database from 'better-sqlite3';
 
-// Note: In a real Electron or Node environment, this would persist.
-// For a pure Vite app, 'better-sqlite3' might need a backend or local proxy.
-// I'll set up the schema and helper functions.
-
 const db = new Database('transhub.db', { verbose: console.log });
 
 export const initDb = () => {
@@ -14,7 +10,7 @@ export const initDb = () => {
       model TEXT NOT NULL,
       year INTEGER NOT NULL,
       price REAL NOT NULL,
-      status TEXT CHECK(status IN ('Ready to Ship', 'Preorder')) NOT NULL,
+      status TEXT CHECK(status IN ('Readily Available', 'Preorder')) NOT NULL,
       description TEXT,
       image_url TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP

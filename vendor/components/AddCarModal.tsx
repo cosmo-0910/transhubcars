@@ -5,6 +5,7 @@ import { db, type Car } from '../../shared/lib/db';
 import { useAuth } from '../../shared/lib/AuthContext';
 import LuxurySelect from './LuxurySelect';
 import LuxuryAutocomplete from './LuxuryAutocomplete';
+import ImageUploadField from '../../shared/components/ImageUploadField';
 
 interface AddCarModalProps {
   onClose: () => void;
@@ -13,7 +14,7 @@ interface AddCarModalProps {
 }
 
 export default function AddCarModal({ onClose, onSuccess, editingCar }: AddCarModalProps) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [primaryImage, setPrimaryImage] = useState<File | string | null>(editingCar?.image_url || null);
@@ -105,6 +106,10 @@ export default function AddCarModal({ onClose, onSuccess, editingCar }: AddCarMo
         mileage: parseInt(formData.get('mileage') as string),
         transmission: formData.get('transmission'),
         fuel_type: formData.get('fuel_type'),
+        exterior_color: formData.get('exterior_color'), // Added
+        interior_color: formData.get('interior_color'), // Added
+        engine: formData.get('engine'),                 // Updated
+        vin: formData.get('vin'),                       // Added
         description: formData.get('description'),
         image_url: primaryUrl || 'https://images.unsplash.com/photo-1544636331-e26859203199?auto=format&fit=crop&q=80',
         gallery_urls: galleryUrls.filter(url => typeof url === 'string' && url.trim() !== ''),
@@ -134,7 +139,7 @@ export default function AddCarModal({ onClose, onSuccess, editingCar }: AddCarMo
         className="glass"
         style={{ width: '100%', maxWidth: '800px', maxHeight: '90vh', overflowY: 'auto', padding: '3rem', borderRadius: '2rem', position: 'relative' }}
       >
-        <button onClick={onClose} style={{ position: 'absolute', top: '2rem', right: '2rem', background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', width: '40px', height: '40px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <button onClick={onClose} style={{ position: 'absolute', top: '2rem', right: '2rem', background: 'var(--bg-glass)', border: 'none', color: 'var(--text-main)', width: '40px', height: '40px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <X size={20} />
         </button>
 
@@ -188,18 +193,48 @@ export default function AddCarModal({ onClose, onSuccess, editingCar }: AddCarMo
             label="Inventory Status"
             defaultValue={editingCar?.status}
             options={[
-              { value: 'Ready to Ship', label: 'Ready to Ship' },
-              { value: 'Preorder', label: 'Preorder' }
+              { value: 'Readily Available', label: 'Readily Available' },
+              ...(profile?.preorder_status === 'approved' ? [{ value: 'Preorder', label: 'Preorder' }] : [])
             ]}
           />
+          {profile?.preorder_status !== 'approved' && (
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '-1rem', marginBottom: '1rem', fontStyle: 'italic' }}>
+              * Preorder listings require verification. <button type="button" onClick={onClose} style={{ color: 'var(--accent-gold)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Unlock Access</button>
+            </div>
+          )}
 
-          {/* Technical Specs */}
+          {/* Aesthetic Identity */}
           <div style={{ gridColumn: 'span 2' }}>
-            <div style={{ fontSize: '0.7rem', letterSpacing: '2px', color: 'var(--accent-gold)', marginBottom: '1rem', marginTop: '1rem' }}>TECHNICAL DOSSIER</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
-              <div className="form-group">
-                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Mileage</label>
-                <input name="mileage" type="number" defaultValue={editingCar?.mileage} required className="admin-input" style={{ width: '100%' }} placeholder="650" />
+            <div style={{ fontSize: '0.7rem', letterSpacing: '2px', color: 'var(--accent-gold)', marginBottom: '1.5rem', marginTop: '1rem' }}>AESTHETIC IDENTITY</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+              <div className="luxury-input-group">
+                <label className="luxury-label">Exterior Color</label>
+                <input name="exterior_color" type="text" defaultValue={editingCar?.exterior_color} required className="luxury-input" placeholder="e.g. Nero Noctis" />
+              </div>
+              <div className="luxury-input-group">
+                <label className="luxury-label">Interior Color</label>
+                <input name="interior_color" type="text" defaultValue={editingCar?.interior_color} required className="luxury-input" placeholder="e.g. Rosso Alala" />
+              </div>
+            </div>
+          </div>
+
+          {/* Technical Dossier */}
+          <div style={{ gridColumn: 'span 2' }}>
+            <div style={{ fontSize: '0.7rem', letterSpacing: '2px', color: 'var(--accent-gold)', marginBottom: '1.5rem', marginTop: '1rem' }}>TECHNICAL DOSSIER</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+              <div className="luxury-input-group">
+                <label className="luxury-label">Engine Details</label>
+                <input name="engine" type="text" defaultValue={editingCar?.engine} required className="luxury-input" placeholder="e.g. 4.0L V8 Twin-Turbo" />
+              </div>
+              <div className="luxury-input-group">
+                <label className="luxury-label">VIN Reference</label>
+                <input name="vin" type="text" defaultValue={editingCar?.vin} required className="luxury-input" placeholder="Enter vehicle VIN" />
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.5rem' }}>
+              <div className="luxury-input-group">
+                <label className="luxury-label">Mileage (KM)</label>
+                <input name="mileage" type="number" defaultValue={editingCar?.mileage} required className="luxury-input" placeholder="e.g. 1250" />
               </div>
               <LuxurySelect 
                 name="transmission" 
@@ -225,9 +260,11 @@ export default function AddCarModal({ onClose, onSuccess, editingCar }: AddCarMo
             </div>
           </div>
 
-          {/* Media */}
+          {/* Media & Narrative */}
           <div style={{ gridColumn: 'span 2' }}>
-            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Primary Visual Asset</label>
+            <div style={{ fontSize: '0.7rem', letterSpacing: '2px', color: 'var(--accent-gold)', marginBottom: '1.5rem', marginTop: '1rem' }}>VISUAL ASSETS & NARRATIVE</div>
+            
+            <label className="luxury-label" style={{ marginBottom: '0.8rem', display: 'block' }}>Primary Visual Asset</label>
             <ImageUploadField 
               value={primaryImage} 
               onChange={setPrimaryImage} 
@@ -235,14 +272,14 @@ export default function AddCarModal({ onClose, onSuccess, editingCar }: AddCarMo
             />
 
             <div style={{ marginTop: '2rem' }}>
-              <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>Gallery Protocol (Secondary Assets)</label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <label className="luxury-label" style={{ marginBottom: '1rem', display: 'block' }}>Gallery Protocol (Secondary Assets)</label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '1rem' }}>
                 {galleryImages.map((img, index) => (
                   <div key={index} style={{ position: 'relative' }}>
                     <ImageUploadField 
                       value={img} 
                       onChange={(val) => handleGalleryImageChange(index, val)} 
-                      placeholder={`Gallery asset #${index + 1}`}
+                      placeholder={`Asset #${index + 1}`}
                     />
                     <button 
                       type="button"
@@ -261,20 +298,19 @@ export default function AddCarModal({ onClose, onSuccess, editingCar }: AddCarMo
                   onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-glass)'}
                 >
                   <Plus size={24} />
-                  <span style={{ fontSize: '0.7rem', letterSpacing: '1px' }}>ADD VISUAL</span>
+                  <span style={{ fontSize: '0.6rem', letterSpacing: '1px', fontWeight: 700 }}>ADD ASSET</span>
                 </button>
               </div>
             </div>
-          </div>
 
-          {/* Description */}
-          <div style={{ gridColumn: 'span 2' }}>
-            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Vehicle Description</label>
-            <textarea name="description" defaultValue={editingCar?.description} className="admin-input" style={{ width: '100%', height: '120px', resize: 'none', padding: '1rem' }} placeholder="Detailed overview of luxury features and condition..." />
+            <div style={{ marginTop: '2rem' }}>
+              <label className="luxury-label">Curator's Description</label>
+              <textarea name="description" defaultValue={editingCar?.description} className="luxury-textarea" style={{ height: '120px', resize: 'none' }} placeholder="Provide a detailed overview of luxury features, heritage, and condition..." />
+            </div>
           </div>
 
           <div style={{ gridColumn: 'span 2', display: 'flex', gap: '1rem', marginTop: '2rem' }}>
-            <button type="button" onClick={onClose} style={{ flex: 1, padding: '1.2rem', borderRadius: '1rem', border: '1px solid var(--border-glass)', background: 'transparent', color: 'white', cursor: 'pointer', fontWeight: 600 }}>ABORT</button>
+            <button type="button" onClick={onClose} style={{ flex: 1, padding: '1.2rem', borderRadius: '1rem', border: '1px solid var(--border-glass)', background: 'transparent', color: 'var(--text-main)', cursor: 'pointer', fontWeight: 600 }}>ABORT</button>
             <button type="submit" disabled={loading} className="btn-gold" style={{ flex: 2, padding: '1.2rem' }}>
               {loading ? 'SYNCHRONIZING...' : editingCar ? 'SECURE UPDATES' : 'PUBLISH ASSET'}
             </button>
@@ -285,71 +321,4 @@ export default function AddCarModal({ onClose, onSuccess, editingCar }: AddCarMo
   );
 }
 
-function ImageUploadField({ value, onChange, placeholder }: { value: File | string | null, onChange: (val: File | string) => void, placeholder: string }) {
-  const [preview, setPreview] = useState<string | null>(typeof value === 'string' ? value : null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (value instanceof File) {
-      const url = URL.createObjectURL(value);
-      setPreview(url);
-      return () => URL.revokeObjectURL(url);
-    } else if (typeof value === 'string') {
-      setPreview(value);
-    } else {
-      setPreview(null);
-    }
-  }, [value]);
-
-  return (
-    <div style={{ width: '100%' }}>
-      <div 
-        onClick={() => fileInputRef.current?.click()}
-        style={{ 
-          height: '120px', 
-          background: 'rgba(255,255,255,0.03)', 
-          border: '1px solid var(--border-glass)', 
-          borderRadius: '1rem', 
-          cursor: 'pointer', 
-          position: 'relative', 
-          overflow: 'hidden',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          transition: '0.3s'
-        }}
-        onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--accent-gold)'}
-        onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-glass)'}
-      >
-        {preview ? (
-          <>
-            <img src={preview} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Preview" />
-            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: '0.2s' }} className="hover-overlay">
-              <Upload size={24} color="white" />
-            </div>
-          </>
-        ) : (
-          <div style={{ textAlign: 'center', padding: '1rem' }}>
-            <Upload size={24} color="var(--text-muted)" style={{ marginBottom: '0.5rem' }} />
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', letterSpacing: '1px' }}>{placeholder}</div>
-          </div>
-        )}
-      </div>
-      <input 
-        type="file" 
-        ref={fileInputRef} 
-        style={{ display: 'none' }} 
-        accept="image/*"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) onChange(file);
-        }}
-      />
-      
-      <style>{`
-        div:hover .hover-overlay { opacity: 1 !important; }
-      `}</style>
-    </div>
-  );
-}
 

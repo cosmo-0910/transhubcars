@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { AuthProvider, useAuth } from '../shared/lib/AuthContext';
 import VendorDashboard from './VendorDashboard.tsx';
+import { ThemeProvider } from '../shared/context/ThemeContext.tsx';
 
 function VendorApp() {
   const { user, profile, loading } = useAuth();
@@ -48,8 +49,10 @@ function VendorApp() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <VendorApp />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <VendorApp />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

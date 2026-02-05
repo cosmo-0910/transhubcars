@@ -1,6 +1,7 @@
 import { AdminDashboard } from './AdminDashboard.tsx';
 import { AuthProvider, useAuth } from '../shared/lib/AuthContext.tsx';
 import { AuthForm } from '../client/components/AuthForms.tsx';
+import { ThemeProvider } from '../shared/context/ThemeContext.tsx';
 
 function AdminContent() {
   const { user, profile, loading } = useAuth();
@@ -38,9 +39,11 @@ function AdminContent() {
 
 function App() {
   return (
-    <AuthProvider>
-      <AdminContent />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <AdminContent />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

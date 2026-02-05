@@ -43,7 +43,7 @@ export const Checkout = ({ car, onClose }: { car: Car, onClose: () => void }) =>
     >
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', overflow: 'hidden', borderRadius: '1rem' }}>
         {/* Left: Product Info */}
-        <div style={{ background: 'rgba(255,255,255,0.03)', padding: '3rem', borderRight: '1px solid rgba(255,255,255,0.05)' }}>
+        <div style={{ background: 'var(--bg-glass)', padding: '3rem', borderRight: '1px solid var(--border-glass)' }}>
           <div style={{ marginBottom: '2rem' }}>
             <span style={{ fontSize: '0.6rem', letterSpacing: '3px', color: 'var(--accent-gold)' }}>CURATED ACQUISITION</span>
             <h2 className="luxury-font" style={{ fontSize: '2.5rem', marginTop: '0.5rem' }}>{car.make} {car.model}</h2>
@@ -78,7 +78,7 @@ export const Checkout = ({ car, onClose }: { car: Car, onClose: () => void }) =>
                 exit={{ opacity: 0, x: -20 }}
               >
                 <h3 className="luxury-font" style={{ fontSize: '1.5rem', marginBottom: '2rem' }}>Review Details.</h3>
-                <div style={{ background: 'rgba(255,255,255,0.05)', padding: '1.5rem', borderRadius: '0.5rem', marginBottom: '2rem' }}>
+                <div style={{ background: 'var(--bg-glass)', padding: '1.5rem', borderRadius: '0.5rem', marginBottom: '2rem', border: '1px solid var(--border-glass)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
                     <span style={{ color: 'var(--text-muted)' }}>Acquisition Price</span>
                     <span>{formatPrice(car.price)}</span>
@@ -87,7 +87,7 @@ export const Checkout = ({ car, onClose }: { car: Car, onClose: () => void }) =>
                     <span style={{ color: 'var(--text-muted)' }}>Logistics Fee</span>
                     <span style={{ color: 'var(--accent-gold)' }}>Complimentary</span>
                   </div>
-                  <div style={{ height: '1px', background: 'rgba(255,255,255,0.1)', margin: '1rem 0' }} />
+                  <div style={{ height: '1px', background: 'var(--border-glass)', margin: '1rem 0' }} />
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600 }}>
                     <span>Total</span>
                     <span>{formatPrice(car.price)}</span>
