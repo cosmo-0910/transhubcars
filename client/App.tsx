@@ -10,6 +10,7 @@ import { UserProfile } from './components/UserProfile.tsx';
 import { Preorder } from './components/Preorder.tsx';
 import { Services } from './components/Services.tsx';
 import { Footer } from './components/Footer.tsx';
+import { InstallPrompt } from '../shared/components/InstallPrompt.tsx';
 import { AuthProvider, useAuth } from '../shared/lib/AuthContext.tsx';
 import { ThemeProvider } from '../shared/context/ThemeContext.tsx';
 
@@ -271,6 +272,9 @@ function AppContent() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* PWA Install Prompt */}
+      <InstallPrompt />
     </div>
   );
 }

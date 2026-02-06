@@ -1,0 +1,154 @@
+import { supabase } from './supabase';
+import type { Car } from '../types';
+
+export const carsService = {
+  /**
+   * Fetch all approved cars
+   */
+  async getCars(filters?: {
+    make?: string;
+    model?: string;
+    status?: 'Readily Available' | 'Preorder';
+    minPrice?: number;
+    maxPrice?: number;
+  }): Promise<Car[]> {
+    let query = supabase
+      .from('cars')
+      .select('*')
+      .eq('approval_status', 'approved')
+      .order('created_at', { ascending: false });
+
+    if (filters?.make) {
+      query = query.ilike('make', `%${filters.make}%`);
+    }
+    if (filters?.model) {
+      query = query.ilike('model', `%${filters.model}%`);
+    }
+    if (filters?.status) {
+      query = query.eq('status', filters.status);
+    }
+    if (filters?.minPrice) {
+      query = query.gte('price', filters.minPrice);
+    }
+    if (filters?.maxPrice) {
+      query = query.lte('price', filters.maxPrice);
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  /**
+   * Get a single car by ID
+   */
+  async getCarById(id: string): Promise<Car | null> {
+    const { data, error } = await supabase
+      .from('cars')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  /**
+   * Get cars by vendor ID
+   */
+  async getVendorCars(vendorId: string): Promise<Car[]> {
+    const { data, error } = await supabase
+      .from('cars')
+      .select('*')
+      .eq('vendor_id', vendorId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  /**
+   * Add a new car (vendor only)
+   */
+  async addCar(car: Omit<Car, 'id' | 'created_at'>): Promise<Car> {
+    const { data, error } = await supabase
+      .from('cars')
+      .insert([car])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  /**
+   * Update a car (vendor only)
+   */
+  async updateCar(id: string, updates: Partial<Car>): Promise<Car> {
+    const { data, error } = await supabase
+      .from('cars')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  /**
+   * Delete a car (vendor only)
+   */
+  async deleteCar(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('cars')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+  },
+
+  /**
+   * Search cars by query
+   */
+  async searchCars(query: string): Promise<Car[]> {
+    const { data, error } = await supabase
+      .from('cars')
+      .select('*')
+      .eq('approval_status', 'approved')
+      .or(`make.ilike.%${query}%,model.ilike.%${query}%`)
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  /**
+   * Upload car image to Supabase Storage
+   */
+  async uploadCarImage(file: { uri: string; type: string; name: string }, vendorId: string): Promise<string> {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${vendorId}/${Date.now()}.${fileExt}`;
+
+    // Convert file URI to blob for upload
+    const response = await fetch(file.uri);
+    const blob = await response.blob();
+
+    const { data, error } = await supabase.storage
+      .from('car-images')
+      .upload(fileName, blob, {
+        contentType: file.type,
+      });
+
+    if (error) throw error;
+
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('car-images')
+      .getPublicUrl(data.path);
+
+    return publicUrl;
+  },
+};
