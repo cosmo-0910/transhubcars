@@ -110,16 +110,48 @@ export const carsService = {
   },
 
   /**
-   * Search cars by query
+   * Search cars by query or filters
    */
-  async searchCars(query: string): Promise<Car[]> {
-    const { data, error } = await supabase
+  async searchCars(filters?: {
+    search?: string;
+    make?: string;
+    model?: string;
+    status?: 'Readily Available' | 'Preorder';
+    minPrice?: number;
+    maxPrice?: number;
+    limit?: number;
+  }): Promise<Car[]> {
+    let query = supabase
       .from('cars')
       .select('*')
       .eq('approval_status', 'approved')
-      .or(`make.ilike.%${query}%,model.ilike.%${query}%`)
-      .order('created_at', { ascending: false })
-      .limit(20);
+      .order('created_at', { ascending: false });
+
+    if (filters?.search) {
+      query = query.or(`make.ilike.%${filters.search}%,model.ilike.%${filters.search}%`);
+    }
+    if (filters?.make) {
+      query = query.ilike('make', `%${filters.make}%`);
+    }
+    if (filters?.model) {
+      query = query.ilike('model', `%${filters.model}%`);
+    }
+    if (filters?.status) {
+      query = query.eq('status', filters.status);
+    }
+    if (filters?.minPrice) {
+      query = query.gte('price', filters.minPrice);
+    }
+    if (filters?.maxPrice) {
+      query = query.lte('price', filters.maxPrice);
+    }
+    if (filters?.limit) {
+      query = query.limit(filters.limit);
+    } else {
+      query = query.limit(20);
+    }
+
+    const { data, error } = await query;
 
     if (error) throw error;
     return data || [];
@@ -150,5 +182,35 @@ export const carsService = {
       .getPublicUrl(data.path);
 
     return publicUrl;
+  },
+
+  /**
+   * Submit customer inquiry for a car
+   */
+  async submitInquiry(inquiry: {
+    carId: string;
+    type: 'Inspection' | 'Purchase';
+    customerName: string;
+    customerEmail: string;
+    customerPhone?: string;
+    message?: string;
+  }): Promise<any> {
+    const { data, error } = await supabase
+      .from('inquiries')
+      .insert([{
+        car_id: inquiry.carId,
+        inquiry_type: inquiry.type,
+        customer_name: inquiry.customerName,
+        customer_email: inquiry.customerEmail,
+        customer_phone: inquiry.customerPhone,
+        message: inquiry.message,
+        status: 'pending',
+        created_at: new Date().toISOString(),
+      }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
   },
 };

@@ -1,12 +1,74 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image, Platform } from 'react-native';
 import { useAuth } from '../../hooks/useAuth';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '../../utils/theme';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { Button } from '../../components/common/Button';
+import { launchImageLibrary } from 'react-native-image-picker';
+import { authService } from '../../services/auth.service';
+import { Alert } from 'react-native';
 
 export const ProfileScreen = () => {
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, signOut, refreshProfile } = useAuth();
+
+  const handleUpdateProfileImage = async () => {
+    try {
+      // Request permissions first
+      if (Platform.OS === 'android') {
+        const { PermissionsAndroid } = require('react-native');
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
+          {
+            title: 'Storage Permission',
+            message: 'Transhub needs access to your photos to update your profile picture.',
+            buttonNeutral: 'Ask Me Later',
+            buttonNegative: 'Cancel',
+            buttonPositive: 'OK',
+          }
+        );
+        
+        if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+          Alert.alert('Permission Denied', 'Storage permission is required to select photos.');
+          return;
+        }
+      }
+
+      const result = await launchImageLibrary({
+        mediaType: 'photo',
+        selectionLimit: 1,
+        quality: 0.8,
+      });
+
+      if (result.assets && result.assets[0]) {
+        const asset = result.assets[0];
+        if (asset.uri && asset.type && asset.fileName && user) {
+          console.log('[ClientProfile] Starting image upload...');
+          await authService.uploadProfileImage(user.id, {
+            uri: asset.uri,
+            type: asset.type,
+            name: asset.fileName,
+          });
+          await refreshProfile();
+          Alert.alert('Success', 'Profile picture updated successfully!');
+        } else {
+          Alert.alert('Error', 'Invalid image selected. Please try again.');
+        }
+      }
+    } catch (error: any) {
+      console.error('[ClientProfile] Error updating profile image:', error);
+      
+      let errorMessage = 'Failed to update profile picture. ';
+      if (error.message?.includes('Storage')) {
+        errorMessage += 'Storage issue detected. Please check your connection and try again.';
+      } else if (error.message?.includes('fetch')) {
+        errorMessage += 'Could not read the image file. Please try a different image.';
+      } else {
+        errorMessage += error.message || 'Please try again or contact support.';
+      }
+      
+      Alert.alert('Upload Error', errorMessage);
+    }
+  };
 
   const ProfileItem = ({ icon, label, value, onPress, color = COLORS.text }: any) => (
     <TouchableOpacity 
@@ -30,11 +92,21 @@ export const ProfileScreen = () => {
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
-        <View style={styles.avatarContainer}>
-          <Text style={styles.avatarText}>
-            {profile?.full_name?.charAt(0) || user?.email?.charAt(0).toUpperCase()}
-          </Text>
-        </View>
+        <TouchableOpacity style={styles.avatarContainer} onPress={handleUpdateProfileImage}>
+          {profile?.avatar_url ? (
+            <Image 
+              source={{ uri: profile.avatar_url }} 
+              style={styles.avatarImage} 
+            />
+          ) : (
+            <Text style={styles.avatarText}>
+              {profile?.full_name?.charAt(0) || user?.email?.charAt(0).toUpperCase()}
+            </Text>
+          )}
+          <View style={styles.editIconContainer}>
+            <Icon name="camera" size={12} color={COLORS.background} />
+          </View>
+        </TouchableOpacity>
         <Text style={styles.userName}>{profile?.full_name || 'Guest User'}</Text>
         <Text style={styles.userEmail}>{user?.email}</Text>
         <View style={styles.roleBadge}>
@@ -229,5 +301,23 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.xs,
     color: COLORS.textMuted,
     marginTop: SPACING.lg,
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 40,
+  },
+  editIconContainer: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.background,
   },
 });

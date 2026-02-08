@@ -79,7 +79,10 @@ export const ManageInventoryScreen = ({ navigation }: any) => {
         <View style={styles.cardFooter}>
           <Text style={styles.carMeta}>{item.status}</Text>
           <View style={styles.actions}>
-            <TouchableOpacity style={styles.actionIcon}>
+            <TouchableOpacity 
+              style={styles.actionIcon}
+              onPress={() => navigation.navigate('AddVehicle', { car: item })}
+            >
               <Icon name="create-outline" size={18} color={COLORS.text} />
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionIcon}>

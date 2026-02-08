@@ -9,8 +9,8 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
+import { CustomAlert } from '../../components/common/CustomAlert';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useAuth } from '../../hooks/useAuth';
@@ -28,29 +28,46 @@ export const SignupScreen = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [role, setRole] = useState<'customer' | 'vendor'>('customer');
   const [loading, setLoading] = useState(false);
+  const [alertConfig, setAlertConfig] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    buttons: [] as any[],
+  });
+
+  const showAlert = (title: string, message: string, buttons?: any[]) => {
+    setAlertConfig({
+      visible: true,
+      title,
+      message,
+      buttons: buttons || [{ text: 'OK', onPress: () => setAlertConfig(prev => ({ ...prev, visible: false })) }]
+    });
+  };
 
   const handleSignup = async () => {
     if (!fullName || !email || !password || !confirmPassword) {
-      Alert.alert('Error', 'Please fill in all fields');
+      showAlert('Error', 'Please fill in all fields');
       return;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+      showAlert('Error', 'Passwords do not match');
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
+      showAlert('Error', 'Password must be at least 6 characters');
       return;
     }
 
     setLoading(true);
     try {
       await signUp(email, password, fullName, role);
-      Alert.alert('Success', 'Account created successfully!');
+      showAlert('Success', 'Account created successfully!', [
+         { text: 'Login', onPress: () => navigation.navigate('Login') }
+      ]);
     } catch (error: any) {
-      Alert.alert('Signup Failed', error.message || 'Failed to create account');
+      showAlert('Signup Failed', error.message || 'Failed to create account');
     } finally {
       setLoading(false);
     }
@@ -61,6 +78,13 @@ export const SignupScreen = () => {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
+      <CustomAlert
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        onClose={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
+        buttons={alertConfig.buttons}
+      />
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <Text style={styles.title}>Create Account</Text>

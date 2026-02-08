@@ -15,26 +15,45 @@ import { carsService } from '../../services/cars.service';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '../../utils/theme';
 import { Input } from '../../components/common/Input';
 import { Button } from '../../components/common/Button';
+import { CustomAlert } from '../../components/common/CustomAlert';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { launchImageLibrary } from 'react-native-image-picker';
 
-export const AddVehicleScreen = ({ navigation }: any) => {
+export const AddVehicleScreen = ({ navigation, route }: any) => {
   const { user } = useAuth();
+  const editCar = route.params?.car;
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1);
   
   const [form, setForm] = useState({
-    make: '',
-    model: '',
-    year: '',
-    price: '',
-    mileage: '',
-    transmission: 'Automatic',
-    fuel_type: 'Petrol',
-    exterior_color: '',
-    interior_color: '',
-    description: '',
-    status: 'Readily Available' as 'Readily Available' | 'Preorder',
+    make: editCar?.make || '',
+    model: editCar?.model || '',
+    year: editCar?.year?.toString() || '',
+    price: editCar?.price?.toString() || '',
+    mileage: editCar?.mileage?.toString() || '',
+    transmission: editCar?.transmission || 'Automatic',
+    fuel_type: editCar?.fuel_type || 'Petrol',
+    exterior_color: editCar?.exterior_color || '',
+    interior_color: editCar?.interior_color || '',
+    description: editCar?.description || '',
+    status: (editCar?.status || 'Readily Available') as 'Readily Available' | 'Preorder',
+    images: (editCar?.gallery_urls || []) as string[],
   });
+
+  const [alertConfig, setAlertConfig] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    buttons: [] as any[],
+  });
+
+  const showAlert = (title: string, message: string, buttons?: any[]) => {
+    setAlertConfig({ visible: true, title, message, buttons: buttons || [] });
+  };
+
+  const hideAlert = () => {
+    setAlertConfig(prev => ({ ...prev, visible: false }));
+  };
 
   const updateForm = (key: string, value: any) => {
     setForm({ ...form, [key]: value });
@@ -50,7 +69,7 @@ export const AddVehicleScreen = ({ navigation }: any) => {
 
   const handleSubmit = async () => {
     if (!form.make || !form.model || !form.price) {
-      Alert.alert('Error', 'Please fill in the required fields (Make, Model, Price)');
+      showAlert('Error', 'Please fill in the required fields (Make, Model, Price)');
       return;
     }
 
@@ -65,18 +84,59 @@ export const AddVehicleScreen = ({ navigation }: any) => {
         approval_status: 'pending' as const,
       };
 
-      await carsService.addCar(carData as any);
-      
-      Alert.alert(
-        'Success',
-        'Vehicle listing has been submitted for approval.',
-        [{ text: 'Awesome', onPress: () => navigation.navigate('Inventory') }]
-      );
+      if (editCar) {
+        await carsService.updateCar(editCar.id, carData as any);
+        showAlert(
+          'Success',
+          'Vehicle listing has been updated.',
+          [{ text: 'Awesome', onPress: () => navigation.goBack() }]
+        );
+      } else {
+        await carsService.addCar(carData as any);
+        showAlert(
+          'Success',
+          'Vehicle listing has been submitted for approval.',
+          [{ text: 'Awesome', onPress: () => navigation.navigate('Inventory') }]
+        );
+      }
     } catch (error) {
-      console.error('Error creating car:', error);
-      Alert.alert('Error', 'Failed to create listing. Please try again.');
+      console.error('Error saving car:', error);
+      showAlert('Error', 'Failed to save listing. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleImagePick = async () => {
+    try {
+      const result = await launchImageLibrary({
+        mediaType: 'photo',
+        selectionLimit: 10 - form.images.length,
+        quality: 0.8,
+      });
+
+      if (result.assets && result.assets.length > 0) {
+        setLoading(true);
+        const newImages = [...form.images];
+        
+        for (const asset of result.assets) {
+          if (asset.uri && asset.type && asset.fileName) {
+            const url = await carsService.uploadCarImage({
+              uri: asset.uri,
+              type: asset.type,
+              name: asset.fileName,
+            }, user?.id || 'unknown');
+            newImages.push(url);
+          }
+        }
+        
+        updateForm('images', newImages);
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error('Image picker error:', error);
+      setLoading(false);
+      showAlert('Error', 'Failed to pick images');
     }
   };
 
@@ -105,8 +165,15 @@ export const AddVehicleScreen = ({ navigation }: any) => {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
+      <CustomAlert
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        onClose={hideAlert}
+        buttons={alertConfig.buttons}
+      />
       <View style={styles.header}>
-        <Text style={styles.title}>Post New Vehicle</Text>
+        <Text style={styles.title}>{editCar ? 'Edit Vehicle' : 'Post New Vehicle'}</Text>
         <ProgressBar />
       </View>
 
@@ -150,9 +217,10 @@ export const AddVehicleScreen = ({ navigation }: any) => {
               value={form.status}
               // In real app, use a picker
               onPressIn={() => {
-                Alert.alert('Status', 'Select vehicle status', [
+                showAlert('Status', 'Select vehicle status', [
                   { text: 'Readily Available', onPress: () => updateForm('status', 'Readily Available') },
                   { text: 'Preorder', onPress: () => updateForm('status', 'Preorder') },
+                  { text: 'Cancel', style: 'cancel' }
                 ]);
               }}
             />
@@ -175,10 +243,11 @@ export const AddVehicleScreen = ({ navigation }: any) => {
                 containerStyle={{ flex: 1, marginRight: SPACING.md }}
                 value={form.transmission}
                 onPressIn={() => {
-                  Alert.alert('Transmission', 'Select transmission type', [
+                  showAlert('Transmission', 'Select transmission type', [
                     { text: 'Automatic', onPress: () => updateForm('transmission', 'Automatic') },
                     { text: 'Manual', onPress: () => updateForm('transmission', 'Manual') },
                     { text: 'Semi-Auto', onPress: () => updateForm('transmission', 'Semi-Auto') },
+                    { text: 'Cancel', style: 'cancel' }
                   ]);
                 }}
               />
@@ -187,11 +256,12 @@ export const AddVehicleScreen = ({ navigation }: any) => {
                 containerStyle={{ flex: 1 }}
                 value={form.fuel_type}
                 onPressIn={() => {
-                  Alert.alert('Fuel Type', 'Select fuel type', [
+                  showAlert('Fuel Type', 'Select fuel type', [
                     { text: 'Petrol', onPress: () => updateForm('fuel_type', 'Petrol') },
                     { text: 'Diesel', onPress: () => updateForm('fuel_type', 'Diesel') },
                     { text: 'Hybrid', onPress: () => updateForm('fuel_type', 'Hybrid') },
                     { text: 'Electric', onPress: () => updateForm('fuel_type', 'Electric') },
+                    { text: 'Cancel', style: 'cancel' }
                   ]);
                 }}
               />
@@ -228,12 +298,33 @@ export const AddVehicleScreen = ({ navigation }: any) => {
             />
             
             <View style={styles.photoUploadContainer}>
-              <Text style={styles.label}>Photos</Text>
-              <TouchableOpacity style={styles.photoBox}>
-                <Icon name="camera-outline" size={32} color={COLORS.textMuted} />
-                <Text style={styles.photoText}>Add Photos</Text>
-              </TouchableOpacity>
-              <Text style={styles.photoHint}>Maximum 10 images. First one is the cover.</Text>
+              <Text style={styles.label}>Photos ({form.images.length}/10)</Text>
+              
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imageList}>
+                {form.images.map((img, index) => (
+                  <View key={index} style={styles.imagePreview}>
+                    <Image source={{ uri: img }} style={styles.previewImage} />
+                    <TouchableOpacity 
+                      style={styles.removeImage}
+                      onPress={() => {
+                        const newImages = [...form.images];
+                        newImages.splice(index, 1);
+                        updateForm('images', newImages);
+                      }}
+                    >
+                      <Icon name="close-circle" size={24} color={COLORS.error} />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+                
+                {form.images.length < 10 && (
+                  <TouchableOpacity style={styles.photoBox} onPress={handleImagePick}>
+                    <Icon name="camera-outline" size={32} color={COLORS.textMuted} />
+                    <Text style={styles.photoText}>Add</Text>
+                  </TouchableOpacity>
+                )}
+              </ScrollView>
+              <Text style={styles.photoHint}>First image is the cover.</Text>
             </View>
           </View>
         )}
@@ -359,7 +450,8 @@ const styles = StyleSheet.create({
     marginTop: SPACING.md,
   },
   photoBox: {
-    height: 150,
+    width: 100,
+    height: 100,
     backgroundColor: COLORS.backgroundCard,
     borderRadius: BORDER_RADIUS.md,
     borderWidth: 2,
@@ -367,11 +459,33 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: SPACING.md,
   },
   photoText: {
     color: COLORS.textMuted,
-    marginTop: SPACING.sm,
-    fontSize: FONT_SIZES.sm,
+    marginTop: 4,
+    fontSize: FONT_SIZES.xs,
+  },
+  imageList: {
+    flexDirection: 'row',
+  },
+  imagePreview: {
+    width: 100,
+    height: 100,
+    marginRight: SPACING.md,
+    position: 'relative',
+  },
+  previewImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: BORDER_RADIUS.md,
+  },
+  removeImage: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: COLORS.background,
+    borderRadius: 12,
   },
   photoHint: {
     fontSize: FONT_SIZES.xs,

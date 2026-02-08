@@ -66,9 +66,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signOut = async () => {
-    await authService.signOut();
-    setUser(null);
-    setProfile(null);
+    try {
+      await authService.signOut();
+    } catch (error) {
+      console.error('Error signing out:', error);
+    } finally {
+      setUser(null);
+      setProfile(null);
+    }
   };
 
   const refreshProfile = async () => {

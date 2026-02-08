@@ -24,6 +24,7 @@ export interface Car {
 export interface Profile {
   id: string;
   full_name?: string;
+  avatar_url?: string;
   role: 'customer' | 'admin' | 'vendor';
   vendor_status: 'none' | 'pending' | 'approved' | 'rejected';
   preorder_status: 'none' | 'pending' | 'approved' | 'rejected';

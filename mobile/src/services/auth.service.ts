@@ -115,6 +115,67 @@ export const authService = {
   /**
    * Listen to auth state changes
    */
+  /**
+   * Upload profile image
+   */
+  async uploadProfileImage(userId: string, file: { uri: string; type: string; name: string }) {
+    try {
+      console.log('[Upload] Starting profile image upload for user:', userId);
+      console.log('[Upload] File details:', { name: file.name, type: file.type, uri: file.uri.substring(0, 50) + '...' });
+
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${userId}/avatar_${Date.now()}.${fileExt}`;
+      console.log('[Upload] Generated file name:', fileName);
+
+      // Convert file URI to blob for upload
+      console.log('[Upload] Fetching file from URI...');
+      const response = await fetch(file.uri);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch file: ${response.status} ${response.statusText}`);
+      }
+      
+      const blob = await response.blob();
+      console.log('[Upload] File converted to blob, size:', blob.size, 'bytes');
+
+      console.log('[Upload] Uploading to storage bucket "avatars"...');
+      const { data, error } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, blob, {
+          contentType: file.type,
+          upsert: true,
+        });
+
+      if (error) {
+        console.error('[Upload] Storage upload error:', error);
+        throw new Error(`Storage upload failed: ${error.message}`);
+      }
+
+      console.log('[Upload] Upload successful, path:', data.path);
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(data.path);
+
+      console.log('[Upload] Public URL generated:', publicUrl);
+
+      // Update profile with new avatar URL
+      console.log('[Upload] Updating profile with new avatar URL...');
+      await this.updateProfile(userId, { avatar_url: publicUrl });
+
+      console.log('[Upload] Profile updated successfully!');
+      return publicUrl;
+    } catch (error: any) {
+      console.error('[Upload] Error in uploadProfileImage:', error);
+      console.error('[Upload] Error details:', {
+        message: error.message,
+        name: error.name,
+        stack: error.stack?.substring(0, 200),
+      });
+      throw error;
+    }
+  },
+
   onAuthStateChange(callback: (event: string, session: any) => void) {
     return supabase.auth.onAuthStateChange(callback);
   },

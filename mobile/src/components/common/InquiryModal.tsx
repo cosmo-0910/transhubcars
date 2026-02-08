@@ -45,19 +45,25 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({
 
     setLoading(true);
     try {
-      // Use carsService to submit inquiry (Implementation assumed in service)
-      // For now, simulate success
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await carsService.submitInquiry({
+        carId: car.id,
+        type,
+        customerName: form.name,
+        customerEmail: form.email,
+        customerPhone: form.phone,
+        message: form.message,
+      });
       
       Alert.alert(
         'Success',
-        `Your ${type.toLowerCase()} request for the ${car.year} ${car.make} ${car.model} has been submitted!`,
+        `Your ${type.toLowerCase()} request for the ${car.year} ${car.make} ${car.model} has been submitted! We'll contact you soon.`,
         [{ text: 'Great', onPress: onClose }]
       );
       
       setForm({ name: '', email: '', phone: '', message: '' });
     } catch (error) {
-      Alert.alert('Error', 'Failed to submit inquiry. Please try again.');
+      console.error('Error submitting inquiry:', error);
+      Alert.alert('Error', 'Failed to submit inquiry. Please try again or contact support.');
     } finally {
       setLoading(false);
     }
