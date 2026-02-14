@@ -1,37 +1,22 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image, Platform, PermissionsAndroid } from 'react-native';
 import { useAuth } from '../../hooks/useAuth';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '../../utils/theme';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { Button } from '../../components/common/Button';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { authService } from '../../services/auth.service';
+import { checkMediaPermissions } from '../../utils/permissions';
 import { Alert } from 'react-native';
 
-export const ProfileScreen = () => {
+export const ProfileScreen = ({ navigation }: any) => {
   const { user, profile, signOut, refreshProfile } = useAuth();
 
   const handleUpdateProfileImage = async () => {
     try {
       // Request permissions first
-      if (Platform.OS === 'android') {
-        const { PermissionsAndroid } = require('react-native');
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
-          {
-            title: 'Storage Permission',
-            message: 'Transhub needs access to your photos to update your profile picture.',
-            buttonNeutral: 'Ask Me Later',
-            buttonNegative: 'Cancel',
-            buttonPositive: 'OK',
-          }
-        );
-        
-        if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-          Alert.alert('Permission Denied', 'Storage permission is required to select photos.');
-          return;
-        }
-      }
+      const hasPermission = await checkMediaPermissions();
+      if (!hasPermission) return;
 
       const result = await launchImageLibrary({
         mediaType: 'photo',
@@ -120,17 +105,17 @@ export const ProfileScreen = () => {
           <ProfileItem 
             icon="person-outline" 
             label="Edit Profile" 
-            onPress={() => {}} 
+            onPress={() => navigation.navigate('EditProfile')} 
           />
           <ProfileItem 
             icon="notifications-outline" 
             label="Notifications" 
-            onPress={() => {}} 
+            onPress={() => navigation.navigate('NotificationSettings')} 
           />
           <ProfileItem 
             icon="shield-checkmark-outline" 
             label="Security" 
-            onPress={() => {}} 
+            onPress={() => navigation.navigate('Security')} 
           />
         </View>
       </View>
@@ -141,17 +126,17 @@ export const ProfileScreen = () => {
           <ProfileItem 
             icon="cart-outline" 
             label="My Orders" 
-            onPress={() => {}} 
+            onPress={() => navigation.navigate('MyOrders')} 
           />
           <ProfileItem 
             icon="chatbubble-outline" 
             label="My Inquiries" 
-            onPress={() => {}} 
+            onPress={() => navigation.navigate('MyInquiries')} 
           />
           <ProfileItem 
             icon="heart-outline" 
             label="Favorites" 
-            onPress={() => {}} 
+            onPress={() => navigation.navigate('Favorites')} 
           />
         </View>
       </View>
@@ -162,12 +147,12 @@ export const ProfileScreen = () => {
           <ProfileItem 
             icon="help-circle-outline" 
             label="Help Center" 
-            onPress={() => {}} 
+            onPress={() => navigation.navigate('HelpCenter')} 
           />
           <ProfileItem 
             icon="information-circle-outline" 
             label="About Transhub" 
-            onPress={() => {}} 
+            onPress={() => navigation.navigate('About')} 
           />
         </View>
       </View>

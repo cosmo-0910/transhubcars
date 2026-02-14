@@ -1,15 +1,26 @@
-import { motion } from 'framer-motion';
-import { Sparkles, Clock, ArrowRight } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowRight, Settings, Truck, ShieldCheck, ChevronLeft, Star, Phone, MapPin, CheckCircle } from 'lucide-react';
+import { SparePartsMarketplace } from './SparePartsMarketplace';
+import { partsService } from '../services/parts.service';
+import { towService } from '../services/tow.service';
+import { mechanicService } from '../services/mechanic.service';
+import { useAuth } from '../../shared/lib/AuthContext';
+import type { Mechanic } from '../../shared/lib/db';
+
+type ServiceType = 'hub' | 'parts' | 'tow' | 'mechanics';
 
 export const Services = () => {
+    const [view, setView] = useState<ServiceType>('hub');
+    const [partsView, setPartsView] = useState<'marketplace' | 'request'>('marketplace');
+    const { profile } = useAuth();
+
     return (
         <div className="animate-fade-in" style={{ 
             minHeight: '100vh', 
             display: 'flex', 
             flexDirection: 'column', 
-            justifyContent: 'center', 
-            alignItems: 'center', 
-            padding: '100px 2rem',
+            padding: '120px 2rem 4rem',
             textAlign: 'center',
             position: 'relative',
             overflow: 'hidden'
@@ -27,66 +38,415 @@ export const Services = () => {
                 filter: 'blur(100px)'
             }} />
 
-            <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.8 }}
-                className="glass"
-                style={{
-                    padding: '5rem 3rem',
-                    borderRadius: '3rem',
-                    maxWidth: '800px',
-                    width: '100%',
-                    border: '1px solid var(--border-glass)',
-                    boxShadow: 'var(--shadow-luxury)'
-                }}
-            >
-                <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginBottom: '2rem' }}>
-                    <motion.div 
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
-                    >
-                        <Sparkles color="var(--accent-gold)" size={48} />
-                    </motion.div>
-                </div>
+            <div style={{ maxWidth: '1200px', margin: '0 auto', width: '100%', position: 'relative' }}>
+                <AnimatePresence mode="wait">
+                    {view === 'hub' && (
+                        <motion.div
+                            key="hub"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                        >
+                            <h1 className="luxury-font" style={{ fontSize: 'clamp(2.5rem, 8vw, 4rem)', marginBottom: '1rem', color: 'var(--text-main)' }}>
+                                Transhub <span style={{ color: 'var(--accent-gold)' }}>Concierge.</span>
+                            </h1>
+                            <p style={{ fontSize: '1.2rem', color: 'var(--text-muted)', marginBottom: '4rem', maxWidth: '600px', margin: '0 auto 4rem' }}>
+                                Elite automotive support tailored for luxury vehicle owners. From genuine parts to emergency recovery and certified expertise.
+                            </p>
 
-                <h1 className="luxury-font" style={{ fontSize: 'clamp(2.5rem, 8vw, 4rem)', marginBottom: '1.5rem', color: 'var(--text-main)' }}>
-                    Elite <span style={{ color: 'var(--accent-gold)' }}>Concierge.</span>
-                </h1>
-                
-                <p style={{ 
-                    fontSize: '1.2rem', 
-                    color: 'var(--text-muted)', 
-                    lineHeight: '1.8', 
-                    marginBottom: '3rem',
-                    maxWidth: '600px',
-                    margin: '0 auto 3rem'
-                }}>
-                    Our comprehensive suite of luxury automotive services is currently being curated to meet our exacting standards. From bespoke sourcing to elite maintenance, excellence is coming soon.
-                </p>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2rem' }}>
+                                <ServiceCard 
+                                    icon={<Settings size={40} />} 
+                                    title="Spare Parts" 
+                                    description="Source genuine, high-performance parts for any luxury marque."
+                                    onClick={() => setView('parts')}
+                                />
+                                <ServiceCard 
+                                    icon={<Truck size={40} />} 
+                                    title="Tow Truck" 
+                                    description="Rapid roadside assistance and recovery in your vicinity."
+                                    onClick={() => setView('tow')}
+                                    accent="#E11D48"
+                                />
+                                <ServiceCard 
+                                    icon={<ShieldCheck size={40} />} 
+                                    title="Certified Workshops" 
+                                    description="Vetted elite workshops certified by Transhub for superior maintenance."
+                                    onClick={() => setView('mechanics')}
+                                />
+                            </div>
+                        </motion.div>
+                    )}
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '2rem', marginBottom: '4rem' }}>
-                    <ServiceTeaser icon={<Clock size={24} />} title="Registry Sourcing" />
-                    <ServiceTeaser icon={<Sparkles size={24} />} title="Elite Maintenance" />
-                    <ServiceTeaser icon={<ArrowRight size={24} />} title="Global Delivery" />
-                </div>
+                    {view === 'parts' && (
+                        <div>
+                             <button 
+                                onClick={() => setView('hub')} 
+                                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', marginBottom: '2rem' }}
+                             >
+                                <ChevronLeft size={20} /> BACK TO CONCIERGE
+                            </button>
+                            
+                            {partsView === 'marketplace' ? (
+                                <SparePartsMarketplace onSourcingRequest={() => setPartsView('request')} />
+                            ) : (
+                                <SparePartsForm onBack={() => setPartsView('marketplace')} userId={profile?.id || 'guest'} hideBackButton />
+                            )}
+                        </div>
+                    )}
 
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem' }}>
-                    <span style={{ fontSize: '0.7rem', fontWeight: 800, letterSpacing: '4px', color: 'var(--accent-gold)' }}>COMING Q2 2026</span>
-                    <button className="btn-gold" style={{ padding: '1rem 3rem', borderRadius: '0.5rem' }}>NOTIFY ME</button>
-                </div>
-            </motion.div>
+                    {view === 'tow' && (
+                        <TowTruckForm onBack={() => setView('hub')} userId={profile?.id || 'guest'} />
+                    )}
+
+                    {view === 'mechanics' && (
+                        <MechanicsList onBack={() => setView('hub')} />
+                    )}
+                </AnimatePresence>
+            </div>
 
             {/* Decorative Lines */}
-            <div className="animated-line line-up" style={{ left: '10%', opacity: 0.1 }} />
-            <div className="animated-line line-down" style={{ right: '10%', opacity: 0.1 }} />
+            <div className="animated-line line-up" style={{ left: '5%', opacity: 0.1 }} />
+            <div className="animated-line line-down" style={{ right: '5%', opacity: 0.1 }} />
         </div>
     );
 };
 
-const ServiceTeaser = ({ icon, title }: { icon: React.ReactNode, title: string }) => (
-    <div className="glass" style={{ padding: '1.5rem', borderRadius: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', background: 'rgba(212, 175, 55, 0.05)' }}>
-        <div style={{ color: 'var(--accent-gold)' }}>{icon}</div>
-        <span style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '1px' }}>{title.toUpperCase()}</span>
-    </div>
+const ServiceCard = ({ icon, title, description, onClick, accent = 'var(--accent-gold)' }: any) => (
+    <motion.div 
+        whileHover={{ scale: 1.02, translateY: -5 }}
+        onClick={onClick}
+        className="glass" 
+        style={{ 
+            padding: '3rem 2rem', 
+            borderRadius: '2rem', 
+            cursor: 'pointer',
+            border: '1px solid var(--border-glass)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '1.5rem',
+            background: 'var(--bg-glass-heavy)'
+        }}
+    >
+        <div style={{ color: accent, background: `${accent}15`, padding: '1.5rem', borderRadius: '1rem' }}>{icon}</div>
+        <h3 className="luxury-font" style={{ fontSize: '1.8rem', color: 'var(--text-main)' }}>{title}</h3>
+        <p style={{ color: 'var(--text-muted)', fontSize: '1rem', lineHeight: '1.6' }}>{description}</p>
+        <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem', color: accent, fontWeight: 700, fontSize: '0.8rem', letterSpacing: '1px' }}>
+            ORDER NOW <ArrowRight size={16} />
+        </div>
+    </motion.div>
 );
+
+const SparePartsForm = ({ onBack, userId, hideBackButton = false }: any) => {
+    const [loading, setLoading] = useState(false);
+    const [success, setSuccess] = useState(false);
+    const [form, setForm] = useState({
+        part_name: '',
+        vehicle_make: '',
+        vehicle_model: '',
+        vehicle_year: '',
+        quantity: 1,
+        description: ''
+    });
+
+    const handleSubmit = async (e: any) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            await partsService.submitOrder({ ...form, user_id: userId });
+            setSuccess(true);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (success) {
+        return (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass" style={{ padding: '4rem', borderRadius: '2rem', maxWidth: '600px', margin: '0 auto' }}>
+                <CheckCircle size={64} color="var(--accent-gold)" style={{ marginBottom: '2rem' }} />
+                <h2 className="luxury-font" style={{ fontSize: '2.5rem', marginBottom: '1.5rem' }}>Order Submitted</h2>
+                <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>Our concierge team will source your requested parts and contact you with a quote shortly.</p>
+                <button className="btn-gold" onClick={onBack}>RETURN TO INVENTORY</button>
+            </motion.div>
+        );
+    }
+
+    return (
+        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+            {!hideBackButton && (
+                <button onClick={onBack} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', marginBottom: '2rem' }}>
+                    <ChevronLeft size={20} /> BACK TO CONCIERGE
+                </button>
+            )}
+            <div className="glass" style={{ padding: '3rem', borderRadius: '2rem', maxWidth: '800px', margin: '0 auto', textAlign: 'left' }}>
+                <h2 className="luxury-font" style={{ fontSize: '2.5rem', marginBottom: '2rem' }}>Order Genuine Parts</h2>
+                <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '1.5rem' }}>
+                    <div className="input-group">
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Part Name</label>
+                        <input 
+                            required 
+                            className="luxury-input" 
+                            style={{ width: '100%' }} 
+                            placeholder="e.g. Brake Pads, OEM Air Filter"
+                            value={form.part_name}
+                            onChange={e => setForm({...form, part_name: e.target.value})}
+                        />
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                        <div className="input-group">
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Vehicle Make</label>
+                            <input 
+                                required 
+                                className="luxury-input" 
+                                style={{ width: '100%' }} 
+                                placeholder="e.g. Mercedes"
+                                value={form.vehicle_make}
+                                onChange={e => setForm({...form, vehicle_make: e.target.value})}
+                            />
+                        </div>
+                        <div className="input-group">
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Vehicle Model</label>
+                            <input 
+                                required 
+                                className="luxury-input" 
+                                style={{ width: '100%' }} 
+                                placeholder="e.g. S-Class"
+                                value={form.vehicle_model}
+                                onChange={e => setForm({...form, vehicle_model: e.target.value})}
+                            />
+                        </div>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                        <div className="input-group">
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Year</label>
+                            <input 
+                                className="luxury-input" 
+                                style={{ width: '100%' }} 
+                                placeholder="e.g. 2023"
+                                value={form.vehicle_year}
+                                onChange={e => setForm({...form, vehicle_year: e.target.value})}
+                            />
+                        </div>
+                        <div className="input-group">
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Quantity</label>
+                            <input 
+                                type="number" 
+                                className="luxury-input" 
+                                style={{ width: '100%' }} 
+                                value={form.quantity}
+                                onChange={e => setForm({...form, quantity: parseInt(e.target.value)})}
+                            />
+                        </div>
+                    </div>
+                    <div className="input-group">
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Additional Details (Optional)</label>
+                        <textarea 
+                            className="luxury-input" 
+                            style={{ width: '100%', minHeight: '100px' }} 
+                            placeholder="VIN number or specific variations..."
+                            value={form.description}
+                            onChange={e => setForm({...form, description: e.target.value})}
+                        />
+                    </div>
+                    <button disabled={loading} className="btn-gold" style={{ marginTop: '1rem' }}>
+                        {loading ? 'PROCESSING...' : 'REQUEST PART SOURCING'}
+                    </button>
+                </form>
+            </div>
+        </motion.div>
+    );
+};
+
+const TowTruckForm = ({ onBack, userId }: any) => {
+    const [loading, setLoading] = useState(false);
+    const [success, setSuccess] = useState(false);
+    const [form, setForm] = useState({
+        pickup_address: '',
+        destination_address: '',
+        vehicle_type: '',
+        notes: ''
+    });
+
+    const handleSubmit = async (e: any) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            await towService.requestTow({ ...form, user_id: userId });
+            setSuccess(true);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (success) {
+        return (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass" style={{ padding: '4rem', borderRadius: '2rem', maxWidth: '600px', margin: '0 auto' }}>
+                <Truck size={64} color="#E11D48" style={{ marginBottom: '2rem' }} />
+                <h2 className="luxury-font" style={{ fontSize: '2.5rem', marginBottom: '1.5rem' }}>Request Sent</h2>
+                <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>We are dispatching the nearest tow truck to your vicinity. You will receive an SMS confirmation shortly.</p>
+                <button className="btn-gold" onClick={onBack}>RETURN TO SERVICES</button>
+            </motion.div>
+        );
+    }
+
+    return (
+        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+            <button onClick={onBack} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', marginBottom: '2rem' }}>
+                <ChevronLeft size={20} /> BACK TO CONCIERGE
+            </button>
+            <div className="glass" style={{ padding: '3rem', borderRadius: '2rem', maxWidth: '800px', margin: '0 auto', textAlign: 'left', border: '1px solid rgba(225, 29, 72, 0.2)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
+                    <div style={{ color: '#E11D48', background: 'rgba(225, 29, 72, 0.1)', padding: '1rem', borderRadius: '0.8rem' }}><Truck size={32} /></div>
+                    <h2 className="luxury-font" style={{ fontSize: '2.5rem' }}>Emergency Towing</h2>
+                </div>
+                <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '1.5rem' }}>
+                    <div className="input-group">
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Current Pickup Location</label>
+                        <input 
+                            required 
+                            className="luxury-input" 
+                            style={{ width: '100%' }} 
+                            placeholder="Enter your current address or location"
+                            value={form.pickup_address}
+                            onChange={e => setForm({...form, pickup_address: e.target.value})}
+                        />
+                    </div>
+                    <div className="input-group">
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Destination (Optional)</label>
+                        <input 
+                            className="luxury-input" 
+                            style={{ width: '100%' }} 
+                            placeholder="Where should we transport the vehicle?"
+                            value={form.destination_address}
+                            onChange={e => setForm({...form, destination_address: e.target.value})}
+                        />
+                    </div>
+                    <div className="input-group">
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Vehicle Type</label>
+                        <input 
+                            required
+                            className="luxury-input" 
+                            style={{ width: '100%' }} 
+                            placeholder="e.g. SUV, Luxury Sedan, Sports Car"
+                            value={form.vehicle_type}
+                            onChange={e => setForm({...form, vehicle_type: e.target.value})}
+                        />
+                    </div>
+                    <div className="input-group">
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Notes for Driver</label>
+                        <textarea 
+                            className="luxury-input" 
+                            style={{ width: '100%', minHeight: '80px' }} 
+                            placeholder="Describe the issue or any specific requirements..."
+                            value={form.notes}
+                            onChange={e => setForm({...form, notes: e.target.value})}
+                        />
+                    </div>
+                    <button disabled={loading} className="btn-gold" style={{ marginTop: '1rem', background: '#E11D48', borderColor: '#E11D48' }}>
+                        {loading ? 'LOCATING TRUCKS...' : 'REQUEST RAPID RECOVERY'}
+                    </button>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'center', fontStyle: 'italic' }}>
+                        * Service prioritized for vehicles within 10km radius.
+                    </p>
+                </form>
+            </div>
+        </motion.div>
+    );
+};
+
+const MechanicsList = ({ onBack }: any) => {
+    const [mechanics, setMechanics] = useState<Mechanic[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [onlyApproved, setOnlyApproved] = useState(true);
+
+    useEffect(() => {
+        const fetch = async () => {
+            setLoading(true);
+            try {
+                const data = await mechanicService.getMechanics({ onlyApproved });
+                setMechanics(data);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetch();
+    }, [onlyApproved]);
+
+    return (
+        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3rem' }}>
+                <button onClick={onBack} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                    <ChevronLeft size={20} /> BACK TO CONCIERGE
+                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Certified Partners Only</span>
+                    <button 
+                        onClick={() => setOnlyApproved(!onlyApproved)}
+                        style={{ 
+                            width: '50px', 
+                            height: '26px', 
+                            borderRadius: '13px', 
+                            background: onlyApproved ? 'var(--accent-gold)' : 'var(--bg-glass-heavy)',
+                            border: '1px solid var(--border-glass)',
+                            position: 'relative',
+                            cursor: 'pointer',
+                            transition: 'all 0.3s'
+                        }}
+                    >
+                        <div style={{ 
+                            position: 'absolute', 
+                            top: '2px', 
+                            left: onlyApproved ? '26px' : '2px', 
+                            width: '20px', 
+                            height: '20px', 
+                            borderRadius: '50%', 
+                            background: 'white',
+                            transition: 'all 0.3s'
+                        }} />
+                    </button>
+                </div>
+            </div>
+
+            <h2 className="luxury-font" style={{ fontSize: '2.5rem', marginBottom: '3rem', textAlign: 'left' }}>Certified Maintenance Workshops</h2>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '2rem' }}>
+                {loading ? (
+                    Array(3).fill(0).map((_, i) => <div key={i} className="glass animate-pulse" style={{ height: '300px', borderRadius: '2rem' }} />)
+                ) : (
+                    mechanics.map(m => (
+                        <div key={m.id} className="glass" style={{ borderRadius: '2rem', overflow: 'hidden', textAlign: 'left', border: '1px solid var(--border-glass)' }}>
+                            <div style={{ height: '200px', overflow: 'hidden', position: 'relative' }}>
+                                <img src={m.image_url} alt={m.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                {m.is_approved && (
+                                    <div style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'var(--bg-deep)', color: 'var(--accent-gold)', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.7rem', fontWeight: 800, border: '1px solid var(--accent-gold)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                        <CheckCircle size={14} /> TRANSHUB CERTIFIED
+                                    </div>
+                                )}
+                            </div>
+                            <div style={{ padding: '2rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                                    <h3 className="luxury-font" style={{ fontSize: '1.4rem' }}>{m.name}</h3>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: 'var(--accent-gold)', fontWeight: 700 }}>
+                                        <Star size={16} fill="var(--accent-gold)" /> {m.rating}
+                                    </div>
+                                </div>
+                                <p style={{ color: 'var(--accent-gold)', fontWeight: 600, fontSize: '0.9rem', marginBottom: '1rem' }}>{m.specialty}</p>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
+                                    <MapPin size={16} /> {m.location}
+                                </div>
+                                <button className="btn-gold" style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
+                                    <Phone size={18} /> BOOK SERVICES
+                                </button>
+                            </div>
+                        </div>
+                    ))
+                )}
+            </div>
+        </motion.div>
+    );
+};

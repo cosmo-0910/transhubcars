@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { watermarkImage } from '../utils/imageUtils';
 import type { Car } from '../types';
 
 export const carsService = {
@@ -160,12 +161,15 @@ export const carsService = {
   /**
    * Upload car image to Supabase Storage
    */
-  async uploadCarImage(file: { uri: string; type: string; name: string }, vendorId: string): Promise<string> {
+  async uploadCarImage(file: { uri: string; type: string; name: string }, vendorId: string, username: string): Promise<string> {
     const fileExt = file.name.split('.').pop();
     const fileName = `${vendorId}/${Date.now()}.${fileExt}`;
 
+    // Apply watermark
+    const watermarkedUri = await watermarkImage(file.uri, username);
+
     // Convert file URI to blob for upload
-    const response = await fetch(file.uri);
+    const response = await fetch(watermarkedUri);
     const blob = await response.blob();
 
     const { data, error } = await supabase.storage
@@ -213,4 +217,55 @@ export const carsService = {
     if (error) throw error;
     return data;
   },
+  /**
+   * Get cars favorited by user
+   */
+  async getFavoriteCars(userId: string): Promise<Car[]> {
+    const { data, error } = await supabase
+      .from('favorites')
+      .select('car_id, cars (*)')
+      .eq('user_id', userId);
+
+    if (error) throw error;
+    return (data || []).map(f => (f as any).cars);
+  },
+
+  /**
+   * Toggle favorite status
+   */
+  async toggleFavorite(userId: string, carId: string): Promise<boolean> {
+    const { data: existing } = await supabase
+      .from('favorites')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('car_id', carId)
+      .single();
+
+    if (existing) {
+      await supabase.from('favorites').delete().eq('id', (existing as any).id);
+      return false;
+    } else {
+      await supabase.from('favorites').insert([{ user_id: userId, car_id: carId }]);
+      return true;
+    }
+  },
+
+  /**
+   * Get Platform Statistics (Admin)
+   */
+  async getPlatformStats() {
+    const { data: usersCount } = await supabase.from('profiles').select('id', { count: 'exact' });
+    const { data: carsCount } = await supabase.from('cars').select('id', { count: 'exact' });
+    const { data: ordersData } = await supabase.from('orders').select('amount');
+    
+    const totalRevenue = ordersData?.reduce((acc, curr) => acc + curr.amount, 0) || 0;
+
+    return {
+      totalUsers: (usersCount as any)?.length || 0,
+      totalCars: (carsCount as any)?.length || 0,
+      totalRevenue,
+      activeOrders: ordersData?.length || 0,
+      systemStatus: 'Operational'
+    };
+  }
 };

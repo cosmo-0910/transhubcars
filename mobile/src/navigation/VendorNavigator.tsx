@@ -1,5 +1,6 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createStackNavigator } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { COLORS, FONT_SIZES } from '../utils/theme';
 
@@ -7,7 +8,17 @@ import { COLORS, FONT_SIZES } from '../utils/theme';
 import { VendorDashboardScreen } from '../screens/vendor/VendorDashboardScreen';
 import { ManageInventoryScreen } from '../screens/vendor/ManageInventoryScreen';
 import { AddVehicleScreen } from '../screens/vendor/AddVehicleScreen';
+import { ManageSparePartsScreen } from '../screens/vendor/ManageSparePartsScreen';
+import { AddSparePartScreen } from '../screens/vendor/AddSparePartScreen';
 import { VendorProfileScreen } from '../screens/vendor/VendorProfileScreen';
+import { EditProfileScreen } from '../screens/profile/EditProfileScreen';
+import { NotificationSettingsScreen } from '../screens/profile/NotificationSettingsScreen';
+import { SecurityScreen } from '../screens/profile/SecurityScreen';
+import { MyInquiriesScreen } from '../screens/profile/MyInquiriesScreen';
+import { HelpCenterScreen } from '../screens/profile/HelpCenterScreen';
+import { AboutScreen } from '../screens/profile/AboutScreen';
+import { VehicleDetailScreen } from '../screens/client/VehicleDetailScreen';
+import { Car } from '../types';
 
 export type VendorTabParamList = {
   Dashboard: undefined;
@@ -16,9 +27,22 @@ export type VendorTabParamList = {
   VendorProfile: undefined;
 };
 
+export type VendorStackParamList = {
+  MainTabs: undefined;
+  VehicleDetail: { car: Car };
+  EditProfile: undefined;
+  NotificationSettings: undefined;
+  Security: undefined;
+  MyInquiries: undefined;
+  HelpCenter: undefined;
+  About: undefined;
+  ManageSpareParts: undefined;
+  AddSparePart: { part?: any };
+};
+
 const Tab = createBottomTabNavigator<VendorTabParamList>();
 
-export const VendorNavigator = () => {
+const TabNavigator = () => {
   return (
     <Tab.Navigator
       screenOptions={{
@@ -79,5 +103,24 @@ export const VendorNavigator = () => {
         }}
       />
     </Tab.Navigator>
+  );
+};
+
+const Stack = createStackNavigator<VendorStackParamList>();
+
+export const VendorNavigator = () => {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="MainTabs" component={TabNavigator} />
+      <Stack.Screen name="VehicleDetail" component={VehicleDetailScreen} />
+      <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+      <Stack.Screen name="NotificationSettings" component={NotificationSettingsScreen} />
+      <Stack.Screen name="Security" component={SecurityScreen} />
+      <Stack.Screen name="MyInquiries" component={MyInquiriesScreen} />
+      <Stack.Screen name="HelpCenter" component={HelpCenterScreen} />
+      <Stack.Screen name="About" component={AboutScreen} />
+      <Stack.Screen name="ManageSpareParts" component={ManageSparePartsScreen} />
+      <Stack.Screen name="AddSparePart" component={AddSparePartScreen} />
+    </Stack.Navigator>
   );
 };

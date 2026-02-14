@@ -8,6 +8,7 @@ export const AuthForm = ({ type: initialType, onSuccess }: { type: 'login' | 'si
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [vendorType, setVendorType] = useState<'car' | 'parts' | 'both'>('car');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'error' | 'success', text: string } | null>(null);
 
@@ -35,7 +36,8 @@ export const AuthForm = ({ type: initialType, onSuccess }: { type: 'login' | 'si
             .upsert({ 
               id: newUser.id, 
               full_name: fullName,
-              role: email.toLowerCase() === 'admin@transhub.com' ? 'admin' : 'customer'
+              role: email.toLowerCase() === 'admin@transhub.com' ? 'admin' : 'customer',
+              vendor_type: vendorType
             });
           
           if (profileError) console.error('Error creating profile:', profileError);
@@ -133,6 +135,34 @@ export const AuthForm = ({ type: initialType, onSuccess }: { type: 'login' | 'si
           </div>
         </div>
 
+        {authType === 'signup' && (
+          <div className="luxury-input-group" style={{ marginBottom: '1rem' }}>
+            <label className="luxury-label">Vendor Specialization</label>
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+              {(['car', 'parts', 'both'] as const).map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => setVendorType(type)}
+                  className={`glass ${vendorType === type ? 'active-gold' : ''}`}
+                  style={{ 
+                    flex: 1, 
+                    padding: '0.8rem', 
+                    borderRadius: '0.5rem', 
+                    fontSize: '0.7rem', 
+                    fontWeight: 700,
+                    border: vendorType === type ? '1px solid var(--accent-gold)' : '1px solid var(--border-glass)',
+                    background: vendorType === type ? 'rgba(191, 149, 63, 0.1)' : 'transparent',
+                    color: vendorType === type ? 'var(--accent-gold)' : 'var(--text-muted)'
+                  }}
+                >
+                  {type.toUpperCase()}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {message && (
           <motion.div 
             initial={{ opacity: 0, scale: 0.9 }}
@@ -199,30 +229,6 @@ export const AuthForm = ({ type: initialType, onSuccess }: { type: 'login' | 'si
           </button>
         </p>
 
-        {authType === 'login' && (
-          <button
-            type="button"
-            onClick={() => {
-              setEmail('admin@transhub.com');
-              setPassword('p0p0p0');
-            }}
-            style={{
-              background: 'var(--accent-gold-soft)',
-              border: '1px solid var(--border-glass)',
-              color: 'var(--accent-gold)',
-              padding: '0.6rem',
-              borderRadius: '0.5rem',
-              fontSize: '0.7rem',
-              letterSpacing: '2px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              transition: '0.3s'
-            }}
-            className="glass-hover"
-          >
-            FAST-TRACK ADMIN ACCESS
-          </button>
-        )}
       </div>
     </div>
   );

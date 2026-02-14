@@ -21,27 +21,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
-    authService.getSession().then(async (session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        await fetchProfile(session.user.id);
-      }
-      setLoading(false);
-    });
+    let mounted = true;
 
-    // Listen for auth changes
+    // Listen for auth changes - this is the single source of truth
     const { data: { subscription } } = authService.onAuthStateChange(async (_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        await fetchProfile(session.user.id);
+      if (!mounted) return;
+      
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      
+      if (currentUser) {
+        try {
+          // Only fetch profile if not already loaded or if user changed
+          if (!profile || profile.id !== currentUser.id) {
+             await fetchProfile(currentUser.id);
+          }
+        } catch (err) {
+          console.error('Error handling auth change:', err);
+        }
       } else {
         setProfile(null);
       }
+      
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const fetchProfile = async (userId: string) => {

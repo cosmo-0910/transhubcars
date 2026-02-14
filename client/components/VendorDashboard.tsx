@@ -1,7 +1,8 @@
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
-import { db, type Car } from '../../shared/lib/db';
+import { db, type Car, type SparePart } from '../../shared/lib/db';
 import { useAuth } from '../../shared/lib/AuthContext';
+import { partsService } from '../services/parts.service';
 import { formatPrice } from '../../shared/lib/formatters';
 import { 
   X, 
@@ -9,30 +10,45 @@ import {
   Search, 
   CarFront,
   CheckCircle2,
-  Clock,
-  AlertCircle
+  Clock
 } from 'lucide-react';
 
 export const VendorDashboard = ({ onClose }: { onClose: () => void }) => {
   const { user, profile } = useAuth();
   const [cars, setCars] = useState<Car[]>([]);
+  const [parts, setParts] = useState<SparePart[]>([]);
+  const [inventoryType, setInventoryType] = useState<'cars' | 'parts'>(
+    profile?.vendor_type === 'parts' ? 'parts' : 'cars'
+  );
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [showAddForm, setShowAddForm] = useState(false);
 
   useEffect(() => {
     if (!user) return;
-    fetchInventory();
-  }, [user]);
+    if (inventoryType === 'cars') fetchInventory();
+    else fetchParts();
+  }, [user, inventoryType]);
 
   const fetchInventory = async () => {
     try {
       setLoading(true);
       const allCars = await db.getCars();
-      // Filter for cars owned by this vendor
-      // Note: In a real app, RLS would handle this, but better to be explicit in client for now
       setCars(allCars.filter(car => car.vendor_id === user?.id));
     } catch (err) {
       console.error('Failed to fetch inventory:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchParts = async () => {
+    try {
+      setLoading(true);
+      const allParts = await partsService.getVendorParts(user?.id || '');
+      setParts(allParts);
+    } catch (err) {
+      console.error('Failed to fetch parts:', err);
     } finally {
       setLoading(false);
     }
@@ -72,8 +88,20 @@ export const VendorDashboard = ({ onClose }: { onClose: () => void }) => {
           <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{profile?.business_name} Inventory Management</p>
         </div>
         <div style={{ display: 'flex', gap: '1rem' }}>
-          <button onClick={() => {}} className="btn-gold" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.8rem 1.5rem' }}>
-            <Plus size={18} /> ADD LISTING
+          {profile?.vendor_type === 'both' && (
+            <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', padding: '0.3rem', borderRadius: '0.8rem', marginRight: '1rem' }}>
+              <button 
+                onClick={() => setInventoryType('cars')}
+                style={{ padding: '0.5rem 1rem', borderRadius: '0.6rem', border: 'none', background: inventoryType === 'cars' ? 'var(--accent-gold)' : 'transparent', color: inventoryType === 'cars' ? 'black' : 'white', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 700 }}
+              >VEHICLES</button>
+              <button 
+                onClick={() => setInventoryType('parts')}
+                style={{ padding: '0.5rem 1rem', borderRadius: '0.6rem', border: 'none', background: inventoryType === 'parts' ? 'var(--accent-gold)' : 'transparent', color: inventoryType === 'parts' ? 'black' : 'white', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 700 }}
+              >SPARE PARTS</button>
+            </div>
+          )}
+          <button onClick={() => setShowAddForm(true)} className="btn-gold" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.8rem 1.5rem' }}>
+            <Plus size={18} /> {inventoryType === 'cars' ? 'ADD VEHICLE' : 'ADD PART'}
           </button>
           <button 
             onClick={onClose}
@@ -118,34 +146,72 @@ export const VendorDashboard = ({ onClose }: { onClose: () => void }) => {
            </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
-            {cars.map(car => (
-              <div key={car.id} className="glass-hover" style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '1.2rem', overflow: 'hidden', border: '1px solid var(--border-glass)' }}>
-                <div style={{ height: '180px', background: 'black', position: 'relative' }}>
-                  <img src={car.image_url} alt={car.model} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.8 }} />
-                  <div style={{ position: 'absolute', top: '1rem', right: '1rem', padding: '0.3rem 0.8rem', borderRadius: '1rem', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(10px)', border: `1px solid ${getStatusColor(car.approval_status || 'pending')}`, color: getStatusColor(car.approval_status || 'pending'), fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                    {car.approval_status === 'approved' && <CheckCircle2 size={12} />}
-                    {car.approval_status === 'rejected' && <AlertCircle size={12} />}
-                    {(!car.approval_status || car.approval_status === 'pending') && <Clock size={12} />}
-                    {car.approval_status || 'pending'}
-                  </div>
-                </div>
-                <div style={{ padding: '1.5rem' }}>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '0.5rem' }}>{car.year} {car.make} {car.model}</div>
-                  <div style={{ fontSize: '1.2rem', color: 'var(--accent-gold)', marginBottom: '1.5rem' }}>{formatPrice(car.price)}</div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Clock size={14} /> {car.mileage.toLocaleString()} mi</span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><CarFront size={14} /> {car.transmission}</span>
-                  </div>
-                </div>
-                <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border-glass)', display: 'flex', gap: '1rem' }}>
-                  <button style={{ flex: 1, padding: '0.6rem', background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: '0.5rem', color: 'white', cursor: 'pointer', fontSize: '0.8rem' }}>EDIT</button>
-                  <button style={{ flex: 1, padding: '0.6rem', background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: '0.5rem', color: 'white', cursor: 'pointer', fontSize: '0.8rem' }}>VIEW</button>
-                </div>
-              </div>
-            ))}
+            {inventoryType === 'cars' ? (
+              cars.map(car => (
+                <CarItem key={car.id} car={car} getStatusColor={getStatusColor} />
+              ))
+            ) : (
+              parts.map(part => (
+                <PartItem key={part.id} part={part} />
+              ))
+            )}
           </div>
         )}
       </div>
+
+      <AnimatePresence>
+        {showAddForm && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem', background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)' }}>
+             {/* Simple Add Form - In a real app this would be a separate component */}
+             <div className="glass" style={{ width: '100%', maxWidth: '600px', padding: '3rem', borderRadius: '2rem', position: 'relative' }}>
+                <button onClick={() => setShowAddForm(false)} style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}><X size={24} /></button>
+                <h3 className="luxury-font" style={{ fontSize: '2rem', marginBottom: '2rem' }}>New {inventoryType === 'cars' ? 'Vehicle' : 'Spare Part'}</h3>
+                <p>Form implementation for {inventoryType} listing would go here.</p>
+                <button className="btn-gold" style={{ marginTop: '2rem', width: '100%' }} onClick={() => setShowAddForm(false)}>CLOSE</button>
+             </div>
+          </div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 };
+
+const CarItem = ({ car, getStatusColor }: any) => (
+  <div className="glass-hover" style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '1.2rem', overflow: 'hidden', border: '1px solid var(--border-glass)' }}>
+    <div style={{ height: '180px', background: 'black', position: 'relative' }}>
+      <img src={car.image_url} alt={car.model} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.8 }} />
+      <div style={{ position: 'absolute', top: '1rem', right: '1rem', padding: '0.3rem 0.8rem', borderRadius: '1rem', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(10px)', border: `1px solid ${getStatusColor(car.approval_status || 'pending')}`, color: getStatusColor(car.approval_status || 'pending'), fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+        {car.approval_status === 'approved' && <CheckCircle2 size={12} />}
+        {car.approval_status || 'pending'}
+      </div>
+    </div>
+    <div style={{ padding: '1.5rem' }}>
+      <div style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '0.5rem' }}>{car.year} {car.make} {car.model}</div>
+      <div style={{ fontSize: '1.2rem', color: 'var(--accent-gold)', marginBottom: '1.5rem' }}>{formatPrice(car.price)}</div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Clock size={14} /> {car.mileage.toLocaleString()} mi</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><CarFront size={14} /> {car.transmission}</span>
+      </div>
+    </div>
+  </div>
+);
+
+const PartItem = ({ part }: { part: SparePart }) => (
+  <div className="glass-hover" style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '1.2rem', overflow: 'hidden', border: '1px solid var(--border-glass)' }}>
+    <div style={{ height: '180px', background: 'black', position: 'relative' }}>
+      <img src={part.image_url} alt={part.name} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.8 }} />
+      <div style={{ position: 'absolute', top: '1rem', right: '1rem', padding: '0.3rem 0.8rem', borderRadius: '1rem', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(10px)', border: '1px solid #4ade80', color: '#4ade80', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase' }}>
+        {part.status}
+      </div>
+    </div>
+    <div style={{ padding: '1.5rem' }}>
+      <div style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '0.5rem' }}>{part.name}</div>
+      <div style={{ fontSize: '1rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>{part.vehicle_make} {part.vehicle_model} ({part.vehicle_year})</div>
+      <div style={{ fontSize: '1.2rem', color: 'var(--accent-gold)', marginBottom: '1.5rem' }}>{formatPrice(part.price)}</div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+        <span>Qty: {part.stock_quantity}</span>
+        <span>{part.condition}</span>
+      </div>
+    </div>
+  </div>
+);

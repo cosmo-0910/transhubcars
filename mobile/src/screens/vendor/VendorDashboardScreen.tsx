@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useAuth } from '../../hooks/useAuth';
 import { carsService } from '../../services/cars.service';
+import { partsService } from '../../services/parts.service';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '../../utils/theme';
 import Icon from 'react-native-vector-icons/Ionicons';
 
@@ -25,15 +26,25 @@ export const VendorDashboardScreen = ({ navigation }: any) => {
   });
 
   const fetchDashboardData = async () => {
-    if (!user) return;
+    if (!user || !profile) return;
     try {
-      const cars = await carsService.getVendorCars(user.id);
-      setStats({
-        activeListings: cars.filter(c => (c as any).approval_status === 'published').length,
-        pendingApprovals: cars.filter(c => (c as any).approval_status === 'pending').length,
-        totalSales: 0, // Assume 0 for now
-        inquiries: 5, // Simulation
-      });
+      if (profile.vendor_type === 'parts') {
+        const parts = await partsService.getVendorParts(user.id);
+        setStats({
+          activeListings: parts.filter((p: any) => p.status === 'active').length,
+          pendingApprovals: parts.filter((p: any) => p.stock_quantity === 0).length, // Using pending as "Out of stock" for parts
+          totalSales: 0,
+          inquiries: 3,
+        });
+      } else {
+        const cars = await carsService.getVendorCars(user.id);
+        setStats({
+          activeListings: cars.filter((c: any) => c.approval_status === 'approved').length,
+          pendingApprovals: cars.filter((c: any) => c.approval_status === 'pending').length,
+          totalSales: 0,
+          inquiries: 5,
+        });
+      }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
@@ -83,13 +94,13 @@ export const VendorDashboardScreen = ({ navigation }: any) => {
 
       <View style={styles.statsGrid}>
         <StatCard 
-          title="Active Listings" 
+          title={profile?.vendor_type === 'parts' ? "Active Parts" : "Active Listings"} 
           value={stats.activeListings} 
-          icon="car-outline" 
+          icon={profile?.vendor_type === 'parts' ? "construct-outline" : "car-outline"} 
           color="#4CAF50" 
         />
         <StatCard 
-          title="Pending" 
+          title={profile?.vendor_type === 'parts' ? "Out of Stock" : "Pending"} 
           value={stats.pendingApprovals} 
           icon="time-outline" 
           color="#FF9800" 
@@ -111,23 +122,32 @@ export const VendorDashboardScreen = ({ navigation }: any) => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Quick Actions</Text>
         <View style={styles.actionsRow}>
-          <TouchableOpacity 
-            style={styles.actionBtn}
-            onPress={() => navigation.navigate('AddVehicle')}
-          >
-            <Icon name="add-circle-outline" size={24} color={COLORS.primary} />
-            <Text style={styles.actionText}>Add Vehicle</Text>
-          </TouchableOpacity>
+          {profile?.vendor_type !== 'parts' && (
+            <TouchableOpacity 
+              style={styles.actionBtn}
+              onPress={() => navigation.navigate('AddVehicle')}
+            >
+              <Icon name="car-outline" size={24} color={COLORS.primary} />
+              <Text style={styles.actionText}>Add Car</Text>
+            </TouchableOpacity>
+          )}
+          
+          {profile?.vendor_type !== 'car' && (
+            <TouchableOpacity 
+              style={styles.actionBtn}
+              onPress={() => navigation.navigate('AddSparePart')}
+            >
+              <Icon name="construct-outline" size={24} color={COLORS.primary} />
+              <Text style={styles.actionText}>Add Part</Text>
+            </TouchableOpacity>
+          )}
+
           <TouchableOpacity 
             style={styles.actionBtn}
             onPress={() => navigation.navigate('Inventory')}
           >
             <Icon name="list-outline" size={24} color={COLORS.primary} />
-            <Text style={styles.actionText}>My Inventory</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionBtn}>
-            <Icon name="stats-chart-outline" size={24} color={COLORS.primary} />
-            <Text style={styles.actionText}>Reports</Text>
+            <Text style={styles.actionText}>Inventory</Text>
           </TouchableOpacity>
         </View>
       </View>

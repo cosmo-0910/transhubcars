@@ -81,7 +81,7 @@ export default function AddCarModal({ onClose, onSuccess, editingCar }: AddCarMo
       // 1. Upload Primary Image if it's a File
       let primaryUrl = editingCar?.image_url || '';
       if (primaryImage instanceof File) {
-        primaryUrl = await db.uploadImage(primaryImage);
+        primaryUrl = await db.uploadImage(primaryImage, 'car-images', profile?.business_name || profile?.full_name || 'vendor');
       } else if (typeof primaryImage === 'string') {
         primaryUrl = primaryImage;
       }
@@ -90,7 +90,7 @@ export default function AddCarModal({ onClose, onSuccess, editingCar }: AddCarMo
       const galleryUrls = await Promise.all(
         galleryImages.map(async (img) => {
           if (img instanceof File) {
-            return await db.uploadImage(img);
+            return await db.uploadImage(img, 'car-images', profile?.business_name || profile?.full_name || 'vendor');
           }
           return img;
         })

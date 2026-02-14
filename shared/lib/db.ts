@@ -1,6 +1,18 @@
 import { supabase } from './supabase';
+import { applyWatermark } from './watermark';
 
 export { supabase };
+
+export interface Profile {
+  id: string;
+  full_name?: string;
+  avatar_url?: string;
+  role: 'customer' | 'admin' | 'vendor';
+  vendor_status: 'none' | 'pending' | 'approved' | 'rejected';
+  vendor_type: 'car' | 'parts' | 'both';
+  business_name?: string;
+  created_at: string;
+}
 
 export interface Car {
   id: string;
@@ -22,9 +34,7 @@ export interface Car {
   stock_number: string;
   vendor_id?: string;
   approval_status?: 'pending' | 'approved' | 'rejected';
-  profiles?: {
-    business_name: string;
-  };
+  profiles?: Profile;
 }
 
 export interface Inquiry {
@@ -82,6 +92,60 @@ export interface PlatformSetting {
   key: string;
   value: any;
   updated_at: string;
+}
+
+export interface SparePart {
+  id: string;
+  vendor_id: string;
+  name: string;
+  category: string;
+  vehicle_make: string;
+  vehicle_model: string;
+  vehicle_year: number;
+  price: number;
+  image_url?: string;
+  description?: string;
+  condition: 'New' | 'Used' | 'Refurbished';
+  stock_quantity: number;
+  status: 'active' | 'out_of_stock' | 'discontinued';
+  created_at: string;
+}
+
+export interface SparePartOrder {
+  id: string;
+  user_id: string;
+  part_id?: string;
+  part_name: string;
+  vehicle_make: string;
+  vehicle_model: string;
+  vehicle_year: string;
+  quantity: number;
+  description?: string;
+  status: 'Pending' | 'Sourced' | 'Shipped' | 'Delivered';
+  created_at: string;
+}
+
+export interface TowRequest {
+  id: string;
+  user_id: string;
+  pickup_address: string;
+  destination_address: string;
+  vehicle_type: string;
+  notes?: string;
+  status: 'Searching' | 'En Route' | 'Completed' | 'Cancelled';
+  created_at: string;
+}
+
+export interface Mechanic {
+  id: string;
+  name: string;
+  specialty: string;
+  location: string;
+  rating: number;
+  is_approved: boolean;
+  phone?: string;
+  image_url?: string;
+  created_at: string;
 }
 
 export const db = {
@@ -171,15 +235,27 @@ export const db = {
     if (error) throw error;
   },
 
-  async uploadImage(file: File, bucket: string = 'car-images'): Promise<string> {
+  async uploadImage(file: File, bucket: string = 'car-images', watermarkUser?: string): Promise<string> {
     try {
+      let uploadFile: File | Blob = file;
+
+      // Apply watermark if username is provided
+      if (watermarkUser) {
+        try {
+          uploadFile = await applyWatermark(file, watermarkUser);
+        } catch (wmError) {
+          console.error('Watermarking failed, uploading original:', wmError);
+          // Fallback to original file if watermarking fails
+        }
+      }
+
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
       const filePath = `${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from(bucket)
-        .upload(filePath, file);
+        .upload(filePath, uploadFile);
 
       if (uploadError) {
         if (uploadError.message.includes('bucket not found') || uploadError.message.includes('does not exist')) {
@@ -477,5 +553,138 @@ export const db = {
       .upsert({ key, value, updated_at: new Date().toISOString() });
     
     if (error) throw error;
+  },
+
+  // Mechanics
+  getMechanics: async (options?: { onlyApproved?: boolean }): Promise<Mechanic[]> => {
+    let query = supabase
+      .from('mechanics')
+      .select('*');
+    
+    if (options?.onlyApproved) {
+      query = query.eq('is_approved', true);
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data || [];
+  },
+
+  saveMechanic: async (mechanic: Omit<Mechanic, 'id' | 'created_at'>) => {
+    const { data, error } = await supabase
+      .from('mechanics')
+      .insert([mechanic])
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  updateMechanic: async (id: string, mechanic: Partial<Mechanic>) => {
+    const { error } = await supabase
+      .from('mechanics')
+      .update(mechanic)
+      .eq('id', id);
+    
+    if (error) throw error;
+  },
+
+  deleteMechanic: async (id: string) => {
+    const { error } = await supabase
+      .from('mechanics')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
+  },
+
+  // Spare Parts
+  searchSpareParts: async (filters: { 
+    category?: string; 
+    condition?: string; 
+    make?: string; 
+    model?: string; 
+    year?: number; 
+    search?: string;
+  }): Promise<SparePart[]> => {
+    let query = supabase
+      .from('spare_parts')
+      .select('*')
+      .eq('status', 'active');
+
+    if (filters.category) query = query.eq('category', filters.category);
+    if (filters.condition) query = query.eq('condition', filters.condition);
+    if (filters.make) query = query.eq('vehicle_make', filters.make);
+    if (filters.model) query = query.eq('vehicle_model', filters.model);
+    if (filters.year) query = query.eq('vehicle_year', filters.year);
+    if (filters.search) query = query.ilike('name', `%${filters.search}%`);
+
+    const { data, error } = await query.order('created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  },
+
+  getSparePartSuggestions: async (field: string, searchTerm: string): Promise<string[]> => {
+    const dbField = field === 'make' ? 'vehicle_make' : 
+                    field === 'model' ? 'vehicle_model' : 
+                    field === 'year' ? 'vehicle_year' : field;
+    
+    const { data, error } = await supabase
+      .from('spare_parts')
+      .select(dbField)
+      .ilike(dbField, `%${searchTerm}%`)
+      .limit(10);
+
+    if (error) throw error;
+    const values = data?.map((item: any) => item[dbField].toString()) || [];
+    return [...new Set(values)];
+  },
+
+  getVendorSpareParts: async (vendorId: string): Promise<SparePart[]> => {
+    const { data, error } = await supabase
+      .from('spare_parts')
+      .select('*')
+      .eq('vendor_id', vendorId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  },
+
+  saveSparePart: async (part: Omit<SparePart, 'id' | 'created_at'>) => {
+    const { data, error } = await supabase
+      .from('spare_parts')
+      .insert([part])
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  updateSparePart: async (id: string, part: Partial<SparePart>) => {
+    const { error } = await supabase
+      .from('spare_parts')
+      .update(part)
+      .eq('id', id);
+    if (error) throw error;
+  },
+
+  deleteSparePart: async (id: string) => {
+    const { error } = await supabase
+      .from('spare_parts')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+  },
+
+  submitSparePartOrder: async (order: Omit<SparePartOrder, 'id' | 'status' | 'created_at'>) => {
+    const { data, error } = await supabase
+      .from('spare_part_orders')
+      .insert([order])
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
   }
 };

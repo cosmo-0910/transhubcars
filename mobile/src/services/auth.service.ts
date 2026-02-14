@@ -1,11 +1,12 @@
 import { supabase } from './supabase';
+import { watermarkImage } from '../utils/imageUtils';
 import type { Profile } from '../types';
 
 export const authService = {
   /**
    * Sign up a new user
    */
-  async signUp(email: string, password: string, fullName: string, role: 'customer' | 'vendor' = 'customer') {
+  async signUp(email: string, password: string, fullName: string, role: 'customer' | 'admin' | 'vendor' = 'customer', vendorType: 'car' | 'parts' | 'both' = 'car') {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -13,6 +14,7 @@ export const authService = {
         data: {
           full_name: fullName,
           role,
+          vendor_type: vendorType,
         },
       },
     });
@@ -96,11 +98,12 @@ export const authService = {
   /**
    * Apply to become a vendor
    */
-  async applyAsVendor(userId: string, businessName: string, businessDetails: any) {
+  async applyAsVendor(userId: string, businessName: string, businessDetails: any, vendorType: 'car' | 'parts' | 'both' = 'car') {
     const { data, error } = await supabase
       .from('profiles')
       .update({
         vendor_status: 'pending',
+        vendor_type: vendorType,
         business_name: businessName,
         business_details: businessDetails,
       })
@@ -127,9 +130,16 @@ export const authService = {
       const fileName = `${userId}/avatar_${Date.now()}.${fileExt}`;
       console.log('[Upload] Generated file name:', fileName);
 
+      // Apply watermark
+      const { data: { user } } = await supabase.auth.getUser();
+      const profile = user?.id ? await this.getProfile(user.id) : null;
+      const watermarkUser = profile?.role === 'admin' ? 'admin' : (profile?.business_name || profile?.full_name || user?.email?.split('@')[0] || 'user');
+      
+      const watermarkedUri = await watermarkImage(file.uri, watermarkUser);
+
       // Convert file URI to blob for upload
       console.log('[Upload] Fetching file from URI...');
-      const response = await fetch(file.uri);
+      const response = await fetch(watermarkedUri);
       if (!response.ok) {
         throw new Error(`Failed to fetch file: ${response.status} ${response.statusText}`);
       }
@@ -176,7 +186,50 @@ export const authService = {
     }
   },
 
+  /**
+   * Update current user's password
+   */
+  async updatePassword(newPassword: string) {
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword
+    });
+    if (error) throw error;
+  },
+
   onAuthStateChange(callback: (event: string, session: any) => void) {
     return supabase.auth.onAuthStateChange(callback);
   },
+  /**
+   * Sign out from all devices
+   */
+  async signOutAllDevices() {
+    const { error } = await supabase.auth.signOut({ scope: 'global' });
+    if (error) throw error;
+  },
+
+  /**
+   * Get trusted devices
+   */
+  async getTrustedDevices(userId: string) {
+    const { data, error } = await supabase
+      .from('trusted_devices')
+      .select('*')
+      .eq('user_id', userId)
+      .order('last_active', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  /**
+   * Remove trusted device
+   */
+  async removeTrustedDevice(deviceId: string) {
+    const { error } = await supabase
+      .from('trusted_devices')
+      .delete()
+      .eq('id', deviceId);
+
+    if (error) throw error;
+  }
 };

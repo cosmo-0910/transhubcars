@@ -17,6 +17,7 @@ interface InputProps extends TextInputProps {
   containerStyle?: StyleProp<ViewStyle>;
   onPressIn?: () => void;
   pointerEvents?: 'box-none' | 'none' | 'box-only' | 'auto';
+  leftIcon?: React.ReactNode;
 }
 
 export const Input: React.FC<InputProps> = ({
@@ -25,29 +26,33 @@ export const Input: React.FC<InputProps> = ({
   containerStyle,
   onPressIn,
   pointerEvents,
+  leftIcon,
   ...props
 }) => {
   return (
-    <TouchableOpacity 
-      activeOpacity={onPressIn ? 0.7 : 1} 
-      onPress={onPressIn}
-      style={[styles.container, containerStyle]}
-      pointerEvents={pointerEvents}
-    >
-      {label && <Text style={styles.label}>{label}</Text>}
-      <View pointerEvents={onPressIn ? 'none' : 'auto'}>
-        <TextInput
-          style={[
-            styles.input,
-            props.multiline && styles.multilineInput,
-            error && styles.errorInput,
-          ]}
-          placeholderTextColor={COLORS.textMuted}
-          {...props}
-        />
-      </View>
-      {error && <Text style={styles.errorText}>{error}</Text>}
-    </TouchableOpacity>
+    <View style={[styles.container, containerStyle]} pointerEvents={pointerEvents}>
+      <TouchableOpacity 
+        activeOpacity={onPressIn ? 0.7 : 1} 
+        onPress={onPressIn}
+      >
+        {label && <Text style={styles.label}>{label}</Text>}
+        <View style={[
+          styles.inputWrapper,
+          error && styles.errorInput,
+        ]} pointerEvents={onPressIn ? 'none' : 'auto'}>
+          {leftIcon && <View style={styles.leftIcon}>{leftIcon}</View>}
+          <TextInput
+            style={[
+              styles.input,
+              props.multiline && styles.multilineInput,
+            ]}
+            placeholderTextColor={COLORS.textMuted}
+            {...props}
+          />
+        </View>
+        {error && <Text style={styles.errorText}>{error}</Text>}
+      </TouchableOpacity>
+    </View>
   );
 };
 
@@ -61,11 +66,19 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.xs,
     fontWeight: '600',
   },
-  input: {
+  inputWrapper: {
     backgroundColor: COLORS.backgroundCard,
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: BORDER_RADIUS.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  leftIcon: {
+    paddingLeft: SPACING.md,
+  },
+  input: {
+    flex: 1,
     paddingHorizontal: SPACING.md,
     height: 48,
     color: COLORS.text,

@@ -1,7 +1,7 @@
 import { AdminDashboard } from './AdminDashboard.tsx';
 import { AuthProvider, useAuth } from '../shared/lib/AuthContext.tsx';
-import { AuthForm } from '../client/components/AuthForms.tsx';
 import { ThemeProvider } from '../shared/context/ThemeContext.tsx';
+import { motion } from 'framer-motion';
 
 function AdminContent() {
   const { user, profile, loading } = useAuth();
@@ -14,18 +14,25 @@ function AdminContent() {
 
   if (!user || profile?.role !== 'admin') {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-black p-4">
-        <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
-          <h1 className="luxury-font" style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>SECURE ACCESS<span style={{ color: 'var(--accent-gold)' }}>.</span></h1>
-          <p style={{ color: 'var(--text-muted)' }}>Administrative credentials required to proceed.</p>
-        </div>
-        <AuthForm type="login" />
-        <button 
-          onClick={() => window.location.href = '/'}
-          style={{ marginTop: '2rem', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.8rem', letterSpacing: '2px' }}
+      <div className="min-h-screen flex flex-col items-center justify-center bg-black p-4 text-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8 }}
         >
-          RETURN TO SHOWROOM
-        </button>
+          <h1 className="luxury-font" style={{ fontSize: '8rem', color: 'var(--accent-gold)', opacity: 0.1, marginBottom: '-4rem' }}>404</h1>
+          <h2 className="luxury-font" style={{ fontSize: '2.5rem', marginBottom: '1rem', position: 'relative' }}>PAGE NOT FOUND<span style={{ color: 'var(--accent-gold)' }}>.</span></h2>
+          <p style={{ color: 'var(--text-muted)', maxWidth: '400px', margin: '0 auto 2rem', letterSpacing: '1px' }}>
+            The requested destination does not exist or has been permanently moved from this registry.
+          </p>
+          <button 
+            onClick={() => window.location.href = '/'}
+            className="btn-gold"
+            style={{ padding: '1rem 2rem', borderRadius: '0.5rem', fontSize: '0.8rem', fontWeight: 700 }}
+          >
+            RETURN TO SHOWROOM
+          </button>
+        </motion.div>
       </div>
     );
   }

@@ -104,7 +104,7 @@ export const HomeScreen = () => {
 
             <TouchableOpacity 
               style={styles.actionItem}
-              onPress={() => { /* Services info */ }}
+              onPress={() => navigation.navigate('Services')}
             >
               <View style={[styles.actionIcon, { backgroundColor: 'rgba(16, 185, 129, 0.1)' }]}>
                 <Icon name="shield-checkmark" size={24} color={COLORS.success} />

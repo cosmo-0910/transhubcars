@@ -16,11 +16,13 @@ import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '../../utils/theme';
 import { Input } from '../../components/common/Input';
 import { Button } from '../../components/common/Button';
 import { CustomAlert } from '../../components/common/CustomAlert';
+import { LuxuryPicker } from '../../components/common/LuxuryPicker';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { launchImageLibrary } from 'react-native-image-picker';
+import { checkMediaPermissions } from '../../utils/permissions';
 
 export const AddVehicleScreen = ({ navigation, route }: any) => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const editCar = route.params?.car;
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1);
@@ -45,6 +47,14 @@ export const AddVehicleScreen = ({ navigation, route }: any) => {
     title: '',
     message: '',
     buttons: [] as any[],
+  });
+
+  const [pickerConfig, setPickerConfig] = useState({
+    visible: false,
+    title: '',
+    options: [] as any[],
+    onSelect: (val: any) => {},
+    selectedValue: null as any,
   });
 
   const showAlert = (title: string, message: string, buttons?: any[]) => {
@@ -109,6 +119,8 @@ export const AddVehicleScreen = ({ navigation, route }: any) => {
 
   const handleImagePick = async () => {
     try {
+      const hasPermission = await checkMediaPermissions();
+      if (!hasPermission) return;
       const result = await launchImageLibrary({
         mediaType: 'photo',
         selectionLimit: 10 - form.images.length,
@@ -125,7 +137,7 @@ export const AddVehicleScreen = ({ navigation, route }: any) => {
               uri: asset.uri,
               type: asset.type,
               name: asset.fileName,
-            }, user?.id || 'unknown');
+            }, user?.id || 'unknown', profile?.business_name || profile?.full_name || 'vendor');
             newImages.push(url);
           }
         }
@@ -172,6 +184,14 @@ export const AddVehicleScreen = ({ navigation, route }: any) => {
         onClose={hideAlert}
         buttons={alertConfig.buttons}
       />
+      <LuxuryPicker
+        visible={pickerConfig.visible}
+        title={pickerConfig.title}
+        options={pickerConfig.options}
+        selectedValue={pickerConfig.selectedValue}
+        onSelect={pickerConfig.onSelect}
+        onClose={() => setPickerConfig(prev => ({ ...prev, visible: false }))}
+      />
       <View style={styles.header}>
         <Text style={styles.title}>{editCar ? 'Edit Vehicle' : 'Post New Vehicle'}</Text>
         <ProgressBar />
@@ -217,11 +237,16 @@ export const AddVehicleScreen = ({ navigation, route }: any) => {
               value={form.status}
               // In real app, use a picker
               onPressIn={() => {
-                showAlert('Status', 'Select vehicle status', [
-                  { text: 'Readily Available', onPress: () => updateForm('status', 'Readily Available') },
-                  { text: 'Preorder', onPress: () => updateForm('status', 'Preorder') },
-                  { text: 'Cancel', style: 'cancel' }
-                ]);
+                setPickerConfig({
+                  visible: true,
+                  title: 'Select Status',
+                  selectedValue: form.status,
+                  options: [
+                    { label: 'Readily Available', value: 'Readily Available', icon: 'car-outline' },
+                    { label: 'Preorder', value: 'Preorder', icon: 'time-outline' },
+                  ],
+                  onSelect: (val) => updateForm('status', val),
+                });
               }}
             />
           </View>
@@ -243,12 +268,17 @@ export const AddVehicleScreen = ({ navigation, route }: any) => {
                 containerStyle={{ flex: 1, marginRight: SPACING.md }}
                 value={form.transmission}
                 onPressIn={() => {
-                  showAlert('Transmission', 'Select transmission type', [
-                    { text: 'Automatic', onPress: () => updateForm('transmission', 'Automatic') },
-                    { text: 'Manual', onPress: () => updateForm('transmission', 'Manual') },
-                    { text: 'Semi-Auto', onPress: () => updateForm('transmission', 'Semi-Auto') },
-                    { text: 'Cancel', style: 'cancel' }
-                  ]);
+                  setPickerConfig({
+                    visible: true,
+                    title: 'Transmission',
+                    selectedValue: form.transmission,
+                    options: [
+                      { label: 'Automatic', value: 'Automatic' },
+                      { label: 'Manual', value: 'Manual' },
+                      { label: 'Semi-Auto', value: 'Semi-Auto' },
+                    ],
+                    onSelect: (val) => updateForm('transmission', val),
+                  });
                 }}
               />
               <Input
@@ -256,13 +286,18 @@ export const AddVehicleScreen = ({ navigation, route }: any) => {
                 containerStyle={{ flex: 1 }}
                 value={form.fuel_type}
                 onPressIn={() => {
-                  showAlert('Fuel Type', 'Select fuel type', [
-                    { text: 'Petrol', onPress: () => updateForm('fuel_type', 'Petrol') },
-                    { text: 'Diesel', onPress: () => updateForm('fuel_type', 'Diesel') },
-                    { text: 'Hybrid', onPress: () => updateForm('fuel_type', 'Hybrid') },
-                    { text: 'Electric', onPress: () => updateForm('fuel_type', 'Electric') },
-                    { text: 'Cancel', style: 'cancel' }
-                  ]);
+                  setPickerConfig({
+                    visible: true,
+                    title: 'Fuel Type',
+                    selectedValue: form.fuel_type,
+                    options: [
+                      { label: 'Petrol', value: 'Petrol' },
+                      { label: 'Diesel', value: 'Diesel' },
+                      { label: 'Hybrid', value: 'Hybrid' },
+                      { label: 'Electric', value: 'Electric' },
+                    ],
+                    onSelect: (val) => updateForm('fuel_type', val),
+                  });
                 }}
               />
             </View>

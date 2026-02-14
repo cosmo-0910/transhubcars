@@ -27,10 +27,13 @@ export interface Profile {
   avatar_url?: string;
   role: 'customer' | 'admin' | 'vendor';
   vendor_status: 'none' | 'pending' | 'approved' | 'rejected';
+  vendor_type: 'car' | 'parts' | 'both';
   preorder_status: 'none' | 'pending' | 'approved' | 'rejected';
   status: 'active' | 'suspended' | 'banned' | 'disabled';
   business_name?: string;
   business_details?: any;
+  phone?: string;
+  address?: string;
   store_video_url?: string;
   store_image_url?: string;
   created_at: string;
@@ -78,5 +81,59 @@ export interface CartItem {
   user_id: string;
   car_id: string;
   quantity: number;
+  created_at: string;
+}
+
+export interface SparePart {
+  id: string;
+  vendor_id: string;
+  name: string;
+  category: string;
+  vehicle_make: string;
+  vehicle_model: string;
+  vehicle_year: number;
+  price: number;
+  image_url?: string;
+  description?: string;
+  condition: 'New' | 'Used' | 'Refurbished';
+  stock_quantity: number;
+  status: 'active' | 'out_of_stock' | 'discontinued';
+  created_at: string;
+}
+
+export interface SparePartOrder {
+  id: string;
+  user_id: string;
+  part_id?: string; // Optional if linked to inventory
+  part_name: string;
+  vehicle_make: string;
+  vehicle_model: string;
+  vehicle_year: string;
+  quantity: number;
+  description?: string;
+  status: 'Pending' | 'Sourced' | 'Shipped' | 'Delivered';
+  created_at: string;
+}
+
+export interface TowRequest {
+  id: string;
+  user_id: string;
+  pickup_address: string;
+  destination_address: string;
+  vehicle_type: string;
+  notes?: string;
+  status: 'Searching' | 'En Route' | 'Completed' | 'Cancelled';
+  created_at: string;
+}
+
+export interface Mechanic {
+  id: string;
+  name: string;
+  specialty: string;
+  location: string;
+  rating: number;
+  is_approved: boolean; // Transhub Approved
+  phone?: string;
+  image_url?: string;
   created_at: string;
 }

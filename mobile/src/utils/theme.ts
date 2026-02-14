@@ -54,4 +54,5 @@ export const BORDER_RADIUS = {
   lg: 12,
   xl: 16,
   round: 999,
+  full: 999,
 };

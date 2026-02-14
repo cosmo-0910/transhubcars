@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   full_name TEXT,
   role TEXT CHECK (role IN ('customer', 'admin', 'vendor')) DEFAULT 'customer',
   vendor_status TEXT CHECK (vendor_status IN ('none', 'pending', 'approved', 'rejected')) DEFAULT 'none',
+  vendor_type TEXT CHECK (vendor_type IN ('car', 'parts', 'both')) DEFAULT 'car',
   preorder_status TEXT CHECK (preorder_status IN ('none', 'pending', 'approved', 'rejected')) DEFAULT 'none',
   status TEXT CHECK (status IN ('active', 'suspended', 'banned', 'disabled')) DEFAULT 'active',
   business_name TEXT,
@@ -187,7 +188,7 @@ CREATE POLICY "Users Delete Own Cart" ON cart_items FOR DELETE USING (auth.uid()
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.profiles (id, full_name, role, vendor_status)
+   INSERT INTO public.profiles (id, full_name, role, vendor_status, vendor_type)
   VALUES (
     new.id, 
     new.raw_user_meta_data->>'full_name',
@@ -195,7 +196,8 @@ BEGIN
       WHEN new.email = 'admin@transhub.com' THEN 'admin'
       ELSE 'customer'
     END,
-    'none'
+    'none',
+    COALESCE(new.raw_user_meta_data->>'vendor_type', 'car')
   );
   RETURN new;
 END;

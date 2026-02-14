@@ -10,7 +10,7 @@ import {
   MoreVertical, Bell, LogOut, ChevronRight,
   TrendingUp, Zap, Server, ShieldCheck, DollarSign,
   CheckCircle2, X, Plus, Trash2, Edit, Eye, RefreshCw, Copy,
-  Video, Menu
+  Video, Menu, Wrench
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../shared/lib/AuthContext';
@@ -23,7 +23,7 @@ import { useRef } from 'react';
 import { ThemeToggle } from '../shared/components/ThemeToggle';
 
 // --- Types ---
-type Section = 'overview' | 'vendors' | 'users' | 'inventory' | 'orders' | 'sales' | 'ledger' | 'audit' | 'settings' | 'admins';
+type Section = 'overview' | 'vendors' | 'users' | 'inventory' | 'orders' | 'sales' | 'ledger' | 'audit' | 'settings' | 'admins' | 'mechanics';
 
 interface KpiData {
   totalUsers: number;
@@ -158,6 +158,7 @@ export const AdminDashboard = () => {
   const [admins, setAdmins] = useState<any[]>([]);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [platformSettings, setPlatformSettings] = useState<any[]>([]);
+  const [mechanics, setMechanics] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [vendorFilter, setVendorFilter] = useState('all'); // 'all', 'pending', 'preorder_pending'
   const [selectedVendor, setSelectedVendor] = useState<any>(null);
@@ -175,6 +176,8 @@ export const AdminDashboard = () => {
   const [showAddCarForm, setShowAddCarForm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editingMechanic, setEditingMechanic] = useState<any | null>(null);
+  const [showAddMechanicForm, setShowAddMechanicForm] = useState(false);
 
   // Form State
   const [primaryImage, setPrimaryImage] = useState<File | string | null>(null);
@@ -265,6 +268,9 @@ export const AdminDashboard = () => {
       setAdmins(adminsData);
       setAuditLogs(logsData);
       setPlatformSettings(settingsData);
+      
+      const mechanicsData = await db.getMechanics().catch(() => []);
+      setMechanics(mechanicsData);
     } catch (err: any) {
       console.error('Failed to load portal data:', err);
       setError(err.message || 'Failed to connect to the secure network. Please check your connection.');
@@ -364,7 +370,8 @@ export const AdminDashboard = () => {
     { id: 'users', label: 'User Supervision' },
     { id: 'finance', label: 'Financial Access' },
     { id: 'audit', label: 'Audit Logs' },
-    { id: 'settings', label: 'System Settings' }
+    { id: 'settings', label: 'System Settings' },
+    { id: 'mechanics', label: 'Workshop Management' }
   ];
 
   const handleCarSubmit = async (e: React.FormEvent) => {
@@ -378,7 +385,7 @@ export const AdminDashboard = () => {
       // 1. Upload Primary Image if it's a File
       let primaryUrl = editingCar?.image_url || '';
       if (primaryImage instanceof File) {
-        primaryUrl = await db.uploadImage(primaryImage);
+        primaryUrl = await db.uploadImage(primaryImage, 'car-images', 'admin');
       } else if (typeof primaryImage === 'string') {
         primaryUrl = primaryImage;
       }
@@ -387,7 +394,7 @@ export const AdminDashboard = () => {
       const galleryUrls = await Promise.all(
         galleryImages.map(async (img) => {
           if (img instanceof File) {
-            return await db.uploadImage(img);
+            return await db.uploadImage(img, 'car-images', 'admin');
           }
           return img;
         })
@@ -452,6 +459,56 @@ export const AdminDashboard = () => {
       alert(`Failed: ${err.message}`);
     }
   };
+
+  const handleMechanicSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const form = e.currentTarget as HTMLFormElement;
+    const formData = new FormData(form);
+    
+    try {
+      setLoading(true);
+      setError(null);
+
+      const mechanicData: any = {
+        name: formData.get('name'),
+        specialty: formData.get('specialty'),
+        location: formData.get('location'),
+        rating: parseFloat(formData.get('rating') as string) || 0,
+        is_approved: formData.get('is_approved') === 'true',
+        phone: formData.get('phone'),
+        image_url: formData.get('image_url') || 'https://images.unsplash.com/photo-1530046339160-ce3e5b097ea1?q=80&w=2070'
+      };
+
+      if (editingMechanic) {
+        await db.updateMechanic(editingMechanic.id, mechanicData);
+        await db.logAction('Update Mechanic', 'mechanic', editingMechanic.id);
+      } else {
+        await db.saveMechanic(mechanicData);
+        await db.logAction('Add Mechanic', 'mechanic');
+      }
+      
+      loadAllData();
+      setShowAddMechanicForm(false);
+      setEditingMechanic(null);
+    } catch (err: any) {
+      console.error('Failed to save mechanic:', err);
+      setError(err.message || 'Failed to save mechanic details');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteMechanic = async (id: string) => {
+    if (window.confirm('Delete this mechanic record?')) {
+      try {
+        await db.deleteMechanic(id);
+        await db.logAction('Delete Mechanic', 'mechanic', id);
+        loadAllData();
+      } catch (err: any) {
+        alert(`Failed to delete mechanic: ${err.message}`);
+      }
+    }
+  };
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
   // --- Derived Metrics ---
@@ -482,9 +539,10 @@ export const AdminDashboard = () => {
       case 'ledger': return orders.filter(o => o.id.includes(q) || (o.payment_ref || '').toLowerCase().includes(q));
       case 'audit': return auditLogs.filter(l => (l.action || '').toLowerCase().includes(q) || (l.profiles?.full_name || '').toLowerCase().includes(q));
       case 'admins': return admins.filter(a => (a.full_name || '').toLowerCase().includes(q) || (a.email || '').toLowerCase().includes(q));
+      case 'mechanics': return mechanics.filter(m => (m.name || '').toLowerCase().includes(q) || (m.specialty || '').toLowerCase().includes(q));
       default: return [];
     }
-  }, [activeSection, vendors, users, cars, orders, auditLogs, admins, searchQuery]);
+  }, [activeSection, vendors, users, cars, orders, auditLogs, admins, mechanics, searchQuery]);
 
   return (
     <div className="logo-grid-bg dashboard-container" style={{ color: 'var(--text-main)' }}>
@@ -523,6 +581,7 @@ export const AdminDashboard = () => {
             {hasPermission('users') && <SidebarItem icon={Users} label="Users" active={activeSection === 'users'} onClick={() => setActiveSection('users')} />}
             {hasPermission('inventory') && <SidebarItem icon={CarFront} label="Inventory" active={activeSection === 'inventory'} onClick={() => setActiveSection('inventory')} badge={stats.pendingListings} />}
             {hasPermission('inventory') && <SidebarItem icon={ShoppingBag} label="Orders" active={activeSection === 'orders'} onClick={() => setActiveSection('orders')} />}
+            {hasPermission('mechanics') && <SidebarItem icon={Wrench} label="Workshops" active={activeSection === 'mechanics'} onClick={() => setActiveSection('mechanics')} />}
           </div>
 
           {(hasPermission('finance') || hasPermission('sales')) && (
@@ -1079,6 +1138,84 @@ export const AdminDashboard = () => {
                 </div>
               )}
 
+              {/* --- MECHANICS --- */}
+              {activeSection === 'mechanics' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h2 className="luxury-font" style={{ fontSize: '2rem', margin: 0 }}>Certified Workshops</h2>
+                    <button 
+                      onClick={() => {
+                        setEditingMechanic(null);
+                        setShowAddMechanicForm(true);
+                      }}
+                      className="btn-gold" 
+                      style={{ padding: '0.8rem 1.5rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}
+                    >
+                      <Plus size={16} /> ADD CERTIFIED WORKSHOP
+                    </button>
+                  </div>
+                
+                  <div className="glass" style={{ borderRadius: '1.5rem', overflow: 'hidden' }}>
+                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--border-glass)' }}>
+                        <tr>
+                          <th style={{ padding: '1.5rem', textAlign: 'left' }}>Workshop</th>
+                          <th style={{ padding: '1.5rem', textAlign: 'left' }}>Specialty</th>
+                          <th style={{ padding: '1.5rem', textAlign: 'left' }}>Location</th>
+                          <th style={{ padding: '1.5rem', textAlign: 'left' }}>Status</th>
+                          <th style={{ padding: '1.5rem', textAlign: 'right' }}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredData.length === 0 ? (
+                          <tr>
+                            <td colSpan={5} style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                              No mechanics found in the database.
+                            </td>
+                          </tr>
+                        ) : filteredData.map((mech: any) => (
+                          <tr key={mech.id} style={{ borderBottom: '1px solid var(--border-glass)' }}>
+                            <td style={{ padding: '1.5rem' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                <img src={mech.image_url} alt={mech.name} style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
+                                <div>
+                                  <div style={{ fontWeight: 600 }}>{mech.name}</div>
+                                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{mech.phone}</div>
+                                </div>
+                              </div>
+                            </td>
+                            <td style={{ padding: '1.5rem' }}>{mech.specialty}</td>
+                            <td style={{ padding: '1.5rem' }}>{mech.location}</td>
+                            <td style={{ padding: '1.5rem' }}>
+                              <StatusBadge status={mech.is_approved ? 'APPROVED' : 'PENDING'} />
+                            </td>
+                            <td style={{ padding: '1.5rem', textAlign: 'right' }}>
+                              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                                <button 
+                                  onClick={() => {
+                                    setEditingMechanic(mech);
+                                    setShowAddMechanicForm(true);
+                                  }}
+                                  style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', padding: '0.4rem', borderRadius: '0.4rem', cursor: 'pointer' }}
+                                >
+                                  <Edit size={16} />
+                                </button>
+                                <button 
+                                  onClick={() => handleDeleteMechanic(mech.id)}
+                                  style={{ background: 'rgba(239, 68, 68, 0.1)', border: 'none', color: '#ef4444', padding: '0.4rem', borderRadius: '0.4rem', cursor: 'pointer' }}
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                     </table>
+                  </div>
+                </div>
+              )}
+
               {/* --- SETTINGS --- */}
               {activeSection === 'settings' && (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
@@ -1304,6 +1441,72 @@ export const AdminDashboard = () => {
                     <button type="button" onClick={() => setShowAddCarForm(false)} style={{ flex: 1, padding: '1.2rem', borderRadius: '1rem', border: '1px solid var(--border-glass)', background: 'transparent', color: 'white', cursor: 'pointer', fontWeight: 600 }}>ABORT</button>
                     <button type="submit" disabled={loading} className="btn-gold" style={{ flex: 2, padding: '1.2rem' }}>
                       {loading ? 'SYNCHRONIZING...' : editingCar ? 'SECURE UPDATES' : 'PUBLISH ASSET'}
+                    </button>
+                  </div>
+               </form>
+             </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+
+      {/* Add Mechanic Modal */}
+      <AnimatePresence>
+        {showAddMechanicForm && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(10px)', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '2rem' }}>
+             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="glass" style={{ width: '100%', maxWidth: '600px', padding: '3rem', borderRadius: '1.5rem' }}>
+               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3rem' }}>
+                 <div>
+                   <h2 className="luxury-font" style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>Workshop Registration</h2>
+                   <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Elite Workshop Profile Management</p>
+                 </div>
+                 <button onClick={() => setShowAddMechanicForm(false)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}><X size={24} /></button>
+               </div>
+
+               <form onSubmit={handleMechanicSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                  <div className="form-group">
+                    <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Full Name / Workshop Name</label>
+                    <input name="name" defaultValue={editingMechanic?.name} required className="admin-input" style={{ width: '100%' }} placeholder="e.g. AutoTech Solutions" />
+                  </div>
+
+                  <div className="form-group">
+                    <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Specialty</label>
+                    <input name="specialty" defaultValue={editingMechanic?.specialty} required className="admin-input" style={{ width: '100%' }} placeholder="e.g. Engine Diagnostics" />
+                  </div>
+
+                  <div className="form-group">
+                    <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Location / Address</label>
+                    <input name="location" defaultValue={editingMechanic?.location} required className="admin-input" style={{ width: '100%' }} placeholder="e.g. Victoria Island, Lagos" />
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div className="form-group">
+                      <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Contact Phone</label>
+                      <input name="phone" defaultValue={editingMechanic?.phone} className="admin-input" style={{ width: '100%' }} placeholder="+234..." />
+                    </div>
+                    <div className="form-group">
+                      <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Rating (0-5)</label>
+                      <input name="rating" type="number" step="0.1" max="5" defaultValue={editingMechanic?.rating || 0} className="admin-input" style={{ width: '100%' }} />
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Image URL</label>
+                    <input name="image_url" defaultValue={editingMechanic?.image_url} className="admin-input" style={{ width: '100%' }} placeholder="https://..." />
+                  </div>
+
+                  <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <label style={{ fontSize: '0.9rem' }}>Transhub Approved</label>
+                    <select name="is_approved" defaultValue={editingMechanic?.is_approved ? 'true' : 'false'} className="admin-input" style={{ width: 'auto' }}>
+                      <option value="true">YES</option>
+                      <option value="false">NO</option>
+                    </select>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+                    <button type="button" onClick={() => setShowAddMechanicForm(false)} style={{ flex: 1, padding: '1rem', borderRadius: '0.8rem', border: '1px solid var(--border-glass)', background: 'transparent', color: 'white', cursor: 'pointer' }}>CANCEL</button>
+                    <button type="submit" disabled={loading} className="btn-gold" style={{ flex: 2, padding: '1rem' }}>
+                      {loading ? 'SAVING...' : editingMechanic ? 'UPDATE WORKSHOP' : 'REGISTER WORKSHOP'}
                     </button>
                   </div>
                </form>

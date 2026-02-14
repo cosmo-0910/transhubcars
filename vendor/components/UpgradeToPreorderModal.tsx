@@ -11,7 +11,7 @@ interface UpgradeToPreorderModalProps {
 }
 
 export default function UpgradeToPreorderModal({ onClose, onSuccess }: UpgradeToPreorderModalProps) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [videoFile, setVideoFile] = useState<File | null>(null);
@@ -30,12 +30,12 @@ export default function UpgradeToPreorderModal({ onClose, onSuccess }: UpgradeTo
       setError(null);
 
       // Upload Video (simulated as image bucket for now, ideally separate bucket)
-      const videoUrl = await db.uploadImage(videoFile); // Reusing uploadImage for simplicity, rename bucket if needed
+      const videoUrl = await db.uploadImage(videoFile); // No watermark for video
       
       // Upload Image
       let imageUrl = '';
       if (imageFile instanceof File) {
-        imageUrl = await db.uploadImage(imageFile);
+        imageUrl = await db.uploadImage(imageFile, 'car-images', profile?.business_name || profile?.full_name || 'vendor');
       } else {
         imageUrl = imageFile;
       }

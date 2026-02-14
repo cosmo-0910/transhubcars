@@ -8,7 +8,10 @@ import {
   ActivityIndicator,
   RefreshControl,
   Image,
+  Alert,
+  Platform,
 } from 'react-native';
+import { partsService } from '../../services/parts.service';
 import { useAuth } from '../../hooks/useAuth';
 import { carsService } from '../../services/cars.service';
 import { Car } from '../../types';
@@ -17,7 +20,10 @@ import { formatCurrency, getCarDisplayName } from '../../utils/helpers';
 import Icon from 'react-native-vector-icons/Ionicons';
 
 export const ManageInventoryScreen = ({ navigation }: any) => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  const [inventoryType, setInventoryType] = useState<'cars' | 'parts'>(
+    profile?.vendor_type === 'parts' ? 'parts' : 'cars'
+  );
   const [cars, setCars] = useState<Car[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -39,6 +45,32 @@ export const ManageInventoryScreen = ({ navigation }: any) => {
     fetchVendorCars();
   }, [user]);
 
+  const handleDeleteCar = async (carId: string) => {
+    Alert.alert(
+      'Delete Listing',
+      'Are you sure you want to delete this vehicle listing? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Delete', 
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setLoading(true);
+              await carsService.deleteCar(carId);
+              setCars(prev => prev.filter(car => car.id !== carId));
+              Alert.alert('Success', 'Vehicle listing deleted.');
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete listing.');
+            } finally {
+              setLoading(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const onRefresh = () => {
     setRefreshing(true);
     fetchVendorCars();
@@ -46,7 +78,7 @@ export const ManageInventoryScreen = ({ navigation }: any) => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'published': return '#4CAF50';
+      case 'approved': return '#4CAF50';
       case 'pending': return '#FF9800';
       case 'rejected': return COLORS.error;
       default: return COLORS.textMuted;
@@ -85,7 +117,10 @@ export const ManageInventoryScreen = ({ navigation }: any) => {
             >
               <Icon name="create-outline" size={18} color={COLORS.text} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.actionIcon}>
+            <TouchableOpacity 
+              style={styles.actionIcon}
+              onPress={() => handleDeleteCar(item.id)}
+            >
               <Icon name="trash-outline" size={18} color={COLORS.error} />
             </TouchableOpacity>
           </View>
@@ -100,13 +135,32 @@ export const ManageInventoryScreen = ({ navigation }: any) => {
         <Text style={styles.title}>My Inventory</Text>
         <TouchableOpacity 
           style={styles.addButton}
-          onPress={() => navigation.navigate('AddVehicle')}
+          onPress={() => navigation.navigate(inventoryType === 'cars' ? 'AddVehicle' : 'AddSparePart')}
         >
           <Icon name="add" size={24} color={COLORS.background} />
         </TouchableOpacity>
       </View>
 
-      {loading ? (
+      {profile?.vendor_type === 'both' && (
+        <View style={styles.tabContainer}>
+          <TouchableOpacity 
+            style={[styles.tab, inventoryType === 'cars' && styles.activeTab]}
+            onPress={() => setInventoryType('cars')}
+          >
+            <Text style={[styles.tabText, inventoryType === 'cars' && styles.activeTabText]}>Vehicles</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.tab, inventoryType === 'parts' && styles.activeTab]}
+            onPress={() => setInventoryType('parts')}
+          >
+            <Text style={[styles.tabText, inventoryType === 'parts' && styles.activeTabText]}>Spare Parts</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {inventoryType === 'parts' ? (
+        <VendorPartsList navigation={navigation} />
+      ) : loading ? (
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={COLORS.primary} />
         </View>
@@ -137,6 +191,66 @@ export const ManageInventoryScreen = ({ navigation }: any) => {
   );
 };
 
+const VendorPartsList = ({ navigation }: any) => {
+  const { user } = useAuth();
+  const [parts, setParts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchParts = async () => {
+    if (!user) return;
+    try {
+      const data = await partsService.getVendorParts(user.id);
+      setParts(data);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => { fetchParts(); }, [user]);
+
+  const renderPart = ({ item }: any) => (
+    <View style={styles.carCard}>
+      <Image source={{ uri: item.image_url }} style={styles.carImage} />
+      <View style={styles.carInfo}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.carName} numberOfLines={1}>{item.name}</Text>
+          <View style={[styles.statusBadge, { backgroundColor: '#4CAF5015' }]}>
+            <Text style={[styles.statusText, { color: '#4CAF50' }]}>{item.status.toUpperCase()}</Text>
+          </View>
+        </View>
+        <Text style={styles.price}>{formatCurrency(item.price)}</Text>
+        <View style={styles.cardFooter}>
+          <Text style={styles.carMeta}>{item.category} • {item.condition}</Text>
+          <View style={styles.actions}>
+            <TouchableOpacity onPress={() => navigation.navigate('AddSparePart', { part: item })}>
+              <Icon name="create-outline" size={18} color={COLORS.text} style={styles.actionIcon} />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+
+  if (loading && !refreshing) return <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 40 }} />;
+
+  return (
+    <FlatList
+      data={parts}
+      renderItem={renderPart}
+      keyExtractor={item => item.id}
+      contentContainerStyle={styles.listContent}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchParts(); }} />}
+      ListEmptyComponent={
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>No spare parts listed yet.</Text>
+        </View>
+      }
+    />
+  );
+};
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -147,10 +261,32 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: SPACING.lg,
-    paddingTop: SPACING.xl,
+    paddingTop: Platform.OS === 'ios' ? 60 : SPACING.lg,
     backgroundColor: COLORS.backgroundCard,
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.backgroundCard,
+    paddingHorizontal: SPACING.lg,
+    paddingBottom: SPACING.md,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
+  },
+  tab: {
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.sm,
+    marginRight: SPACING.md,
+    borderRadius: BORDER_RADIUS.md,
+  },
+  activeTab: {
+    backgroundColor: COLORS.primary,
+  },
+  tabText: {
+    color: COLORS.textMuted,
+    fontWeight: '600',
+  },
+  activeTabText: {
+    color: COLORS.background,
   },
   title: {
     fontSize: FONT_SIZES.xl,

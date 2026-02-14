@@ -8,6 +8,7 @@ import {
   Alert,
   Image,
   Platform,
+  Linking,
 } from 'react-native';
 import { useAuth } from '../../hooks/useAuth';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '../../utils/theme';
@@ -15,31 +16,16 @@ import { Button } from '../../components/common/Button';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { authService } from '../../services/auth.service';
+import { checkMediaPermissions } from '../../utils/permissions';
 
-export const VendorProfileScreen = () => {
+export const VendorProfileScreen = ({ navigation }: any) => {
   const { user, profile, signOut, refreshProfile } = useAuth();
 
   const handleUpdateProfileImage = async () => {
     try {
       // Request permissions first
-      if (Platform.OS === 'android') {
-        const { PermissionsAndroid } = require('react-native');
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
-          {
-            title: 'Storage Permission',
-            message: 'Transhub needs access to your photos to update your business logo.',
-            buttonNeutral: 'Ask Me Later',
-            buttonNegative: 'Cancel',
-            buttonPositive: 'OK',
-          }
-        );
-        
-        if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-          Alert.alert('Permission Denied', 'Storage permission is required to select photos.');
-          return;
-        }
-      }
+      const hasPermission = await checkMediaPermissions();
+      if (!hasPermission) return;
 
       const result = await launchImageLibrary({
         mediaType: 'photo',
@@ -135,8 +121,8 @@ export const VendorProfileScreen = () => {
           <ProfileItem 
             icon="call-outline" 
             label="Phone Number" 
-            value="+234 800 000 0000" 
-            onPress={() => {}}
+            value={profile?.phone || "+234 800 000 0000"} 
+            onPress={() => Linking.openURL(`tel:${profile?.phone || '+2348000000000'}`)}
           />
         </View>
       </View>
@@ -147,18 +133,19 @@ export const VendorProfileScreen = () => {
           <ProfileItem 
             icon="notifications-outline" 
             label="Push Notifications" 
-            onPress={() => {}} 
+            onPress={() => navigation.navigate('NotificationSettings')} 
           />
           <ProfileItem 
             icon="shield-checkmark-outline" 
             label="Verification Status" 
+            onPress={() => navigation.navigate('Security')} 
             value="Approved"
             color="#4CAF50"
           />
           <ProfileItem 
             icon="settings-outline" 
             label="Account Settings" 
-            onPress={() => {}} 
+            onPress={() => navigation.navigate('EditProfile')} 
           />
         </View>
       </View>
@@ -169,12 +156,12 @@ export const VendorProfileScreen = () => {
           <ProfileItem 
             icon="help-circle-outline" 
             label="Help Center" 
-            onPress={() => {}} 
+            onPress={() => navigation.navigate('HelpCenter')} 
           />
           <ProfileItem 
             icon="chatbubble-outline" 
-            label="Contact Admin" 
-            onPress={() => {}} 
+            label="About Transhub" 
+            onPress={() => navigation.navigate('About')} 
           />
         </View>
       </View>
