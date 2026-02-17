@@ -149,10 +149,12 @@ app.put('/api/preorders/:id/status', (req, res) => {
 // --- ADMIN MANAGEMENT ---
 app.post('/api/admin/create', async (req, res) => {
   const { email, password, fullName, permissions } = req.body;
+  console.log(`[Admin Creation] Attempting to create admin: ${email} (${fullName})`);
 
   if (!supabaseAdmin) {
+    console.error('[Admin Creation] Server misconfigured: Missing Service Role Key');
     res.status(500).json({ error: 'Server misconfigured: Missing Service Role Key in .env file' });
-    return; // Explicit return to stop execution
+    return;
   }
 
   try {
@@ -168,14 +170,48 @@ app.post('/api/admin/create', async (req, res) => {
       }
     });
 
-    if (authError) throw authError;
+    if (authError) {
+      console.error('[Admin Creation] Auth Error:', authError.message);
+      throw authError;
+    }
 
-    // 2. Profile is automatically created by trigger, but we might want to ensure it synced
-    // The trigger in admin_permissions_setup.sql handles the permissions from metadata.
+    console.log(`[Admin Creation] Successfully created user in Auth: ${user.user.id}`);
     
     res.json({ success: true, user });
   } catch (error: any) {
-    console.error('Failed to create admin:', error);
+    console.error('[Admin Creation] Exception:', error.message);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.post('/api/admin/update', async (req, res) => {
+  const { id, fullName, permissions } = req.body;
+  console.log(`[Admin Update] Attempting to update admin: ${id} (${fullName})`);
+
+  if (!supabaseAdmin) {
+    console.error('[Admin Update] Server misconfigured: Missing Service Role Key');
+    res.status(500).json({ error: 'Server misconfigured: Missing Service Role Key' });
+    return;
+  }
+
+  try {
+    const { data: user, error: authError } = await supabaseAdmin.auth.admin.updateUserById(id, {
+      user_metadata: {
+        full_name: fullName,
+        is_admin: true,
+        permissions: permissions || []
+      }
+    });
+
+    if (authError) {
+      console.error('[Admin Update] Auth Error:', authError.message);
+      throw authError;
+    }
+
+    console.log(`[Admin Update] Successfully updated user in Auth: ${id}`);
+    res.json({ success: true, user });
+  } catch (error: any) {
+    console.error('[Admin Update] Exception:', error.message);
     res.status(400).json({ error: error.message });
   }
 });

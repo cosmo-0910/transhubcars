@@ -110,6 +110,36 @@ export const towService = {
       .subscribe();
   },
 
+  async acceptTowRequest(requestId: string, driverId: string): Promise<void> {
+    const { error } = await supabase
+      .from('tow_requests')
+      .update({
+        driver_id: driverId,
+        status: 'En Route',
+      })
+      .eq('id', requestId);
+
+    if (error) throw error;
+  },
+
+  async updateRequestStatus(requestId: string, status: TowRequest['status']): Promise<void> {
+    const { error } = await supabase
+      .from('tow_requests')
+      .update({ status })
+      .eq('id', requestId);
+
+    if (error) throw error;
+  },
+
+  async cancelTowRequest(requestId: string): Promise<void> {
+    const { error } = await supabase
+      .from('tow_requests')
+      .update({ status: 'Cancelled' })
+      .eq('id', requestId);
+
+    if (error) throw error;
+  },
+
   async reverseGeocode(lat: number, lon: number): Promise<string> {
     try {
       const response = await fetch(

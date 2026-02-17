@@ -18,17 +18,19 @@ export const DriverTowDashboard = () => {
     latitude: 6.5244,
     longitude: 3.3792,
   });
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     let subscription: any;
     if (isOnline) {
-      // Subscribe to searching requests
-      subscription = towService.subscribeToNearbyRequests((payload: any) => {
-        // In a real app, you'd check distance here. For demo, show any searching request.
-        if (payload.status === 'Searching') {
-          setCurrentRequest(payload);
-        }
-      });
+      if (!currentRequest) {
+        // Subscribe to searching requests
+        subscription = towService.subscribeToNearbyRequests((payload: any) => {
+          if (payload.status === 'Searching') {
+            setCurrentRequest(payload);
+          }
+        });
+      }
 
       // Start location updates
       const interval = setInterval(() => {
@@ -40,14 +42,30 @@ export const DriverTowDashboard = () => {
         if (subscription) subscription.unsubscribe();
       };
     }
-  }, [isOnline]);
+  }, [isOnline, currentRequest]);
+
+  useEffect(() => {
+    if (currentRequest && currentRequest.status !== 'Searching' && currentRequest.status !== 'Cancelled') {
+      const statusSubscription = towService.subscribeToRequest(currentRequest.id, (updated) => {
+        if (updated.status === 'Cancelled') {
+          Alert.alert('Request Cancelled', 'This tow request has been cancelled by the user.');
+          setCurrentRequest(null);
+        } else {
+          setCurrentRequest(updated);
+        }
+      });
+      return () => {
+        statusSubscription.unsubscribe();
+      };
+    }
+  }, [currentRequest?.id]);
 
   const updateLocation = async () => {
     if (!user) return;
     try {
       // In a real app, use Geolocation.getCurrentPosition
-      const newLat = location.latitude + (Math.random() - 0.5) * 0.001;
-      const newLong = location.longitude + (Math.random() - 0.5) * 0.001;
+      const newLat = location.latitude + (Math.random() - 0.5) * 0.0002;
+      const newLong = location.longitude + (Math.random() - 0.5) * 0.0002;
       
       setLocation({ latitude: newLat, longitude: newLong });
       await towService.updateDriverLocation(user.id, newLat, newLong);
@@ -61,6 +79,7 @@ export const DriverTowDashboard = () => {
     if (user) {
       try {
         await towService.setDriverOnlineStatus(user.id, value);
+        if (!value) setCurrentRequest(null);
       } catch (error) {
         console.error('Error toggling online status:', error);
         Alert.alert('Error', 'Failed to update status.');
@@ -68,9 +87,75 @@ export const DriverTowDashboard = () => {
     }
   };
 
-  const handleAcceptRequest = () => {
-    Alert.alert('Request Accepted', 'Navigate to pickup location.');
-    // Update status in real app
+  const handleAcceptRequest = async () => {
+    if (!currentRequest || !user) return;
+    try {
+      setLoading(true);
+      await towService.acceptTowRequest(currentRequest.id, user.id);
+      setCurrentRequest({ ...currentRequest, status: 'En Route', driver_id: user.id });
+      Alert.alert('Request Accepted', 'Navigate to pickup location.');
+    } catch (error) {
+      console.error('Error accepting request:', error);
+      Alert.alert('Error', 'Failed to accept request.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateStatus = async (status: any) => {
+    if (!currentRequest) return;
+    try {
+      setLoading(true);
+      await towService.updateRequestStatus(currentRequest.id, status);
+      if (status === 'Completed') {
+        Alert.alert('Success', 'Tow request completed!');
+        setCurrentRequest(null);
+      } else {
+        setCurrentRequest({ ...currentRequest, status });
+      }
+    } catch (error) {
+      console.error('Error updating status:', error);
+      Alert.alert('Error', 'Failed to update status.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const renderActiveRequest = () => {
+    const status = currentRequest.status;
+    let buttonTitle = 'Arrived at Pickup';
+    let nextStatus = 'At Pickup';
+
+    if (status === 'At Pickup') {
+      buttonTitle = 'Start Towing';
+      nextStatus = 'In Transit';
+    } else if (status === 'In Transit') {
+      buttonTitle = 'Complete Tow';
+      nextStatus = 'Completed';
+    }
+
+    return (
+      <View style={styles.requestCard}>
+        <View style={styles.requestHeader}>
+          <Text style={styles.requestTitle}>Active Trip</Text>
+          <View style={styles.statusBadge}>
+            <Text style={styles.statusBadgeText}>{status}</Text>
+          </View>
+        </View>
+        <Text style={styles.requestDetails}>Pickup: {currentRequest.pickup_address}</Text>
+        <Text style={styles.requestDetails}>Destination: {currentRequest.destination_address || 'Not specified'}</Text>
+        <Text style={styles.vehicleText}>Vehicle: {currentRequest.vehicle_type}</Text>
+        <View style={styles.actionButtons}>
+          <Button
+            title={buttonTitle}
+            onPress={() => handleUpdateStatus(nextStatus)}
+            variant="primary"
+            style={styles.actionBtn}
+            loading={loading}
+          />
+        </View>
+      </View>
+    );
   };
 
   return (
@@ -107,28 +192,31 @@ export const DriverTowDashboard = () => {
 
       <View style={styles.bottomSheet}>
         {currentRequest ? (
-          <View style={styles.requestCard}>
-            <View style={styles.requestHeader}>
-              <Text style={styles.requestTitle}>New Tow Request!</Text>
-              <Text style={styles.distanceText}>nearby</Text>
+          currentRequest.status === 'Searching' ? (
+            <View style={styles.requestCard}>
+              <View style={styles.requestHeader}>
+                <Text style={styles.requestTitle}>New Tow Request!</Text>
+                <Text style={styles.distanceText}>nearby</Text>
+              </View>
+              <Text style={styles.requestDetails}>Pickup: {currentRequest.pickup_address}</Text>
+              <Text style={styles.vehicleText}>Vehicle: {currentRequest.vehicle_type}</Text>
+              <View style={styles.actionButtons}>
+                <Button
+                  title="Reject"
+                  onPress={() => setCurrentRequest(null)}
+                  variant="outline"
+                  style={styles.actionBtn}
+                />
+                <Button
+                  title="Accept"
+                  onPress={handleAcceptRequest}
+                  variant="primary"
+                  style={styles.actionBtn}
+                  loading={loading}
+                />
+              </View>
             </View>
-            <Text style={styles.requestDetails}>Pickup: {currentRequest.pickup_address}</Text>
-            <Text style={styles.vehicleText}>Vehicle: {currentRequest.vehicle_type}</Text>
-            <View style={styles.actionButtons}>
-              <Button
-                title="Reject"
-                onPress={() => setCurrentRequest(null)}
-                variant="outline"
-                style={styles.actionBtn}
-              />
-              <Button
-                title="Accept"
-                onPress={handleAcceptRequest}
-                variant="primary"
-                style={styles.actionBtn}
-              />
-            </View>
-          </View>
+          ) : renderActiveRequest()
         ) : (
           <View style={styles.placeholderCard}>
             <Icon name="pulse" size={48} color={isOnline ? COLORS.primary : COLORS.textMuted} />
@@ -235,5 +323,16 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 2,
     borderColor: COLORS.primary,
+  },
+  statusBadge: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusBadgeText: {
+    color: '#000',
+    fontSize: 10,
+    fontWeight: 'bold',
   }
 });

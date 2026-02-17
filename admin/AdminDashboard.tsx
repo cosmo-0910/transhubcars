@@ -10,7 +10,7 @@ import {
   MoreVertical, Bell, LogOut, ChevronRight,
   TrendingUp, Zap, Server, ShieldCheck, DollarSign,
   CheckCircle2, X, Plus, Trash2, Edit, Eye, RefreshCw, Copy,
-  Video, Menu, Wrench
+  Video, Menu, Wrench, Truck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../shared/lib/AuthContext';
@@ -21,9 +21,10 @@ import LuxurySelect from '../vendor/components/LuxurySelect';
 import ImageUploadField from '../shared/components/ImageUploadField';
 import { useRef } from 'react';
 import { ThemeToggle } from '../shared/components/ThemeToggle';
+import { TowingManagement } from './components/TowingManagement';
 
 // --- Types ---
-type Section = 'overview' | 'vendors' | 'users' | 'inventory' | 'orders' | 'sales' | 'ledger' | 'audit' | 'settings' | 'admins' | 'mechanics';
+type Section = 'overview' | 'vendors' | 'users' | 'inventory' | 'orders' | 'sales' | 'ledger' | 'audit' | 'settings' | 'admins' | 'mechanics' | 'towing';
 
 interface KpiData {
   totalUsers: number;
@@ -169,6 +170,7 @@ export const AdminDashboard = () => {
     password: '', 
     permissions: [] as string[] 
   });
+  const [editingAdmin, setEditingAdmin] = useState<any | null>(null);
 
   // Editing State
   const [editingCar, setEditingCar] = useState<Car | null>(null);
@@ -337,21 +339,40 @@ export const AdminDashboard = () => {
 
   const handleCreateAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newAdmin.email || !newAdmin.password || !newAdmin.fullName) {
+    if (!newAdmin.fullName || (!editingAdmin && (!newAdmin.email || !newAdmin.password))) {
       alert('Please fill in all required fields.');
       return;
     }
 
     try {
-      if (confirm(`Create admin account for ${newAdmin.fullName}?`)) {
-        await db.createAdmin(newAdmin);
-        alert('Admin account created successfully.');
-        setShowAdminModal(false);
-        setNewAdmin({ fullName: '', email: '', password: '', permissions: [] });
-        loadAllData();
+      if (editingAdmin) {
+        if (confirm(`Update permissions for ${newAdmin.fullName}?`)) {
+          await db.updateAdmin({
+            id: editingAdmin.id,
+            fullName: newAdmin.fullName,
+            permissions: newAdmin.permissions
+          });
+          alert('Admin permissions updated successfully.');
+          setShowAdminModal(false);
+          setEditingAdmin(null);
+          setNewAdmin({ fullName: '', email: '', password: '', permissions: [] });
+          loadAllData();
+        }
+      } else {
+        if (confirm(`Create admin account for ${newAdmin.fullName}?`)) {
+          await db.createAdmin(newAdmin);
+          alert('Admin account created successfully.');
+          setShowAdminModal(false);
+          setNewAdmin({ fullName: '', email: '', password: '', permissions: [] });
+          loadAllData();
+        }
       }
     } catch (err: any) {
-      alert(`Failed to create admin: ${err.message}`);
+      if (err.message === 'Failed to fetch') {
+        alert('Failed to connect to the management server. Please ensure the backend (port 3001) is running.');
+      } else {
+        alert(`Failed to ${editingAdmin ? 'update' : 'create'} admin: ${err.message}`);
+      }
     }
   };
 
@@ -371,7 +392,8 @@ export const AdminDashboard = () => {
     { id: 'finance', label: 'Financial Access' },
     { id: 'audit', label: 'Audit Logs' },
     { id: 'settings', label: 'System Settings' },
-    { id: 'mechanics', label: 'Workshop Management' }
+    { id: 'mechanics', label: 'Workshop Management' },
+    { id: 'towing', label: 'Towing Fleet' }
   ];
 
   const handleCarSubmit = async (e: React.FormEvent) => {
@@ -582,6 +604,7 @@ export const AdminDashboard = () => {
             {hasPermission('inventory') && <SidebarItem icon={CarFront} label="Inventory" active={activeSection === 'inventory'} onClick={() => setActiveSection('inventory')} badge={stats.pendingListings} />}
             {hasPermission('inventory') && <SidebarItem icon={ShoppingBag} label="Orders" active={activeSection === 'orders'} onClick={() => setActiveSection('orders')} />}
             {hasPermission('mechanics') && <SidebarItem icon={Wrench} label="Workshops" active={activeSection === 'mechanics'} onClick={() => setActiveSection('mechanics')} />}
+            {hasPermission('towing') && <SidebarItem icon={Truck} label="Towing Fleet" active={activeSection === 'towing'} onClick={() => setActiveSection('towing')} />}
           </div>
 
           {(hasPermission('finance') || hasPermission('sales')) && (
@@ -1086,7 +1109,11 @@ export const AdminDashboard = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                     <button 
-                      onClick={() => setShowAdminModal(true)}
+                      onClick={() => {
+                        setEditingAdmin(null);
+                        setNewAdmin({ fullName: '', email: '', password: '', permissions: [] });
+                        setShowAdminModal(true);
+                      }}
                       className="btn-gold" 
                       style={{ padding: '0.8rem 1.5rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}
                     >
@@ -1125,9 +1152,26 @@ export const AdminDashboard = () => {
                             <td style={{ padding: '1.5rem' }}><StatusBadge status="ACTIVE" /></td>
                             <td style={{ padding: '1.5rem', textAlign: 'right' }}>
                               {admin.email !== 'admin@transhub.com' && (
-                                <button style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', padding: '0.4rem 0.8rem', borderRadius: '0.4rem', fontSize: '0.7rem', cursor: 'pointer' }}>
-                                  REVOKE ACCESS
-                                </button>
+                                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                                  <button 
+                                    onClick={() => {
+                                      setEditingAdmin(admin);
+                                      setNewAdmin({
+                                        fullName: admin.full_name,
+                                        email: admin.email,
+                                        password: 'LOCKED', // Not used for updates
+                                        permissions: admin.permissions || []
+                                      });
+                                      setShowAdminModal(true);
+                                    }}
+                                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-glass)', color: 'white', padding: '0.4rem 0.8rem', borderRadius: '0.4rem', fontSize: '0.7rem', cursor: 'pointer' }}
+                                  >
+                                    EDIT ACCESS
+                                  </button>
+                                  <button style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', padding: '0.4rem 0.8rem', borderRadius: '0.4rem', fontSize: '0.7rem', cursor: 'pointer' }}>
+                                    REVOKE ACCESS
+                                  </button>
+                                </div>
                               )}
                             </td>
                           </tr>
@@ -1215,6 +1259,9 @@ export const AdminDashboard = () => {
                   </div>
                 </div>
               )}
+
+              {/* --- TOWING FLEET --- */}
+              {activeSection === 'towing' && <TowingManagement />}
 
               {/* --- SETTINGS --- */}
               {activeSection === 'settings' && (
@@ -1694,8 +1741,14 @@ export const AdminDashboard = () => {
                style={{ width: '90%', maxWidth: '500px', borderRadius: '1.5rem', padding: '2rem', border: '1px solid var(--accent-gold)' }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                <h3 className="luxury-font" style={{ fontSize: '1.5rem' }}>Provision New Admin</h3>
-                <button onClick={() => setShowAdminModal(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={24} /></button>
+                <h3 className="luxury-font" style={{ fontSize: '1.5rem' }}>
+                  {editingAdmin ? 'Modify Admin Access' : 'Provision New Admin'}
+                </h3>
+                <button onClick={() => {
+                  setShowAdminModal(false);
+                  setEditingAdmin(null);
+                  setNewAdmin({ fullName: '', email: '', password: '', permissions: [] });
+                }} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={24} /></button>
               </div>
 
               <form onSubmit={handleCreateAdmin} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -1706,21 +1759,32 @@ export const AdminDashboard = () => {
                 
                 <div className="form-group">
                   <label>EMAIL IDENTITY</label>
-                  <input className="admin-input" required type="email" value={newAdmin.email} onChange={e => setNewAdmin({...newAdmin, email: e.target.value})} placeholder="officer@transhub.com" />
+                  <input 
+                    className="admin-input" 
+                    required 
+                    type="email" 
+                    value={newAdmin.email} 
+                    onChange={e => setNewAdmin({...newAdmin, email: e.target.value})} 
+                    placeholder="officer@transhub.com" 
+                    disabled={!!editingAdmin}
+                    style={{ opacity: editingAdmin ? 0.6 : 1 }}
+                  />
                 </div>
 
-                <div className="form-group">
-                  <label>ACCESS CREDENTIAL (PASSWORD)</label>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <input className="admin-input" required value={newAdmin.password} onChange={e => setNewAdmin({...newAdmin, password: e.target.value})} style={{ flex: 1, fontFamily: 'monospace' }} />
-                    <button type="button" onClick={generatePassword} className="btn-gold" style={{ padding: '0 1rem' }} title="Generate Secure Password">
-                      <RefreshCw size={18} />
-                    </button>
-                    <button type="button" onClick={() => navigator.clipboard.writeText(newAdmin.password)} className="btn-secondary" style={{ padding: '0 1rem', background: 'rgba(255,255,255,0.1)' }} title="Copy to Clipboard">
-                      <Copy size={18} />
-                    </button>
+                {!editingAdmin && (
+                  <div className="form-group">
+                    <label>ACCESS CREDENTIAL (PASSWORD)</label>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <input className="admin-input" required value={newAdmin.password} onChange={e => setNewAdmin({...newAdmin, password: e.target.value})} style={{ flex: 1, fontFamily: 'monospace' }} />
+                      <button type="button" onClick={generatePassword} className="btn-gold" style={{ padding: '0 1rem' }} title="Generate Secure Password">
+                        <RefreshCw size={18} />
+                      </button>
+                      <button type="button" onClick={() => navigator.clipboard.writeText(newAdmin.password)} className="btn-secondary" style={{ padding: '0 1rem', background: 'rgba(255,255,255,0.1)' }} title="Copy to Clipboard">
+                        <Copy size={18} />
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 <div>
                    <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.5rem', letterSpacing: '1px' }}>GRANTED PERMISSIONS</label>
@@ -1748,7 +1812,9 @@ export const AdminDashboard = () => {
                    </div>
                 </div>
 
-                <button type="submit" className="btn-gold" style={{ marginTop: '1rem' }}>INITIALIZE ADMIN ACCOUNT</button>
+                <button type="submit" className="btn-gold" style={{ marginTop: '1rem' }}>
+                  {editingAdmin ? 'SECURE PERMISSION UPDATES' : 'INITIALIZE ADMIN ACCOUNT'}
+                </button>
               </form>
             </motion.div>
           </div>

@@ -109,7 +109,7 @@ export const TowTruckMapScreen = () => {
 
     setLoading(true);
     try {
-      await towService.requestTow({
+      const request = await towService.requestTow({
         user_id: profile?.id || '',
         pickup_address: address || `Lat: ${pickupLocation?.latitude}, Long: ${pickupLocation?.longitude}`,
         pickup_lat: pickupLocation?.latitude,
@@ -119,7 +119,7 @@ export const TowTruckMapScreen = () => {
       });
 
       Alert.alert('Success', 'Tow request sent! Searching for nearest driver.');
-      navigation.goBack();
+      navigation.replace('TowTracking', { requestId: request.id });
     } catch (error) {
       console.error('Error requesting tow:', error);
       Alert.alert('Error', 'Failed to send request.');

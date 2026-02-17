@@ -129,7 +129,7 @@ export interface TowRequest {
   destination_address: string;
   vehicle_type: string;
   notes?: string;
-  status: 'Searching' | 'En Route' | 'Completed' | 'Cancelled';
+  status: 'Searching' | 'En Route' | 'At Pickup' | 'In Transit' | 'Completed' | 'Cancelled';
   pickup_lat?: number;
   pickup_long?: number;
   destination_lat?: number;

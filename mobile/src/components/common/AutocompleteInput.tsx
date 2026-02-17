@@ -9,6 +9,7 @@ import {
   Animated,
 } from 'react-native';
 import { Input } from './Input';
+import Icon from 'react-native-vector-icons/Ionicons';
 import { COLORS, SPACING, BORDER_RADIUS, FONT_SIZES } from '../../utils/theme';
 
 interface AutocompleteInputProps {

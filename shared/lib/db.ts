@@ -6,6 +6,7 @@ export { supabase };
 export interface Profile {
   id: string;
   full_name?: string;
+  email?: string;
   avatar_url?: string;
   role: 'customer' | 'admin' | 'vendor';
   vendor_status: 'none' | 'pending' | 'approved' | 'rejected';
@@ -132,7 +133,14 @@ export interface TowRequest {
   destination_address: string;
   vehicle_type: string;
   notes?: string;
-  status: 'Searching' | 'En Route' | 'Completed' | 'Cancelled';
+  status: 'Searching' | 'En Route' | 'At Pickup' | 'In Transit' | 'Completed' | 'Cancelled';
+  pickup_lat?: number;
+  pickup_long?: number;
+  destination_lat?: number;
+  destination_long?: number;
+  driver_id?: string;
+  price?: number;
+  estimated_arrival_time?: string;
   created_at: string;
 }
 
@@ -191,7 +199,13 @@ export const db = {
   },
 
   createAdmin: async (adminData: { email: string; password: string; fullName: string; permissions: string[] }) => {
-    const response = await fetch('http://localhost:3001/api/admin/create', {
+    // Determine the host for the admin API. 
+    // In local dev, it's usually localhost:3001. 
+    // If accessed via internal IP, we should use that same IP.
+    const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+    const apiUrl = `http://${host}:3001/api/admin/create`;
+
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(adminData)
@@ -200,6 +214,23 @@ export const db = {
     const result = await response.json();
     if (!response.ok) {
       throw new Error(result.error || 'Failed to create admin');
+    }
+    return result;
+  },
+
+  updateAdmin: async (adminData: { id: string; fullName: string; permissions: string[] }) => {
+    const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+    const apiUrl = `http://${host}:3001/api/admin/update`;
+
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(adminData)
+    });
+
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.error || 'Failed to update admin');
     }
     return result;
   },

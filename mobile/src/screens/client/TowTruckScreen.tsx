@@ -27,7 +27,7 @@ export const TowTruckScreen = () => {
 
     setLoading(true);
     try {
-      await towService.requestTow({
+      const request = await towService.requestTow({
         user_id: profile?.id || 'guest',
         pickup_address: form.pickup_address,
         destination_address: form.destination_address,
@@ -37,8 +37,8 @@ export const TowTruckScreen = () => {
 
       Alert.alert(
         'Request Sent',
-        'We are searching for the nearest tow truck in your vicinity. You will be notified shortly.',
-        [{ text: 'OK', onPress: () => navigation.goBack() }]
+        'We are searching for the nearest tow truck in your vicinity. You will be redirected to live tracking.',
+        [{ text: 'OK', onPress: () => navigation.replace('TowTracking', { requestId: request.id }) }]
       );
     } catch (error) {
       console.error('Error requesting tow:', error);
