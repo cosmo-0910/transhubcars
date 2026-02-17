@@ -27,9 +27,16 @@ export interface Profile {
   avatar_url?: string;
   role: 'customer' | 'admin' | 'vendor';
   vendor_status: 'none' | 'pending' | 'approved' | 'rejected';
-  vendor_type: 'car' | 'parts' | 'both';
+  vendor_type: 'car' | 'parts' | 'both' | 'tow_truck';
   preorder_status: 'none' | 'pending' | 'approved' | 'rejected';
   status: 'active' | 'suspended' | 'banned' | 'disabled';
+  is_online?: boolean;
+  last_lat?: number;
+  last_long?: number;
+  device_os?: string;
+  device_model?: string;
+  unique_hardware_id?: string;
+  ip_address?: string;
   business_name?: string;
   business_details?: any;
   phone?: string;
@@ -123,6 +130,13 @@ export interface TowRequest {
   vehicle_type: string;
   notes?: string;
   status: 'Searching' | 'En Route' | 'Completed' | 'Cancelled';
+  pickup_lat?: number;
+  pickup_long?: number;
+  destination_lat?: number;
+  destination_long?: number;
+  driver_id?: string;
+  price?: number;
+  estimated_arrival_time?: string;
   created_at: string;
 }
 

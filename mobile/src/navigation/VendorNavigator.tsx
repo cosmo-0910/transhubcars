@@ -11,6 +11,7 @@ import { AddVehicleScreen } from '../screens/vendor/AddVehicleScreen';
 import { ManageSparePartsScreen } from '../screens/vendor/ManageSparePartsScreen';
 import { AddSparePartScreen } from '../screens/vendor/AddSparePartScreen';
 import { VendorProfileScreen } from '../screens/vendor/VendorProfileScreen';
+import { DriverTowDashboard } from '../screens/vendor/DriverTowDashboard';
 import { EditProfileScreen } from '../screens/profile/EditProfileScreen';
 import { NotificationSettingsScreen } from '../screens/profile/NotificationSettingsScreen';
 import { SecurityScreen } from '../screens/profile/SecurityScreen';
@@ -25,6 +26,7 @@ export type VendorTabParamList = {
   ManageInventory: undefined;
   AddVehicle: undefined;
   VendorProfile: undefined;
+  DriverTowDashboard: undefined;
 };
 
 export type VendorStackParamList = {
@@ -99,6 +101,16 @@ const TabNavigator = () => {
           tabBarLabel: 'Profile',
           tabBarIcon: ({ color, size }) => (
             <Icon name="person-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="DriverTowDashboard"
+        component={DriverTowDashboard}
+        options={{
+          tabBarLabel: 'Tow',
+          tabBarIcon: ({ color, size }) => (
+            <Icon name="car-outline" size={size} color={color} />
           ),
         }}
       />

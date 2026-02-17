@@ -25,6 +25,7 @@ import { SparePartsMarketplaceScreen } from '../screens/client/SparePartsMarketp
 import { SparePartsScreen as SparePartsRequestScreen } from '../screens/client/SparePartsScreen';
 import { SparePartDetailScreen } from '../screens/client/SparePartDetailScreen';
 import { TowTruckScreen } from '../screens/client/TowTruckScreen';
+import { TowTruckMapScreen } from '../screens/client/TowTruckMapScreen';
 import { MechanicsScreen } from '../screens/client/MechanicsScreen';
 
 export type ClientStackParamList = {
@@ -45,6 +46,7 @@ export type ClientStackParamList = {
   SparePartsRequest: undefined;
   SparePartDetail: { part: any };
   TowTruck: undefined;
+  TowTruckMap: undefined;
   Mechanics: undefined;
 };
 
@@ -129,6 +131,7 @@ export const ClientNavigator = () => {
       <Stack.Screen name="SparePartsRequest" component={SparePartsRequestScreen} />
       <Stack.Screen name="SparePartDetail" component={SparePartDetailScreen} />
       <Stack.Screen name="TowTruck" component={TowTruckScreen} />
+      <Stack.Screen name="TowTruckMap" component={TowTruckMapScreen} />
       <Stack.Screen name="Mechanics" component={MechanicsScreen} />
     </Stack.Navigator>
   );

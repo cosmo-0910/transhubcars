@@ -1,4 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+
+declare global {
+  interface Window {
+    google: any;
+  }
+}
+declare var google: any;
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, Settings, Truck, ShieldCheck, ChevronLeft, Star, Phone, MapPin, CheckCircle } from 'lucide-react';
 import { SparePartsMarketplace } from './SparePartsMarketplace';
@@ -260,8 +267,64 @@ const SparePartsForm = ({ onBack, userId, hideBackButton = false }: any) => {
     );
 };
 
+import { TRANSHUB_MAP_STYLE } from '../utils/mapTheme';
+
+const StyledMap = ({ lat, lng, zoom = 15 }: { lat: number; lng: number; zoom?: number }) => {
+    const mapRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!mapRef.current || !lat || !lng) return;
+
+        // Load Google Maps script if not already present
+        const scriptId = 'google-maps-script';
+        if (!document.getElementById(scriptId)) {
+            const script = document.createElement('script');
+            script.id = scriptId;
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''}`;
+            script.async = true;
+            script.defer = true;
+            document.head.appendChild(script);
+        }
+
+        const initMap = () => {
+            if (typeof google === 'undefined') {
+                setTimeout(initMap, 500);
+                return;
+            }
+
+            const map = new google.maps.Map(mapRef.current!, {
+                center: { lat, lng },
+                zoom,
+                styles: TRANSHUB_MAP_STYLE,
+                disableDefaultUI: true,
+                zoomControl: true,
+            });
+
+            new google.maps.Marker({
+                position: { lat, lng },
+                map,
+                icon: {
+                    path: google.maps.SymbolPath.CIRCLE,
+                    scale: 10,
+                    fillColor: "#E11D48",
+                    fillOpacity: 1,
+                    strokeWeight: 2,
+                    strokeColor: "#FFFFFF",
+                },
+            });
+        };
+
+        initMap();
+    }, [lat, lng, zoom]);
+
+    return (
+        <div ref={mapRef} style={{ width: '100%', height: '100%', minHeight: '400px' }} />
+    );
+};
+
 const TowTruckForm = ({ onBack, userId }: any) => {
     const [loading, setLoading] = useState(false);
+    const [detecting, setDetecting] = useState(false);
     const [success, setSuccess] = useState(false);
     const [form, setForm] = useState({
         pickup_address: '',
@@ -269,6 +332,33 @@ const TowTruckForm = ({ onBack, userId }: any) => {
         vehicle_type: '',
         notes: ''
     });
+    const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null);
+
+    const detectLocation = () => {
+        if (!navigator.geolocation) {
+            alert('Geolocation is not supported by your browser');
+            return;
+        }
+
+        setDetecting(true);
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                const { latitude, longitude } = position.coords;
+                const addr = await towService.reverseGeocode(latitude, longitude);
+                setForm({
+                    ...form,
+                    pickup_address: addr
+                });
+                setCoordinates({ lat: latitude, lng: longitude });
+                setDetecting(false);
+            },
+            (error) => {
+                console.error(error);
+                alert('Unable to retrieve your location');
+                setDetecting(false);
+            }
+        );
+    };
 
     const handleSubmit = async (e: any) => {
         e.preventDefault();
@@ -299,61 +389,109 @@ const TowTruckForm = ({ onBack, userId }: any) => {
             <button onClick={onBack} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', marginBottom: '2rem' }}>
                 <ChevronLeft size={20} /> BACK TO CONCIERGE
             </button>
-            <div className="glass" style={{ padding: '3rem', borderRadius: '2rem', maxWidth: '800px', margin: '0 auto', textAlign: 'left', border: '1px solid rgba(225, 29, 72, 0.2)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
-                    <div style={{ color: '#E11D48', background: 'rgba(225, 29, 72, 0.1)', padding: '1rem', borderRadius: '0.8rem' }}><Truck size={32} /></div>
-                    <h2 className="luxury-font" style={{ fontSize: '2.5rem' }}>Emergency Towing</h2>
+            
+            <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
+                <div className="glass" style={{ flex: '1', minWidth: '400px', padding: '3rem', borderRadius: '2rem', textAlign: 'left', border: '1px solid rgba(225, 29, 72, 0.2)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
+                        <div style={{ color: '#E11D48', background: 'rgba(225, 29, 72, 0.1)', padding: '1rem', borderRadius: '0.8rem' }}><Truck size={32} /></div>
+                        <h2 className="luxury-font" style={{ fontSize: '2.5rem' }}>Emergency Towing</h2>
+                    </div>
+                    <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '1.5rem' }}>
+                        <div className="input-group">
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Current Pickup Location</label>
+                                <button 
+                                    type="button" 
+                                    onClick={detectLocation}
+                                    style={{ 
+                                        background: 'none', 
+                                        border: 'none', 
+                                        color: 'var(--accent-gold)', 
+                                        fontSize: '0.8rem', 
+                                        display: 'flex', 
+                                        alignItems: 'center', 
+                                        gap: '0.4rem',
+                                        cursor: 'pointer',
+                                        fontWeight: 600
+                                    }}
+                                >
+                                    <MapPin size={14} /> {detecting ? 'DETECTING...' : 'AUTO-DETECT LOCATION'}
+                                </button>
+                            </div>
+                            <input 
+                                required 
+                                className="luxury-input" 
+                                style={{ width: '100%' }} 
+                                placeholder="Enter your current address or location"
+                                value={form.pickup_address}
+                                onChange={async (e) => {
+                                    setForm({...form, pickup_address: e.target.value});
+                                    // Basic logic to update map if it looks like coordinates
+                                    if (e.target.value.includes(',')) {
+                                        const [lat, lng] = e.target.value.split(',').map(Number);
+                                        if (!isNaN(lat) && !isNaN(lng)) {
+                                            setCoordinates({ lat, lng });
+                                        }
+                                    }
+                                }}
+                            />
+                        </div>
+                        <div className="input-group">
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Destination (Optional)</label>
+                            <input 
+                                className="luxury-input" 
+                                style={{ width: '100%' }} 
+                                placeholder="Where should we transport the vehicle?"
+                                value={form.destination_address}
+                                onChange={e => setForm({...form, destination_address: e.target.value})}
+                            />
+                        </div>
+                        <div className="input-group">
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Vehicle Type</label>
+                            <input 
+                                required
+                                className="luxury-input" 
+                                style={{ width: '100%' }} 
+                                placeholder="e.g. SUV, Luxury Sedan, Sports Car"
+                                value={form.vehicle_type}
+                                onChange={e => setForm({...form, vehicle_type: e.target.value})}
+                            />
+                        </div>
+                        <div className="input-group">
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Notes for Driver</label>
+                            <textarea 
+                                className="luxury-input" 
+                                style={{ width: '100%', minHeight: '80px' }} 
+                                placeholder="Describe the issue or any specific requirements..."
+                                value={form.notes}
+                                onChange={e => setForm({...form, notes: e.target.value})}
+                            />
+                        </div>
+                        <button disabled={loading} className="btn-gold" style={{ marginTop: '1rem', background: '#E11D48', borderColor: '#E11D48' }}>
+                            {loading ? 'LOCATING TRUCKS...' : 'REQUEST RAPID RECOVERY'}
+                        </button>
+                        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'center', fontStyle: 'italic' }}>
+                            * Service prioritized for vehicles within 10km radius.
+                        </p>
+                    </form>
                 </div>
-                <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '1.5rem' }}>
-                    <div className="input-group">
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Current Pickup Location</label>
-                        <input 
-                            required 
-                            className="luxury-input" 
-                            style={{ width: '100%' }} 
-                            placeholder="Enter your current address or location"
-                            value={form.pickup_address}
-                            onChange={e => setForm({...form, pickup_address: e.target.value})}
-                        />
-                    </div>
-                    <div className="input-group">
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Destination (Optional)</label>
-                        <input 
-                            className="luxury-input" 
-                            style={{ width: '100%' }} 
-                            placeholder="Where should we transport the vehicle?"
-                            value={form.destination_address}
-                            onChange={e => setForm({...form, destination_address: e.target.value})}
-                        />
-                    </div>
-                    <div className="input-group">
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Vehicle Type</label>
-                        <input 
-                            required
-                            className="luxury-input" 
-                            style={{ width: '100%' }} 
-                            placeholder="e.g. SUV, Luxury Sedan, Sports Car"
-                            value={form.vehicle_type}
-                            onChange={e => setForm({...form, vehicle_type: e.target.value})}
-                        />
-                    </div>
-                    <div className="input-group">
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Notes for Driver</label>
-                        <textarea 
-                            className="luxury-input" 
-                            style={{ width: '100%', minHeight: '80px' }} 
-                            placeholder="Describe the issue or any specific requirements..."
-                            value={form.notes}
-                            onChange={e => setForm({...form, notes: e.target.value})}
-                        />
-                    </div>
-                    <button disabled={loading} className="btn-gold" style={{ marginTop: '1rem', background: '#E11D48', borderColor: '#E11D48' }}>
-                        {loading ? 'LOCATING TRUCKS...' : 'REQUEST RAPID RECOVERY'}
-                    </button>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'center', fontStyle: 'italic' }}>
-                        * Service prioritized for vehicles within 10km radius.
-                    </p>
-                </form>
+
+                <div className="glass" style={{ flex: '1', minWidth: '400px', borderRadius: '2rem', overflow: 'hidden', minHeight: '400px', display: 'flex', flexDirection: 'column', border: '1px solid var(--border-glass)' }}>
+                    {coordinates ? (
+                        <StyledMap lat={coordinates.lat} lng={coordinates.lng} />
+                    ) : (
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', padding: '2rem', textAlign: 'center' }}>
+                            <MapPin size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
+                            <p>Select your location to see a luxury map preview</p>
+                            <button 
+                                onClick={detectLocation}
+                                style={{ marginTop: '1.5rem', padding: '0.8rem 1.5rem', borderRadius: '2rem', border: '1px solid var(--accent-gold)', background: 'transparent', color: 'var(--accent-gold)', cursor: 'pointer', fontWeight: 600 }}
+                            >
+                                AUTO-DETECT NOW
+                            </button>
+                        </div>
+                    )}
+                </div>
             </div>
         </motion.div>
     );

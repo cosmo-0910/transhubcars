@@ -63,6 +63,28 @@ export const TowTruckScreen = () => {
           <Text style={styles.emergencyText}>Emergency Roadside Assistance</Text>
         </View>
 
+        <TouchableOpacity 
+          style={styles.mapPrompt} 
+          onPress={() => navigation.navigate('TowTruckMap')}
+        >
+          <View style={styles.mapPromptLeft}>
+            <View style={styles.mapIconContainer}>
+              <Icon name="map-outline" size={24} color={COLORS.primary} />
+            </View>
+            <View>
+              <Text style={styles.mapPromptTitle}>Use Map Selector</Text>
+              <Text style={styles.mapPromptSub}>Pin your exact location for faster recovery</Text>
+            </View>
+          </View>
+          <Icon name="chevron-forward" size={20} color={COLORS.textMuted} />
+        </TouchableOpacity>
+
+        <View style={styles.divider}>
+          <View style={styles.line} />
+          <Text style={styles.dividerText}>OR ENTER MANUALLY</Text>
+          <View style={styles.line} />
+        </View>
+
         <View style={styles.form}>
           <Input
             label="Pickup Location"
@@ -175,5 +197,56 @@ const styles = StyleSheet.create({
   },
   submitBtn: {
     marginBottom: SPACING.xxl,
+  },
+  mapPrompt: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: COLORS.backgroundCard,
+    padding: SPACING.lg,
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    marginBottom: SPACING.xl,
+    elevation: 2,
+  },
+  mapPromptLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+  },
+  mapIconContainer: {
+    width: 48,
+    height: 48,
+    backgroundColor: 'rgba(212, 175, 55, 0.1)',
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  mapPromptTitle: {
+    fontSize: FONT_SIZES.md,
+    fontWeight: 'bold',
+    color: COLORS.text,
+  },
+  mapPromptSub: {
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textSecondary,
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SPACING.lg,
+    gap: SPACING.md,
+  },
+  line: {
+    flex: 1,
+    height: 1,
+    backgroundColor: COLORS.border,
+  },
+  dividerText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: COLORS.textMuted,
+    letterSpacing: 1,
   },
 });
