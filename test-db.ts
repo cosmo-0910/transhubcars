@@ -1,5 +1,5 @@
 
-import { supabase } from './shared/lib/supabase';
+import { supabase } from './shared/lib/supabase.js';
 
 async function checkAuditLogs() {
   console.log('Checking audit_logs table...');

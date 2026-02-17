@@ -209,6 +209,20 @@ app.post('/api/admin/update', async (req, res) => {
     }
 
     console.log(`[Admin Update] Successfully updated user in Auth: ${id}`);
+
+    // Redundant safety: Directly update profiles table to ensure immediate consistency
+    const { error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .update({
+        full_name: fullName,
+        permissions: permissions || []
+      })
+      .eq('id', id);
+
+    if (profileError) {
+      console.warn('[Admin Update] Profile sync warning:', profileError.message);
+    }
+
     res.json({ success: true, user });
   } catch (error: any) {
     console.error('[Admin Update] Exception:', error.message);

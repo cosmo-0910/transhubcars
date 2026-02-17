@@ -10,7 +10,7 @@ import {
   MoreVertical, Bell, LogOut, ChevronRight,
   TrendingUp, Zap, Server, ShieldCheck, DollarSign,
   CheckCircle2, X, Plus, Trash2, Edit, Eye, RefreshCw, Copy,
-  Video, Menu, Wrench, Truck
+  Video, Menu, Wrench, Truck, Phone
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../shared/lib/AuthContext';
@@ -171,6 +171,7 @@ export const AdminDashboard = () => {
     permissions: [] as string[] 
   });
   const [editingAdmin, setEditingAdmin] = useState<any | null>(null);
+  const [activeSettingsTab, setActiveSettingsTab] = useState('branding');
 
   // Editing State
   const [editingCar, setEditingCar] = useState<Car | null>(null);
@@ -254,14 +255,22 @@ export const AdminDashboard = () => {
     try {
       setInitialLoading(true);
       setError(null);
-      const [carsData, ordersData, allProfiles, adminsData, logsData, settingsData] = await Promise.all([
+      const [carsData, ordersData, allProfiles, adminsData, settingsData] = await Promise.all([
         db.getCars(),
         db.getOrders(),
         db.getProfiles(),
         db.getAdmins(),
-        db.getAuditLogs().catch(() => []), // Handle missing table gracefully
         db.getPlatformSettings().catch(() => [])
       ]);
+      
+      let logsData: any[] = [];
+      try {
+        logsData = await db.getAuditLogs();
+      } catch (logErr: any) {
+        console.error('Audit log failure:', logErr);
+        // We don't throw here to allow the rest of the dashboard to work
+        // but we could set a specific state if we wanted to show a warning
+      }
       
       setCars(carsData);
       setOrders(ordersData);
@@ -323,7 +332,11 @@ export const AdminDashboard = () => {
 
   const handleDeleteCar = async (id: string) => {
     if (window.confirm('Delete this vehicle?')) {
+      const carToDelete = cars.find(c => c.id === id);
       await db.deleteCar(id);
+      await db.logAction('Delete Vehicle', 'car', id, { 
+        vehicle: carToDelete ? `${carToDelete.year} ${carToDelete.make} ${carToDelete.model}` : 'Unknown' 
+      });
       loadAllData();
     }
   };
@@ -352,6 +365,10 @@ export const AdminDashboard = () => {
             fullName: newAdmin.fullName,
             permissions: newAdmin.permissions
           });
+          await db.logAction('Update Admin Permissions', 'profile', editingAdmin.id, { 
+            fullName: newAdmin.fullName,
+            permissions: newAdmin.permissions 
+          });
           alert('Admin permissions updated successfully.');
           setShowAdminModal(false);
           setEditingAdmin(null);
@@ -360,7 +377,11 @@ export const AdminDashboard = () => {
         }
       } else {
         if (confirm(`Create admin account for ${newAdmin.fullName}?`)) {
-          await db.createAdmin(newAdmin);
+          const result = await db.createAdmin(newAdmin);
+          await db.logAction('Create Admin Account', 'profile', result.id, { 
+            fullName: newAdmin.fullName,
+            email: newAdmin.email 
+          });
           alert('Admin account created successfully.');
           setShowAdminModal(false);
           setNewAdmin({ fullName: '', email: '', password: '', permissions: [] });
@@ -394,6 +415,33 @@ export const AdminDashboard = () => {
     { id: 'settings', label: 'System Settings' },
     { id: 'mechanics', label: 'Workshop Management' },
     { id: 'towing', label: 'Towing Fleet' }
+  ];
+
+  const handleUpdateSetting = async (key: string, updates: any) => {
+    try {
+      setLoading(true);
+      const currentSetting = platformSettings.find(s => s.key === key);
+      const newValue = { ...(currentSetting?.value || {}), ...updates };
+      
+      await db.updatePlatformSetting(key, newValue);
+      await db.logAction(`Update ${key.charAt(0).toUpperCase() + key.slice(1)} Settings`, 'platform_settings', key, updates);
+      
+      await loadAllData();
+      alert('Security configurations synchronized successfully.');
+    } catch (err: any) {
+      alert(`Synthesis failed: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const SETTINGS_TABS = [
+    { id: 'branding', label: 'Identity & Aesthetics', icon: Zap },
+    { id: 'support', label: 'Communication Hub', icon: Phone },
+    { id: 'operations', label: 'Engine Room (Ops)', icon: Activity },
+    { id: 'finance', label: 'Treasury (Fees)', icon: DollarSign },
+    { id: 'legal', label: 'Compliance & Legal', icon: ShieldAlert },
+    { id: 'security', label: 'Security & Analytics', icon: ShieldCheck }
   ];
 
   const handleCarSubmit = async (e: React.FormEvent) => {
@@ -445,8 +493,14 @@ export const AdminDashboard = () => {
 
       if (editingCar) {
         await db.updateCar(editingCar.id, carData);
+        await db.logAction('Update Vehicle Listing', 'car', editingCar.id, { 
+          vehicle: `${carData.year} ${carData.make} ${carData.model}` 
+        });
       } else {
-        await db.saveCar(carData);
+        const result = await db.saveCar(carData);
+        await db.logAction('Create Vehicle Listing', 'car', result.id, { 
+          vehicle: `${carData.year} ${carData.make} ${carData.model}` 
+        });
       }
       
       loadAllData();
@@ -464,6 +518,11 @@ export const AdminDashboard = () => {
     if (!confirm(`Are you sure you want to change this user's status to ${action}?`)) return;
     try {
       await db.updateProfileStatus(userId, action);
+      const user = users.find(u => u.id === userId);
+      await db.logAction(`User ${action.toUpperCase()}`, 'profile', userId, { 
+        email: user?.email,
+        fullName: user?.full_name 
+      });
       loadAllData();
       alert(`User status updated to ${action}`);
     } catch (err: any) {
@@ -475,6 +534,10 @@ export const AdminDashboard = () => {
     if (!confirm(`Confirm ${status.toUpperCase()} for preorder access?`)) return;
     try {
       await db.reviewPreorderApplication(userId, status);
+      const user = users.find(u => u.id === userId);
+      await db.logAction(`Preorder Application ${status.toUpperCase()}`, 'profile', userId, { 
+        email: user?.email 
+      });
       loadAllData();
       alert(`Application ${status}`);
     } catch (err: any) {
@@ -1265,57 +1328,337 @@ export const AdminDashboard = () => {
 
               {/* --- SETTINGS --- */}
               {activeSection === 'settings' && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
-                  <div className="glass" style={{ padding: '2rem', borderRadius: '1.5rem' }}>
-                    <h3 className="luxury-font" style={{ fontSize: '1.5rem', marginBottom: '2rem' }}>Branding Center</h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                      <div className="form-group">
-                        <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.5rem', letterSpacing: '1px' }}>PLATFORM NAME</label>
-                        <input 
-                          className="admin-input" 
-                          style={{ width: '100%' }} 
-                          defaultValue={platformSettings.find(s => s.key === 'branding')?.value?.name || "Transhub Luxury Automotive"} 
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.5rem', letterSpacing: '1px' }}>ACCENT COLOR</label>
-                        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                          <input 
-                            type="color" 
-                            defaultValue={platformSettings.find(s => s.key === 'branding')?.value?.primary_color || "#c5a059"} 
-                            style={{ border: 'none', background: 'none' }} 
-                          />
-                          <span style={{ fontSize: '0.9rem', fontFamily: 'monospace' }}>
-                            {platformSettings.find(s => s.key === 'branding')?.value?.primary_color || "#C5A059"}
-                          </span>
-                        </div>
-                      </div>
-                      <button className="btn-gold" style={{ marginTop: '1rem' }} onClick={() => alert('Branding settings locked for root security.')}>COMMIT CHANGES</button>
-                    </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '3rem', minHeight: '600px' }}>
+                  {/* Left Sidebar Tabs */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', borderRight: '1px solid var(--border-glass)', paddingRight: '1.5rem' }}>
+                    {SETTINGS_TABS.map(tab => (
+                      <button
+                        key={tab.id}
+                        onClick={() => setActiveSettingsTab(tab.id)}
+                        className="smooth-transition"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '1rem',
+                          padding: '1rem 1.2rem',
+                          borderRadius: '0.8rem',
+                          background: activeSettingsTab === tab.id ? 'var(--accent-gold)' : 'rgba(255,255,255,0.03)',
+                          color: activeSettingsTab === tab.id ? 'black' : 'var(--text-muted)',
+                          border: 'none',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          fontSize: '0.9rem',
+                          fontWeight: 600
+                        }}
+                      >
+                        <tab.icon size={18} />
+                        {tab.label}
+                      </button>
+                    ))}
                   </div>
 
-                  <div className="glass" style={{ padding: '2rem', borderRadius: '1.5rem' }}>
-                    <h3 className="luxury-font" style={{ fontSize: '1.5rem', marginBottom: '2rem' }}>System Integrity</h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                      <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '0.8rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                         <div>
-                           <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>Maintenance Mode</div>
-                           <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Disable public access for updates</div>
-                         </div>
-                         <div style={{ width: '40px', height: '20px', background: '#333', borderRadius: '10px', position: 'relative' }}>
-                            <div style={{ width: '16px', height: '16px', background: 'white', borderRadius: '50%', position: 'absolute', left: '2px', top: '2px' }} />
-                         </div>
-                      </div>
-                      <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '0.8rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                         <div>
-                           <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>Detailed Logging</div>
-                           <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Increase audit granularity</div>
-                         </div>
-                         <div style={{ width: '40px', height: '20px', background: 'var(--accent-gold)', borderRadius: '10px', position: 'relative' }}>
-                            <div style={{ width: '16px', height: '16px', background: 'black', borderRadius: '50%', position: 'absolute', right: '2px', top: '2px' }} />
-                         </div>
-                      </div>
-                    </div>
+                  {/* Right Content Area */}
+                  <div className="glass" style={{ padding: '2.5rem', borderRadius: '1.5rem', minHeight: '600px' }}>
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={activeSettingsTab}
+                        initial={{ opacity: 0, x: 10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -10 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        {/* Branding Tab */}
+                        {activeSettingsTab === 'branding' && (
+                          <div>
+                            <h3 className="luxury-font" style={{ fontSize: '1.8rem', marginBottom: '2rem' }}>Identity & Aesthetics</h3>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                              <div className="form-group">
+                                <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.8rem', letterSpacing: '1px' }}>PLATFORM NAME</label>
+                                <input 
+                                  className="admin-input" 
+                                  style={{ width: '100%' }} 
+                                  placeholder="e.g. Transhub Luxury"
+                                  defaultValue={platformSettings.find(s => s.key === 'branding')?.value?.name}
+                                  onBlur={(e) => handleUpdateSetting('branding', { name: e.target.value })}
+                                />
+                              </div>
+                              <div className="form-group">
+                                <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.8rem', letterSpacing: '1px' }}>SLOGAN / TAGLINE</label>
+                                <input 
+                                  className="admin-input" 
+                                  style={{ width: '100%' }} 
+                                  placeholder="Elevating Nigerian Automotive..."
+                                  defaultValue={platformSettings.find(s => s.key === 'branding')?.value?.tagline}
+                                  onBlur={(e) => handleUpdateSetting('branding', { tagline: e.target.value })}
+                                />
+                              </div>
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+                                <div className="form-group">
+                                  <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.8rem', letterSpacing: '1px' }}>PRIMARY COLOR</label>
+                                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                                    <input 
+                                      type="color" 
+                                      defaultValue={platformSettings.find(s => s.key === 'branding')?.value?.primary_color || "#c5a059"}
+                                      onChange={(e) => handleUpdateSetting('branding', { primary_color: e.target.value })}
+                                      style={{ width: '50px', height: '40px', border: '1px solid var(--border-glass)', background: 'none' }} 
+                                    />
+                                    <span style={{ fontSize: '0.9rem', fontFamily: 'monospace' }}>{platformSettings.find(s => s.key === 'branding')?.value?.primary_color || "#C5A059"}</span>
+                                  </div>
+                                </div>
+                                <div className="form-group">
+                                  <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.8rem', letterSpacing: '1px' }}>LOGO ASSET URL</label>
+                                  <input 
+                                    className="admin-input" 
+                                    style={{ width: '100%' }} 
+                                    defaultValue={platformSettings.find(s => s.key === 'branding')?.value?.logo_url}
+                                    onBlur={(e) => handleUpdateSetting('branding', { logo_url: e.target.value })}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Support Tab */}
+                        {activeSettingsTab === 'support' && (
+                          <div>
+                            <h3 className="luxury-font" style={{ fontSize: '1.8rem', marginBottom: '2rem' }}>Communication Hub</h3>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+                              <div className="form-group">
+                                <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.8rem', letterSpacing: '1px' }}>SUPPORT EMAIL</label>
+                                <input 
+                                  className="admin-input" 
+                                  style={{ width: '100%' }} 
+                                  defaultValue={platformSettings.find(s => s.key === 'support')?.value?.email}
+                                  onBlur={(e) => handleUpdateSetting('support', { email: e.target.value })}
+                                />
+                              </div>
+                              <div className="form-group">
+                                <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.8rem', letterSpacing: '1px' }}>HOTLINE PHONE</label>
+                                <input 
+                                  className="admin-input" 
+                                  style={{ width: '100%' }} 
+                                  defaultValue={platformSettings.find(s => s.key === 'support')?.value?.phone}
+                                  onBlur={(e) => handleUpdateSetting('support', { phone: e.target.value })}
+                                />
+                              </div>
+                              <div className="form-group">
+                                <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.8rem', letterSpacing: '1px' }}>WHATSAPP BUSINESS</label>
+                                <input 
+                                  className="admin-input" 
+                                  style={{ width: '100%' }} 
+                                  defaultValue={platformSettings.find(s => s.key === 'support')?.value?.whatsapp}
+                                  onBlur={(e) => handleUpdateSetting('support', { whatsapp: e.target.value })}
+                                />
+                              </div>
+                              <div className="form-group">
+                                <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.8rem', letterSpacing: '1px' }}>OFFICE ADDRESS</label>
+                                <input 
+                                  className="admin-input" 
+                                  style={{ width: '100%' }} 
+                                  defaultValue={platformSettings.find(s => s.key === 'support')?.value?.address}
+                                  onBlur={(e) => handleUpdateSetting('support', { address: e.target.value })}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Operations Tab */}
+                        {activeSettingsTab === 'operations' && (
+                          <div>
+                            <h3 className="luxury-font" style={{ fontSize: '1.8rem', marginBottom: '2rem' }}>Engine Room (Operations)</h3>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                              <div style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.02)', borderRadius: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: platformSettings.find(s => s.key === 'operations')?.value?.maintenance_mode ? '1px solid #ef4444' : '1px solid transparent' }}>
+                                <div>
+                                  <div style={{ fontWeight: 600 }}>Maintenance Mode</div>
+                                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Immediately suspend public access for emergency protocols</div>
+                                </div>
+                                <button 
+                                  onClick={() => handleUpdateSetting('operations', { maintenance_mode: !platformSettings.find(s => s.key === 'operations')?.value?.maintenance_mode })}
+                                  style={{ 
+                                    width: '50px', height: '26px', borderRadius: '13px', border: 'none', position: 'relative', cursor: 'pointer',
+                                    background: platformSettings.find(s => s.key === 'operations')?.value?.maintenance_mode ? '#ef4444' : '#333'
+                                  }}
+                                >
+                                  <motion.div 
+                                    animate={{ x: platformSettings.find(s => s.key === 'operations')?.value?.maintenance_mode ? 24 : 2 }}
+                                    style={{ width: '20px', height: '20px', background: 'white', borderRadius: '50%', position: 'absolute', top: '3px' }} 
+                                  />
+                                </button>
+                              </div>
+                              
+                              <div style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.02)', borderRadius: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div>
+                                  <div style={{ fontWeight: 600 }}>Towing Service Gateway</div>
+                                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Enable or disable the real-time recovery fleet requests</div>
+                                </div>
+                                <button 
+                                  onClick={() => handleUpdateSetting('operations', { towing_service_enabled: !platformSettings.find(s => s.key === 'operations')?.value?.towing_service_enabled })}
+                                  style={{ 
+                                    width: '50px', height: '26px', borderRadius: '13px', border: 'none', position: 'relative', cursor: 'pointer',
+                                    background: platformSettings.find(s => s.key === 'operations')?.value?.towing_service_enabled ? 'var(--accent-gold)' : '#333'
+                                  }}
+                                >
+                                  <motion.div 
+                                    animate={{ x: platformSettings.find(s => s.key === 'operations')?.value?.towing_service_enabled ? 24 : 2 }}
+                                    style={{ width: '20px', height: '20px', background: platformSettings.find(s => s.key === 'operations')?.value?.towing_service_enabled ? 'black' : 'white', borderRadius: '50%', position: 'absolute', top: '3px' }} 
+                                  />
+                                </button>
+                              </div>
+
+                              <div className="form-group" style={{ marginTop: '1rem' }}>
+                                <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.8rem', letterSpacing: '1px' }}>AUDIT LOG VERBOSITY</label>
+                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                  {['Low', 'Medium', 'High'].map(level => (
+                                    <button 
+                                      key={level}
+                                      onClick={() => handleUpdateSetting('operations', { audit_level: level })}
+                                      style={{ 
+                                        flex: 1, padding: '0.8rem', borderRadius: '0.5rem', border: '1px solid var(--border-glass)', cursor: 'pointer',
+                                        background: platformSettings.find(s => s.key === 'operations')?.value?.audit_level === level ? 'var(--accent-gold)' : 'transparent',
+                                        color: platformSettings.find(s => s.key === 'operations')?.value?.audit_level === level ? 'black' : 'white'
+                                      }}
+                                    >
+                                      {level}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Finance Tab */}
+                        {activeSettingsTab === 'finance' && (
+                          <div>
+                            <h3 className="luxury-font" style={{ fontSize: '1.8rem', marginBottom: '2rem' }}>Treasury & Economics</h3>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+                              <div className="form-group">
+                                <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.8rem', letterSpacing: '1px' }}>TOWING BASE FEE (₦)</label>
+                                <input 
+                                  type="number" className="admin-input" style={{ width: '100%' }} 
+                                  defaultValue={platformSettings.find(s => s.key === 'finance')?.value?.towing_base_fee}
+                                  onBlur={(e) => handleUpdateSetting('finance', { towing_base_fee: Number(e.target.value) })}
+                                />
+                              </div>
+                              <div className="form-group">
+                                <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.8rem', letterSpacing: '1px' }}>TOWING COST PER KM (₦)</label>
+                                <input 
+                                  type="number" className="admin-input" style={{ width: '100%' }} 
+                                  defaultValue={platformSettings.find(s => s.key === 'finance')?.value?.towing_cost_per_km}
+                                  onBlur={(e) => handleUpdateSetting('finance', { towing_cost_per_km: Number(e.target.value) })}
+                                />
+                              </div>
+                              <div className="form-group">
+                                <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.8rem', letterSpacing: '1px' }}>LISTING COMMISSION (%)</label>
+                                <input 
+                                  type="number" className="admin-input" style={{ width: '100%' }} 
+                                  defaultValue={platformSettings.find(s => s.key === 'finance')?.value?.car_listing_commission_pct}
+                                  onBlur={(e) => handleUpdateSetting('finance', { car_listing_commission_pct: Number(e.target.value) })}
+                                />
+                              </div>
+                              <div className="form-group">
+                                <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.8rem', letterSpacing: '1px' }}>PARTS COMMISSION (%)</label>
+                                <input 
+                                  type="number" className="admin-input" style={{ width: '100%' }} 
+                                  defaultValue={platformSettings.find(s => s.key === 'finance')?.value?.parts_sale_commission_pct}
+                                  onBlur={(e) => handleUpdateSetting('finance', { parts_sale_commission_pct: Number(e.target.value) })}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Legal Tab */}
+                        {activeSettingsTab === 'legal' && (
+                          <div>
+                            <h3 className="luxury-font" style={{ fontSize: '1.8rem', marginBottom: '2rem' }}>Compliance & Legal</h3>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                              <div className="form-group">
+                                <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.8rem', letterSpacing: '1px' }}>TERMS OF SERVICE URL</label>
+                                <input 
+                                  className="admin-input" style={{ width: '100%' }} 
+                                  defaultValue={platformSettings.find(s => s.key === 'legal')?.value?.terms_url}
+                                  onBlur={(e) => handleUpdateSetting('legal', { terms_url: e.target.value })}
+                                />
+                              </div>
+                              <div className="form-group">
+                                <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.8rem', letterSpacing: '1px' }}>PRIVACY POLICY URL</label>
+                                <input 
+                                  className="admin-input" style={{ width: '100%' }} 
+                                  defaultValue={platformSettings.find(s => s.key === 'legal')?.value?.privacy_url}
+                                  onBlur={(e) => handleUpdateSetting('legal', { privacy_url: e.target.value })}
+                                />
+                              </div>
+                              <div className="form-group">
+                                <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.8rem', letterSpacing: '1px' }}>REFUND POLICY OVERVIEW</label>
+                                <textarea 
+                                  className="admin-input" style={{ width: '100%', height: '100px', resize: 'none', padding: '1rem' }} 
+                                  defaultValue={platformSettings.find(s => s.key === 'legal')?.value?.refund_policy}
+                                  onBlur={(e) => handleUpdateSetting('legal', { refund_policy: e.target.value })}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Security & Analytics Tab */}
+                        {activeSettingsTab === 'security' && (
+                          <div>
+                            <h3 className="luxury-font" style={{ fontSize: '1.8rem', marginBottom: '2rem' }}>Security & Analytics</h3>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                              <div style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.02)', borderRadius: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div>
+                                  <div style={{ fontWeight: 600 }}>Two-Factor Authentication Requirement</div>
+                                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Enforce 2FA for all administrative accounts</div>
+                                </div>
+                                <button 
+                                  onClick={() => handleUpdateSetting('security', { enforce_2fa: !platformSettings.find(s => s.key === 'security')?.value?.enforce_2fa })}
+                                  style={{ 
+                                    width: '50px', height: '26px', borderRadius: '13px', border: 'none', position: 'relative', cursor: 'pointer',
+                                    background: platformSettings.find(s => s.key === 'security')?.value?.enforce_2fa ? 'var(--accent-gold)' : '#333'
+                                  }}
+                                >
+                                  <motion.div 
+                                    animate={{ x: platformSettings.find(s => s.key === 'security')?.value?.enforce_2fa ? 24 : 2 }}
+                                    style={{ width: '20px', height: '20px', background: platformSettings.find(s => s.key === 'security')?.value?.enforce_2fa ? 'black' : 'white', borderRadius: '50%', position: 'absolute', top: '3px' }} 
+                                  />
+                                </button>
+                              </div>
+
+                              <div style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.02)', borderRadius: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div>
+                                  <div style={{ fontWeight: 600 }}>Advanced Telemetry</div>
+                                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Track user heatmaps and strategic session interactions</div>
+                                </div>
+                                <button 
+                                  onClick={() => handleUpdateSetting('security', { telemetry_enabled: !platformSettings.find(s => s.key === 'security')?.value?.telemetry_enabled })}
+                                  style={{ 
+                                    width: '50px', height: '26px', borderRadius: '13px', border: 'none', position: 'relative', cursor: 'pointer',
+                                    background: platformSettings.find(s => s.key === 'security')?.value?.telemetry_enabled ? 'var(--accent-gold)' : '#333'
+                                  }}
+                                >
+                                  <motion.div 
+                                    animate={{ x: platformSettings.find(s => s.key === 'security')?.value?.telemetry_enabled ? 24 : 2 }}
+                                    style={{ width: '20px', height: '20px', background: platformSettings.find(s => s.key === 'security')?.value?.telemetry_enabled ? 'black' : 'white', borderRadius: '50%', position: 'absolute', top: '3px' }} 
+                                  />
+                                </button>
+                              </div>
+
+                              <div className="form-group" style={{ marginTop: '1rem' }}>
+                                <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.8rem', letterSpacing: '1px' }}>SESSION TIMEOUT (MINUTES)</label>
+                                <input 
+                                  type="number" className="admin-input" style={{ width: '100%' }} 
+                                  defaultValue={platformSettings.find(s => s.key === 'security')?.value?.session_timeout || 60}
+                                  onBlur={(e) => handleUpdateSetting('security', { session_timeout: Number(e.target.value) })}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </motion.div>
+                    </AnimatePresence>
                   </div>
                 </div>
               )}
