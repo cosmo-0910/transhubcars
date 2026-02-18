@@ -125,7 +125,10 @@ export default function AddCarModal({ onClose, onSuccess, editingCar }: AddCarMo
       onSuccess();
     } catch (err: any) {
       console.error('Save error:', err);
-      setError(err.message || 'Failed to save vehicle protocol');
+      const msg = err.message === 'Duplicate image prohibited' 
+        ? 'Duplicate image prohibited. This file has already been posted.' 
+        : (err.message === 'HTTP 400 error' ? 'System rejected the upload. Please verify your connection.' : (err.message || 'Failed to save vehicle protocol'));
+      setError(msg);
     } finally {
       setLoading(false);
     }

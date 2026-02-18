@@ -1,7 +1,7 @@
 
 
 import { db, supabase } from '../shared/lib/db';
-import type { Car, Order } from '../shared/lib/db';
+import type { Car, Order, Inquiry, Preorder, SparePartOrder, TowRequest } from '../shared/lib/db';
 import { formatPrice } from '../shared/lib/formatters';
 import { useState, useEffect, useMemo } from 'react';
 import { 
@@ -10,7 +10,7 @@ import {
   MoreVertical, Bell, LogOut, ChevronRight,
   TrendingUp, Zap, Server, ShieldCheck, DollarSign,
   CheckCircle2, X, Plus, Trash2, Edit, Eye, RefreshCw, Copy,
-  Video, Menu, Wrench, Truck, Phone
+  Video, Menu, Wrench, Truck, Phone, Package
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../shared/lib/AuthContext';
@@ -25,7 +25,7 @@ import { TowingManagement } from './components/TowingManagement';
 import { useAlert } from '../shared/context/AlertContext.tsx';
 
 // --- Types ---
-type Section = 'overview' | 'vendors' | 'users' | 'inventory' | 'orders' | 'sales' | 'ledger' | 'audit' | 'settings' | 'admins' | 'mechanics' | 'towing';
+type Section = 'overview' | 'vendors' | 'users' | 'inventory' | 'orders' | 'sales' | 'ledger' | 'audit' | 'settings' | 'admins' | 'mechanics' | 'towing' | 'inquiries' | 'preorders' | 'parts-requests';
 
 interface KpiData {
   totalUsers: number;
@@ -159,6 +159,10 @@ export const AdminDashboard = () => {
   const [vendors, setVendors] = useState<any[]>([]); // Vendor Profiles
   const [orders, setOrders] = useState<Order[]>([]);
   const [admins, setAdmins] = useState<any[]>([]);
+  const [inquiries, setInquiries] = useState<Inquiry[]>([]);
+  const [preorders, setPreorders] = useState<Preorder[]>([]);
+  const [partsRequests, setPartsRequests] = useState<SparePartOrder[]>([]);
+  const [towRequests, setTowRequests] = useState<TowRequest[]>([]);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [platformSettings, setPlatformSettings] = useState<any[]>([]);
   const [mechanics, setMechanics] = useState<any[]>([]);
@@ -174,6 +178,13 @@ export const AdminDashboard = () => {
   });
   const [editingAdmin, setEditingAdmin] = useState<any | null>(null);
   const [activeSettingsTab, setActiveSettingsTab] = useState('branding');
+
+  // Detail View State
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(null);
+  const [selectedPreorder, setSelectedPreorder] = useState<Preorder | null>(null);
+  const [selectedPartsRequest, setSelectedPartsRequest] = useState<SparePartOrder | null>(null);
+  const [selectedTowRequest, setSelectedTowRequest] = useState<TowRequest | null>(null);
 
   // Editing State
   const [editingCar, setEditingCar] = useState<Car | null>(null);
@@ -257,13 +268,27 @@ export const AdminDashboard = () => {
     try {
       setInitialLoading(true);
       setError(null);
-      const [carsData, ordersData, allProfiles, adminsData, settingsData] = await Promise.all([
-        db.getCars(),
-        db.getOrders(),
-        db.getProfiles(),
-        db.getAdmins(),
-        db.getPlatformSettings().catch(() => [])
-      ]);
+    const [
+      carsData, 
+      ordersData, 
+      allProfiles, 
+      adminsData, 
+      inquiriesData, 
+      preordersData, 
+      partsData, 
+      towData, 
+      settingsData
+    ] = await Promise.all([
+      db.getCars().catch(err => { console.error('Cars fetch fail:', err); return []; }),
+      db.getOrders().catch(err => { console.error('Orders fetch fail:', err); return []; }),
+      db.getProfiles().catch(err => { console.error('Profiles fetch fail:', err); return []; }),
+      db.getAdmins().catch(err => { console.error('Admins fetch fail:', err); return []; }),
+      db.getInquiries().catch(err => { console.error('Inquiries fetch fail:', err); return []; }),
+      db.getPreorders().catch(err => { console.error('Preorders fetch fail:', err); return []; }),
+      db.getSparePartOrders().catch(err => { console.error('Parts fetch fail:', err); return []; }),
+      db.getTowRequests().catch(err => { console.error('Tow fetch fail:', err); return []; }),
+      db.getPlatformSettings().catch(err => { console.error('Settings fetch fail:', err); return []; })
+    ]);
       
       let logsData: any[] = [];
       try {
@@ -276,11 +301,15 @@ export const AdminDashboard = () => {
       
       setCars(carsData);
       setOrders(ordersData);
-      setUsers(allProfiles); 
-      setVendors(allProfiles.filter((p: any) => ['pending', 'approved', 'rejected'].includes(p.vendor_status)));
-      setAdmins(adminsData);
-      setAuditLogs(logsData);
-      setPlatformSettings(settingsData);
+    setUsers(allProfiles); 
+    setVendors(allProfiles.filter((p: any) => ['pending', 'approved', 'rejected'].includes(p.vendor_status)));
+    setAdmins(adminsData);
+    setInquiries(inquiriesData);
+    setPreorders(preordersData);
+    setPartsRequests(partsData);
+    setTowRequests(towData);
+    setAuditLogs(logsData);
+    setPlatformSettings(settingsData);
       
       const mechanicsData = await db.getMechanics().catch(() => []);
       setMechanics(mechanicsData);
@@ -570,9 +599,11 @@ export const AdminDashboard = () => {
       setEditingCar(null);
     } catch (err: any) {
       console.error('Failed to save vehicle:', err);
+      const isDuplicate = err.message === 'Duplicate image prohibited';
+      
       showAlert({
-        title: 'Publishing Error',
-        message: err.message || 'Failed to save vehicle listings',
+        title: isDuplicate ? 'Integrity Check' : 'Publishing Error',
+        message: isDuplicate ? 'Duplicate image prohibited. This asset has already been registered on the platform.' : (err.message === 'HTTP 400 error' ? 'System rejected the upload protocol. Please verify your network connection or try again.' : (err.message || 'Failed to save vehicle listings')),
         buttons: [{ text: 'OK', style: 'destructive' }]
       });
     } finally {
@@ -724,8 +755,12 @@ export const AdminDashboard = () => {
     activeOrders: orders.filter(o => o.status !== 'Delivered').length,
     systemStatus: 'Operational',
     pendingVendors: vendors.filter(v => v.vendor_status === 'pending').length,
-    pendingListings: cars.filter(c => c.approval_status === 'pending').length
-  }), [users, vendors, orders, cars]);
+    pendingListings: cars.filter(c => c.approval_status === 'pending').length,
+    pendingInquiries: inquiries.filter(i => i.status === 'New').length,
+    pendingPreorders: preorders.filter(p => p.status === 'Searching').length,
+    pendingParts: partsRequests.filter(p => p.status === 'Pending').length,
+    pendingTowing: towRequests.filter(t => t.status === 'Searching').length
+  }), [users, vendors, orders, cars, inquiries, preorders, partsRequests, towRequests]);
 
   // --- Filtered Data ---
   const filteredData = useMemo(() => {
@@ -745,9 +780,12 @@ export const AdminDashboard = () => {
       case 'audit': return auditLogs.filter(l => (l.action || '').toLowerCase().includes(q) || (l.profiles?.full_name || '').toLowerCase().includes(q));
       case 'admins': return admins.filter(a => (a.full_name || '').toLowerCase().includes(q) || (a.email || '').toLowerCase().includes(q));
       case 'mechanics': return mechanics.filter(m => (m.name || '').toLowerCase().includes(q) || (m.specialty || '').toLowerCase().includes(q));
+      case 'inquiries': return inquiries.filter(i => (i.name || '').toLowerCase().includes(q) || (i.email || '').toLowerCase().includes(q) || (i.carName || '').toLowerCase().includes(q));
+      case 'preorders': return preorders.filter(p => (p.name || '').toLowerCase().includes(q) || (p.email || '').toLowerCase().includes(q) || (p.make || '').toLowerCase().includes(q) || (p.model || '').toLowerCase().includes(q));
+      case 'parts-requests': return partsRequests.filter(p => (p.part_name || '').toLowerCase().includes(q) || (p.vehicle_make || '').toLowerCase().includes(q) || (p.vehicle_model || '').toLowerCase().includes(q));
       default: return [];
     }
-  }, [activeSection, vendors, users, cars, orders, auditLogs, admins, mechanics, searchQuery]);
+  }, [activeSection, vendors, users, cars, orders, auditLogs, admins, mechanics, inquiries, preorders, partsRequests, towRequests, searchQuery]);
 
   return (
     <div className="logo-grid-bg dashboard-container" style={{ color: 'var(--text-main)' }}>
@@ -788,6 +826,9 @@ export const AdminDashboard = () => {
             {hasPermission('inventory') && <SidebarItem icon={ShoppingBag} label="Orders" active={activeSection === 'orders'} onClick={() => setActiveSection('orders')} />}
             {hasPermission('mechanics') && <SidebarItem icon={Wrench} label="Workshops" active={activeSection === 'mechanics'} onClick={() => setActiveSection('mechanics')} />}
             {hasPermission('towing') && <SidebarItem icon={Truck} label="Towing Fleet" active={activeSection === 'towing'} onClick={() => setActiveSection('towing')} />}
+            <SidebarItem icon={Phone} label="Client Inquiries" active={activeSection === 'inquiries'} onClick={() => setActiveSection('inquiries')} badge={stats.pendingInquiries} />
+            <SidebarItem icon={RefreshCw} label="Preorder Requests" active={activeSection === 'preorders'} onClick={() => setActiveSection('preorders')} badge={stats.pendingPreorders} />
+            <SidebarItem icon={Package} label="Parts Requests" active={activeSection === 'parts-requests'} onClick={() => setActiveSection('parts-requests')} badge={stats.pendingParts} />
           </div>
 
           {(hasPermission('finance') || hasPermission('sales')) && (
@@ -967,11 +1008,16 @@ export const AdminDashboard = () => {
               )}
 
               {/* --- MANAGEMENT VIEWS --- */}
-              {['vendors', 'users', 'inventory', 'orders'].includes(activeSection) && (
+              {['vendors', 'users', 'inventory', 'orders', 'inquiries', 'preorders', 'parts-requests'].includes(activeSection) && (
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                     <h2 className="luxury-font" style={{ fontSize: '2rem', margin: 0, textTransform: 'capitalize' }}>
-                      {activeSection === 'vendors' ? 'Vendor Management' : activeSection === 'inventory' ? 'Inventory Control' : `${activeSection} Management`}
+                      {activeSection === 'vendors' ? 'Vendor Management' : 
+                       activeSection === 'inventory' ? 'Inventory Control' : 
+                       activeSection === 'inquiries' ? 'Client Inquiries' :
+                       activeSection === 'preorders' ? 'Preorder Requests' :
+                       activeSection === 'parts-requests' ? 'Parts Sourcing' :
+                       `${activeSection} Management`}
                     </h2>
                     <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                       {activeSection === 'vendors' && (
@@ -1026,12 +1072,38 @@ export const AdminDashboard = () => {
                               <th style={{ padding: '1.5rem', textAlign: 'right' }}>Actions</th>
                             </>
                           )}
-                          {activeSection === 'orders' && (
+                           {activeSection === 'orders' && (
                             <>
                               <th style={{ padding: '1.5rem', textAlign: 'left' }}>Order ID</th>
                               <th style={{ padding: '1.5rem', textAlign: 'left' }}>Amount</th>
                               <th style={{ padding: '1.5rem', textAlign: 'left' }}>Status</th>
                               <th style={{ padding: '1.5rem', textAlign: 'right' }}>Manage</th>
+                            </>
+                          )}
+                          {activeSection === 'inquiries' && (
+                            <>
+                              <th style={{ padding: '1.5rem', textAlign: 'left' }}>Prospect</th>
+                              <th style={{ padding: '1.5rem', textAlign: 'left' }}>Vehicle / Type</th>
+                              <th style={{ padding: '1.5rem', textAlign: 'left' }}>Status</th>
+                              <th style={{ padding: '1.5rem', textAlign: 'right' }}>Actions</th>
+                            </>
+                          )}
+                           {activeSection === 'preorders' && (
+                            <>
+                              <th style={{ padding: '1.5rem', textAlign: 'left' }}>Client</th>
+                              <th style={{ padding: '1.5rem', textAlign: 'left' }}>Requested Vehicle</th>
+                              <th style={{ padding: '1.5rem', textAlign: 'left' }}>Budget</th>
+                              <th style={{ padding: '1.5rem', textAlign: 'left' }}>Status</th>
+                              <th style={{ padding: '1.5rem', textAlign: 'right' }}>Actions</th>
+                            </>
+                          )}
+                          {activeSection === 'parts-requests' && (
+                            <>
+                              <th style={{ padding: '1.5rem', textAlign: 'left' }}>Part Details</th>
+                              <th style={{ padding: '1.5rem', textAlign: 'left' }}>Vehicle Compatibility</th>
+                              <th style={{ padding: '1.5rem', textAlign: 'left' }}>Quantity</th>
+                              <th style={{ padding: '1.5rem', textAlign: 'left' }}>Status</th>
+                              <th style={{ padding: '1.5rem', textAlign: 'right' }}>Actions</th>
                             </>
                           )}
                         </tr>
@@ -1149,7 +1221,116 @@ export const AdminDashboard = () => {
                                 <td style={{ padding: '1.5rem' }}>{formatPrice(item.amount)}</td>
                                 <td style={{ padding: '1.5rem' }}><StatusBadge status={item.status} /></td>
                                 <td style={{ padding: '1.5rem', textAlign: 'right' }}>
-                                  <button style={{ background: 'none', border: 'none', color: 'var(--text-muted)' }}>Manage</button>
+                                  <button onClick={() => setSelectedOrder(item)} className="btn-gold" style={{ padding: '0.4rem 0.8rem', fontSize: '0.7rem' }}>VIEW DOSSIER</button>
+                                </td>
+                              </>
+                            )}
+
+                            {activeSection === 'inquiries' && (
+                              <>
+                                <td style={{ padding: '1.5rem' }}>
+                                  <div style={{ fontWeight: 600 }}>{item.name}</div>
+                                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{item.email}</div>
+                                  {item.phone && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{item.phone}</div>}
+                                </td>
+                                <td style={{ padding: '1.5rem' }}>
+                                  <div style={{ fontWeight: 600 }}>{item.carName || 'General Inquiry'}</div>
+                                  <div style={{ fontSize: '0.75rem', color: 'var(--accent-gold)', textTransform: 'uppercase' }}>{item.type}</div>
+                                </td>
+                                <td style={{ padding: '1.5rem' }}>
+                                  <span style={{ 
+                                    padding: '0.3rem 0.6rem', 
+                                    borderRadius: '1rem', 
+                                    fontSize: '0.7rem', 
+                                    fontWeight: 700, 
+                                    background: item.status === 'New' ? 'rgba(234, 179, 8, 0.1)' : 'rgba(74, 222, 128, 0.1)',
+                                    color: item.status === 'New' ? '#eab308' : '#4ade80',
+                                    border: `1px solid ${item.status === 'New' ? 'rgba(234, 179, 8, 0.3)' : 'rgba(74, 222, 128, 0.3)'}`
+                                  }}>
+                                    {item.status.toUpperCase()}
+                                  </span>
+                                </td>
+                                <td style={{ padding: '1.5rem', textAlign: 'right' }}>
+                                   <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                                     <button onClick={() => setSelectedInquiry(item)} style={{ padding: '0.4rem 0.8rem', fontSize: '0.7rem', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-glass)', color: 'white', borderRadius: '4px', marginRight: '0.5rem' }}>VIEW DETAILS</button>
+                                      <button onClick={() => db.updateInquiryStatus(item.id, 'Contacted').then(loadAllData)} className="btn-gold" style={{ padding: '0.4rem 0.8rem', fontSize: '0.7rem' }}>MARK CONTACTED</button>
+                                     <button onClick={() => db.updateInquiryStatus(item.id, 'Archived').then(loadAllData)} style={{ padding: '0.4rem 0.8rem', fontSize: '0.7rem', background: '#333', border: 'none', color: 'white', borderRadius: '4px' }}>ARCHIVE</button>
+                                   </div>
+                                </td>
+                              </>
+                            )}
+
+                            {activeSection === 'preorders' && (
+                              <>
+                                <td style={{ padding: '1.5rem' }}>
+                                  <div style={{ fontWeight: 600 }}>{item.name}</div>
+                                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{item.email}</div>
+                                  {item.phone && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{item.phone}</div>}
+                                </td>
+                                <td style={{ padding: '1.5rem' }}>
+                                  <div style={{ fontWeight: 600 }}>{item.year} {item.make} {item.model}</div>
+                                </td>
+                                <td style={{ padding: '1.5rem', fontWeight: 600, color: 'var(--accent-gold)' }}>
+                                  {item.budget ? formatPrice(item.budget) : 'N/A'}
+                                </td>
+                                <td style={{ padding: '1.5rem' }}>
+                                  <span style={{ 
+                                    padding: '0.3rem 0.6rem', 
+                                    borderRadius: '1rem', 
+                                    fontSize: '0.7rem', 
+                                    fontWeight: 700, 
+                                    background: item.status === 'Searching' ? 'rgba(234, 179, 8, 0.1)' : 'rgba(74, 222, 128, 0.1)',
+                                    color: item.status === 'Searching' ? '#eab308' : '#4ade80',
+                                    border: `1px solid ${item.status === 'Searching' ? 'rgba(234, 179, 8, 0.3)' : 'rgba(74, 222, 128, 0.3)'}`
+                                  }}>
+                                    {item.status.toUpperCase()}
+                                  </span>
+                                </td>
+                                <td style={{ padding: '1.5rem', textAlign: 'right' }}>
+                                   <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                                     <button onClick={() => setSelectedPreorder(item)} style={{ padding: '0.4rem 0.8rem', fontSize: '0.7rem', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-glass)', color: 'white', borderRadius: '4px', marginRight: '0.5rem' }}>VIEW DETAILS</button>
+                                      <button onClick={() => db.updatePreorderStatus(item.id, 'Sourced').then(loadAllData)} className="btn-gold" style={{ padding: '0.4rem 0.8rem', fontSize: '0.7rem' }}>MARK SOURCED</button>
+                                     <button onClick={() => db.updatePreorderStatus(item.id, 'Delivered').then(loadAllData)} style={{ padding: '0.4rem 0.8rem', fontSize: '0.7rem', background: 'rgba(74, 222, 128, 0.1)', border: 'none', color: '#4ade80', borderRadius: '4px' }}>MARK DELIVERED</button>
+                                   </div>
+                                </td>
+                              </>
+                            )}
+
+                            {activeSection === 'parts-requests' && (
+                              <>
+                                <td style={{ padding: '1.5rem' }}>
+                                  <div style={{ fontWeight: 600 }}>{item.part_name}</div>
+                                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{item.description || 'No additional details'}</div>
+                                </td>
+                                <td style={{ padding: '1.5rem' }}>
+                                  <div style={{ fontWeight: 600 }}>{item.vehicle_make} {item.vehicle_model}</div>
+                                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Year: {item.vehicle_year}</div>
+                                </td>
+                                <td style={{ padding: '1.5rem' }}>
+                                  <div style={{ fontSize: '1rem', fontWeight: 600 }}>{item.quantity}</div>
+                                </td>
+                                <td style={{ padding: '1.5rem' }}>
+                                  <span style={{ 
+                                    padding: '0.3rem 0.6rem', 
+                                    borderRadius: '1rem', 
+                                    fontSize: '0.7rem', 
+                                    fontWeight: 700, 
+                                    background: item.status === 'Pending' ? 'rgba(234, 179, 8, 0.1)' : 'rgba(74, 222, 128, 0.1)',
+                                    color: item.status === 'Pending' ? '#eab308' : '#4ade80',
+                                    border: `1px solid ${item.status === 'Pending' ? 'rgba(234, 179, 8, 0.3)' : 'rgba(74, 222, 128, 0.3)'}`
+                                  }}>
+                                    {item.status.toUpperCase()}
+                                  </span>
+                                </td>
+                                <td style={{ padding: '1.5rem', textAlign: 'right' }}>
+                                   <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                                     {item.status === 'Pending' && (
+                                       <button onClick={() => db.updateSparePartOrderStatus(item.id, 'Sourced').then(loadAllData)} className="btn-gold" style={{ padding: '0.4rem 0.8rem', fontSize: '0.7rem' }}>MARK SOURCED</button>
+                                     )}
+                                     {item.status === 'Sourced' && (
+                                       <button onClick={() => db.updateSparePartOrderStatus(item.id, 'Shipped').then(loadAllData)} className="btn-gold" style={{ padding: '0.4rem 0.8rem', fontSize: '0.7rem' }}>MARK SHIPPED</button>
+                                     )}
+                                   </div>
                                 </td>
                               </>
                             )}
@@ -2280,6 +2461,148 @@ export const AdminDashboard = () => {
                 </button>
               </form>
             </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Order Detail Modal */}
+      <AnimatePresence>
+        {selectedOrder && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(10px)', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '2rem' }} onClick={() => setSelectedOrder(null)}>
+             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="glass" style={{ width: '100%', maxWidth: '800px', padding: '3rem', borderRadius: '1.5rem', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3rem' }}>
+                 <div>
+                   <h2 className="luxury-font" style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>Purchase Dossier</h2>
+                   <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Transaction ID: {selectedOrder.id.toUpperCase()}</p>
+                 </div>
+                 <button onClick={() => setSelectedOrder(null)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}><X size={24} /></button>
+               </div>
+
+               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+                 <div className="glass" style={{ padding: '2rem', borderRadius: '1rem' }}>
+                    <h3 style={{ fontSize: '0.7rem', letterSpacing: '2px', color: 'var(--accent-gold)', marginBottom: '1rem' }}>VEHICLE ASSET</h3>
+                    <div style={{ fontWeight: 600, fontSize: '1.2rem' }}>{selectedOrder.cars?.year} {selectedOrder.cars?.make} {selectedOrder.cars?.model}</div>
+                    <div style={{ color: 'var(--accent-gold)', marginTop: '0.5rem', fontWeight: 700 }}>{formatPrice(selectedOrder.amount)}</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>VIN: {selectedOrder.cars?.vin || 'N/A'}</div>
+                 </div>
+
+                 <div className="glass" style={{ padding: '2rem', borderRadius: '1rem' }}>
+                    <h3 style={{ fontSize: '0.7rem', letterSpacing: '2px', color: 'var(--accent-gold)', marginBottom: '1rem' }}>TRANSACTION STATUS</h3>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: selectedOrder.status === 'Paid' ? '#4ade80' : '#eab308' }} />
+                      <span style={{ fontWeight: 600 }}>{selectedOrder.status.toUpperCase()}</span>
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Payment Ref: {selectedOrder.payment_ref || 'PENDING'}</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Timestamp: {new Date(selectedOrder.created_at).toLocaleString()}</div>
+                 </div>
+
+                 <div className="glass" style={{ padding: '2rem', borderRadius: '1rem', gridColumn: 'span 2' }}>
+                    <h3 style={{ fontSize: '0.7rem', letterSpacing: '2px', color: 'var(--accent-gold)', marginBottom: '1rem' }}>LOGISTICS & EXECUTION</h3>
+                    <div style={{ display: 'flex', gap: '1rem' }}>
+                      <button onClick={() => db.updateOrderStatus(selectedOrder.id, 'Processing').then(() => { setSelectedOrder(null); loadAllData(); })} className="btn-gold" style={{ flex: 1, padding: '0.8rem', fontSize: '0.8rem' }}>MARK AS PROCESSING</button>
+                      <button onClick={() => db.updateOrderStatus(selectedOrder.id, 'Shipped').then(() => { setSelectedOrder(null); loadAllData(); })} className="btn-gold" style={{ flex: 1, padding: '0.8rem', fontSize: '0.8rem' }}>MARK AS SHIPPED</button>
+                      <button onClick={() => db.updateOrderStatus(selectedOrder.id, 'Delivered').then(() => { setSelectedOrder(null); loadAllData(); })} style={{ flex: 1, padding: '0.8rem', fontSize: '0.8rem', background: 'rgba(74, 222, 128, 0.1)', border: 'none', color: '#4ade80', borderRadius: '4px' }}>MARK DELIVERED</button>
+                    </div>
+                 </div>
+               </div>
+             </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Inquiry Detail Modal */}
+      <AnimatePresence>
+        {selectedInquiry && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(10px)', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '2rem' }} onClick={() => setSelectedInquiry(null)}>
+             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="glass" style={{ width: '100%', maxWidth: '700px', padding: '3rem', borderRadius: '1.5rem', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3rem' }}>
+                 <div>
+                   <h2 className="luxury-font" style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>Client Inquiry</h2>
+                   <p style={{ color: 'var(--accent-gold)', fontSize: '0.8rem', letterSpacing: '2px' }}>{selectedInquiry.type.toUpperCase()} REQUEST</p>
+                 </div>
+                 <button onClick={() => setSelectedInquiry(null)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}><X size={24} /></button>
+               </div>
+
+               <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+                   <div>
+                     <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.5rem', letterSpacing: '1px' }}>PROSPECT</label>
+                     <div style={{ fontWeight: 600, fontSize: '1.1rem' }}>{selectedInquiry.name}</div>
+                     <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{selectedInquiry.email}</div>
+                     {selectedInquiry.phone && <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{selectedInquiry.phone}</div>}
+                   </div>
+                   <div>
+                     <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.5rem', letterSpacing: '1px' }}>VEHICLE OF INTEREST</label>
+                     <div style={{ fontWeight: 600, fontSize: '1.1rem' }}>{selectedInquiry.carName || 'General Inquiry'}</div>
+                     <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Received: {new Date(selectedInquiry.createdAt).toLocaleDateString()}</div>
+                   </div>
+                 </div>
+
+                 <div className="glass" style={{ padding: '2rem', borderRadius: '1rem', background: 'rgba(255,255,255,0.02)' }}>
+                   <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '1rem', letterSpacing: '1px' }}>MESSAGE DOSSIER</label>
+                   <p style={{ lineHeight: '1.8', margin: 0 }}>"{selectedInquiry.message}"</p>
+                 </div>
+
+                 <div style={{ display: 'flex', gap: '1rem' }}>
+                    <button onClick={() => db.updateInquiryStatus(selectedInquiry.id, 'Contacted').then(() => { setSelectedInquiry(null); loadAllData(); })} className="btn-gold" style={{ flex: 1, padding: '1rem' }}>MARK AS CONTACTED</button>
+                    <button onClick={() => db.updateInquiryStatus(selectedInquiry.id, 'Archived').then(() => { setSelectedInquiry(null); loadAllData(); })} style={{ flex: 1, padding: '1rem', background: '#333', border: 'none', color: 'white', borderRadius: '8px' }}>ARCHIVE RECORD</button>
+                 </div>
+               </div>
+             </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Preorder Detail Modal */}
+      <AnimatePresence>
+        {selectedPreorder && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(10px)', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '2rem' }} onClick={() => setSelectedPreorder(null)}>
+             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="glass" style={{ width: '100%', maxWidth: '700px', padding: '3rem', borderRadius: '1.5rem', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3rem' }}>
+                 <div>
+                   <h2 className="luxury-font" style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>Preorder Specification</h2>
+                   <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Imperial Sourcing Request</p>
+                 </div>
+                 <button onClick={() => setSelectedPreorder(null)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}><X size={24} /></button>
+               </div>
+
+               <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+                    <div className="glass" style={{ padding: '1.5rem', borderRadius: '1rem' }}>
+                       <label style={{ display: 'block', fontSize: '0.6rem', color: 'var(--text-muted)', marginBottom: '0.5rem', letterSpacing: '1px' }}>TARGET SPECIFICATION</label>
+                       <div style={{ fontWeight: 700, fontSize: '1.3rem', color: 'var(--accent-gold)' }}>{selectedPreorder.year} {selectedPreorder.make}</div>
+                       <div style={{ fontWeight: 600, fontSize: '1.1rem' }}>{selectedPreorder.model}</div>
+                    </div>
+                    <div className="glass" style={{ padding: '1.5rem', borderRadius: '1rem' }}>
+                       <label style={{ display: 'block', fontSize: '0.6rem', color: 'var(--text-muted)', marginBottom: '0.5rem', letterSpacing: '1px' }}>ACQUISITION BUDGET</label>
+                       <div style={{ fontWeight: 700, fontSize: '1.5rem' }}>{selectedPreorder.budget ? formatPrice(selectedPreorder.budget) : 'UNSPECIFIED'}</div>
+                    </div>
+                  </div>
+
+                  <div>
+                     <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.8rem', letterSpacing: '1px' }}>CLIENT IDENTITY</label>
+                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.2rem', background: 'rgba(255,255,255,0.03)', borderRadius: '0.8rem' }}>
+                        <div>
+                          <div style={{ fontWeight: 600 }}>{selectedPreorder.name}</div>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{selectedPreorder.email}</div>
+                        </div>
+                        <div style={{ fontWeight: 600 }}>{selectedPreorder.phone || 'NO PHONE'}</div>
+                     </div>
+                  </div>
+
+                  {selectedPreorder.message && (
+                    <div className="glass" style={{ padding: '2rem', borderRadius: '1rem' }}>
+                       <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '1rem', letterSpacing: '1px' }}>MISSION BRIEF (MESSAGE)</label>
+                       <p style={{ lineHeight: '1.8', margin: 0, fontStyle: 'italic' }}>"{selectedPreorder.message}"</p>
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', gap: '1rem' }}>
+                    <button onClick={() => db.updatePreorderStatus(selectedPreorder.id, 'Sourced').then(() => { setSelectedPreorder(null); loadAllData(); })} className="btn-gold" style={{ flex: 1, padding: '1rem' }}>MARK AS SOURCED</button>
+                    <button onClick={() => db.updatePreorderStatus(selectedPreorder.id, 'Delivered').then(() => { setSelectedPreorder(null); loadAllData(); })} style={{ flex: 1, padding: '1rem', background: 'rgba(74, 222, 128, 0.1)', border: 'none', color: '#4ade80', borderRadius: '8px' }}>MARK AS DELIVERED</button>
+                  </div>
+               </div>
+             </motion.div>
           </div>
         )}
       </AnimatePresence>

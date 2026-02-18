@@ -289,17 +289,16 @@ export const db = {
         .eq('content_hash', contentHash)
         .single();
 
-      if (checkError && checkError.code !== 'PGRST116') {
-        console.error('Hash check failed:', checkError);
+      if (checkError) {
+        if (checkError.code === '42P01') { // undefined_table
+          console.error('media_fingerprints table missing. Please run the migration: 20260218_media_fingerprints.sql');
+        } else if (checkError.code !== 'PGRST116') {
+          console.error('Hash check failed:', checkError);
+        }
       }
 
       if (existing) {
-        // If someone else already posted it, block
-        if (existing.uploader_id !== user.id) {
-          throw new Error('This exact image has already been posted by another member. To maintain platform integrity, duplicate listings are not permitted.');
-        }
-        // If it's the same user, we could allow it or return the existing URL if we tracked it
-        // For now, let's allow it but avoid re-uploading if possible (though we don't have the URL in the fingerprint table yet)
+        throw new Error('Duplicate image prohibited');
       }
 
       let uploadFile: File | Blob = file;
@@ -493,6 +492,46 @@ export const db = {
     if (error) throw error;
   },
 
+  getSparePartOrders: async (): Promise<SparePartOrder[]> => {
+    const { data, error } = await supabase
+      .from('spare_part_orders')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data || [];
+  },
+
+  updateSparePartOrderStatus: async (id: string, status: SparePartOrder['status']) => {
+    const { error } = await supabase
+      .from('spare_part_orders')
+      .update({ status })
+      .eq('id', id);
+    
+    if (error) throw error;
+  },
+
+  getTowRequests: async (): Promise<TowRequest[]> => {
+    const { data, error } = await supabase
+      .from('tow_requests')
+      .select('*, profiles!user_id(full_name)')
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data || [];
+  },
+
+  saveTowRequest: async (request: Omit<TowRequest, 'id' | 'status' | 'created_at'>) => {
+    const { data, error } = await supabase
+      .from('tow_requests')
+      .insert([request])
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
   // Orders
   getOrders: async (): Promise<Order[]> => {
     const { data, error } = await supabase
@@ -589,7 +628,7 @@ export const db = {
   getAuditLogs: async (): Promise<AuditLog[]> => {
     const { data, error } = await supabase
       .from('audit_logs')
-      .select('*, profiles(full_name)')
+      .select('*, profiles!user_id(full_name)')
       .order('created_at', { ascending: false })
       .limit(100);
     

@@ -44,7 +44,10 @@ export default function UpgradeToPreorderModal({ onClose, onSuccess }: UpgradeTo
       onSuccess();
     } catch (err: any) {
       console.error('Submission error:', err);
-      setError(err.message || 'Failed to submit application');
+      const msg = err.message === 'Duplicate image prohibited'
+        ? 'Duplicate image prohibited. This evidence has already been submitted.'
+        : (err.message === 'HTTP 400 error' ? 'System rejected the upload protocol. Please verify your connection.' : (err.message || 'Failed to submit application'));
+      setError(msg);
     } finally {
       setLoading(false);
     }

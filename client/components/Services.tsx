@@ -9,6 +9,7 @@ declare var google: any;
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, Settings, Truck, ShieldCheck, ChevronLeft, Star, Phone, MapPin, CheckCircle } from 'lucide-react';
 import { SparePartsMarketplace } from './SparePartsMarketplace';
+import { InquiryForm } from './Forms';
 import { partsService } from '../services/parts.service';
 import { towService } from '../services/tow.service';
 import { mechanicService } from '../services/mechanic.service';
@@ -22,6 +23,7 @@ type ServiceType = 'hub' | 'parts' | 'tow' | 'mechanics';
 export const Services = () => {
     const [view, setView] = useState<ServiceType>('hub');
     const [partsView, setPartsView] = useState<'marketplace' | 'request'>('marketplace');
+    const [showInquiry, setShowInquiry] = useState<{ type: 'Inspection' | 'Purchase', carName?: string } | null>(null);
     const { profile } = useAuth();
     const { settings } = usePlatformSettings();
 
@@ -113,7 +115,33 @@ export const Services = () => {
                     )}
 
                     {view === 'mechanics' && (
-                        <MechanicsList onBack={() => setView('hub')} />
+                        <MechanicsList 
+                            onBack={() => setView('hub')} 
+                            onBook={(name) => setShowInquiry({ type: 'Purchase', carName: `Service: ${name}` })}
+                        />
+                    )}
+                </AnimatePresence>
+
+                <AnimatePresence>
+                    {showInquiry && (
+                        <div style={{
+                            position: 'fixed',
+                            inset: 0,
+                            zIndex: 3000,
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'flex-start',
+                            background: 'rgba(0,0,0,0.85)',
+                            backdropFilter: 'blur(10px)',
+                            padding: '2rem 1rem',
+                            overflowY: 'auto'
+                        }}>
+                            <InquiryForm 
+                                type={showInquiry.type} 
+                                carName={showInquiry.carName}
+                                onClose={() => setShowInquiry(null)}
+                            />
+                        </div>
                     )}
                 </AnimatePresence>
             </div>
@@ -504,7 +532,7 @@ const TowTruckForm = ({ onBack, userId }: any) => {
     );
 };
 
-const MechanicsList = ({ onBack }: any) => {
+const MechanicsList = ({ onBack, onBook }: { onBack: () => void, onBook: (name: string) => void }) => {
     const [mechanics, setMechanics] = useState<Mechanic[]>([]);
     const [loading, setLoading] = useState(true);
     const [onlyApproved, setOnlyApproved] = useState(true);
@@ -584,9 +612,13 @@ const MechanicsList = ({ onBack }: any) => {
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
                                     <MapPin size={16} /> {m.location}
                                 </div>
-                                <button className="btn-gold" style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
-                                    <Phone size={18} /> BOOK SERVICES
-                                </button>
+                                    <button 
+                                        onClick={() => onBook(m.name)}
+                                        className="btn-gold" 
+                                        style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}
+                                    >
+                                        <Phone size={18} /> BOOK SERVICES
+                                    </button>
                             </div>
                         </div>
                     ))

@@ -46,7 +46,7 @@ export const TowingManagement = () => {
       const [reqRes, driverRes] = await Promise.all([
         supabase
           .from('tow_requests')
-          .select('*, profiles(full_name)')
+          .select('*, profiles!user_id(full_name)')
           .order('created_at', { ascending: false }),
         supabase
           .from('profiles')
