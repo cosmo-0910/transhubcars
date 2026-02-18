@@ -266,8 +266,42 @@ export const db = {
     if (error) throw error;
   },
 
+  async calculateFileHash(file: File): Promise<string> {
+    const arrayBuffer = await file.arrayBuffer();
+    const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    return hashHex;
+  },
+
   async uploadImage(file: File, bucket: string = 'car-images', watermarkUser?: string): Promise<string> {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Authentication required for upload');
+
+      // 1. Calculate Hash of original file for duplicate prevention
+      const contentHash = await this.calculateFileHash(file);
+
+      // 2. Check registry for duplicates
+      const { data: existing, error: checkError } = await supabase
+        .from('media_fingerprints')
+        .select('*')
+        .eq('content_hash', contentHash)
+        .single();
+
+      if (checkError && checkError.code !== 'PGRST116') {
+        console.error('Hash check failed:', checkError);
+      }
+
+      if (existing) {
+        // If someone else already posted it, block
+        if (existing.uploader_id !== user.id) {
+          throw new Error('This exact image has already been posted by another member. To maintain platform integrity, duplicate listings are not permitted.');
+        }
+        // If it's the same user, we could allow it or return the existing URL if we tracked it
+        // For now, let's allow it but avoid re-uploading if possible (though we don't have the URL in the fingerprint table yet)
+      }
+
       let uploadFile: File | Blob = file;
 
       // Apply watermark if username is provided
@@ -298,6 +332,18 @@ export const db = {
       const { data: { publicUrl } } = supabase.storage
         .from(bucket)
         .getPublicUrl(filePath);
+
+      // 3. Register the fingerprint if it's new
+      if (!existing) {
+        const { error: regError } = await supabase
+          .from('media_fingerprints')
+          .insert([{
+            content_hash: contentHash,
+            uploader_id: user.id
+          }]);
+        
+        if (regError) console.error('Failed to register media fingerprint:', regError);
+      }
 
       return publicUrl;
     } catch (err: any) {
