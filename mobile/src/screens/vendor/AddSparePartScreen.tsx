@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '../../utils/theme';
+import { useAlert } from '../../context/AlertContext';
 import { Input } from '../../components/common/Input';
 import { Button } from '../../components/common/Button';
 import { AutocompleteInput } from '../../components/common/AutocompleteInput';
@@ -20,6 +21,7 @@ import { SparePart } from '../../types';
 
 export const AddSparePartScreen = ({ route, navigation }: any) => {
   const { user } = useAuth();
+  const { showAlert } = useAlert();
   const editPart = route.params?.part as SparePart;
   const [loading, setLoading] = useState(false);
   
@@ -38,7 +40,7 @@ export const AddSparePartScreen = ({ route, navigation }: any) => {
 
   const handleSubmit = async () => {
     if (!form.name || !form.category || !form.price || !form.vehicle_make) {
-      Alert.alert('Error', 'Please fill in all required fields.');
+      showAlert({ title: 'Error', message: 'Please fill in all required fields.', buttons: [{ text: 'OK', style: 'destructive' }] });
       return;
     }
 
@@ -61,15 +63,15 @@ export const AddSparePartScreen = ({ route, navigation }: any) => {
 
       if (editPart) {
         await partsService.updatePart(editPart.id, partData);
-        Alert.alert('Success', 'Inventory updated successfully.');
+        showAlert({ title: 'Success', message: 'Inventory updated successfully.' });
       } else {
         await partsService.addPart(partData);
-        Alert.alert('Success', 'Spare part added to inventory.');
+        showAlert({ title: 'Success', message: 'Spare part added to inventory.' });
       }
       navigation.goBack();
     } catch (error) {
       console.error('Error saving part:', error);
-      Alert.alert('Error', 'Failed to save part. Please try again.');
+      showAlert({ title: 'Error', message: 'Failed to save part. Please try again.', buttons: [{ text: 'OK', style: 'destructive' }] });
     } finally {
       setLoading(false);
     }

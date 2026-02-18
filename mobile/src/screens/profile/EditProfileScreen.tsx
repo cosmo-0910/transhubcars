@@ -3,11 +3,13 @@ import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Activi
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '../../utils/theme';
 import { useAuth } from '../../hooks/useAuth';
 import { authService } from '../../services/auth.service';
+import { useAlert } from '../../context/AlertContext';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { Button } from '../../components/common/Button';
 
 export const EditProfileScreen = ({ navigation }: any) => {
   const { user, profile, refreshProfile } = useAuth();
+  const { showAlert } = useAlert();
   const [loading, setLoading] = useState(false);
   const [fullName, setFullName] = useState(profile?.full_name || '');
   const [phone, setPhone] = useState(profile?.phone || '');
@@ -15,7 +17,7 @@ export const EditProfileScreen = ({ navigation }: any) => {
 
   const handleSave = async () => {
     if (!fullName.trim()) {
-      Alert.alert('Error', 'Full name is required');
+      showAlert({ title: 'Error', message: 'Full name is required', buttons: [{ text: 'OK', style: 'destructive' }] });
       return;
     }
 
@@ -28,12 +30,14 @@ export const EditProfileScreen = ({ navigation }: any) => {
         address: address,
       });
       await refreshProfile();
-      Alert.alert('Success', 'Profile updated successfully!', [
-        { text: 'OK', onPress: () => navigation.goBack() }
-      ]);
+      showAlert({ 
+        title: 'Success', 
+        message: 'Profile updated successfully!', 
+        buttons: [{ text: 'OK', onPress: () => navigation.goBack() }] 
+      });
     } catch (error: any) {
       console.error('[EditProfile] Save error:', error);
-      Alert.alert('Error', error.message || 'Failed to update profile');
+      showAlert({ title: 'Error', message: error.message || 'Failed to update profile', buttons: [{ text: 'OK', style: 'destructive' }] });
     } finally {
       setLoading(false);
     }

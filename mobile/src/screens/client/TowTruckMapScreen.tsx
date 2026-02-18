@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Platform, Alert, Dimensions, 
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import Geolocation from 'react-native-geolocation-service';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '../../utils/theme';
+import { useAlert } from '../../context/AlertContext';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { towService } from '../../services/tow.service';
@@ -17,6 +18,7 @@ export const TowTruckMapScreen = () => {
   const navigation = useNavigation<any>();
   const mapRef = useRef<MapView>(null);
   const { profile } = useAuth();
+  const { showAlert } = useAlert();
   const [loading, setLoading] = useState(false);
   const [region, setRegion] = useState({
     latitude: 6.5244, // Default to Lagos
@@ -78,7 +80,7 @@ export const TowTruckMapScreen = () => {
       },
       (error) => {
         console.error('Geolocation Error:', error);
-        Alert.alert('Error', 'Failed to get your current location.');
+        showAlert({ title: 'Error', message: 'Failed to get your current location.', buttons: [{ text: 'OK', style: 'destructive' }] });
       },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
     );
@@ -103,7 +105,7 @@ export const TowTruckMapScreen = () => {
 
   const handleRequestTow = async () => {
     if (!pickupLocation && !address) {
-      Alert.alert('Error', 'Please select a pickup location or enter an address.');
+      showAlert({ title: 'Error', message: 'Please select a pickup location or enter an address.', buttons: [{ text: 'OK', style: 'destructive' }] });
       return;
     }
 
@@ -118,11 +120,14 @@ export const TowTruckMapScreen = () => {
         vehicle_type: 'Luxury Sedan',
       });
 
-      Alert.alert('Success', 'Tow request sent! Searching for nearest driver.');
-      navigation.replace('TowTracking', { requestId: request.id });
+      showAlert({ 
+        title: 'Success', 
+        message: 'Tow request sent! Searching for nearest driver.',
+        buttons: [{ text: 'OK', onPress: () => navigation.replace('TowTracking', { requestId: request.id }) }]
+      });
     } catch (error) {
       console.error('Error requesting tow:', error);
-      Alert.alert('Error', 'Failed to send request.');
+      showAlert({ title: 'Error', message: 'Failed to send request.', buttons: [{ text: 'OK', style: 'destructive' }] });
     } finally {
       setLoading(false);
     }

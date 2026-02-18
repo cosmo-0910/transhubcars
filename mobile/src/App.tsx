@@ -6,15 +6,19 @@ import { StyleSheet } from 'react-native';
 import { AuthProvider } from './hooks/useAuth';
 import { RootNavigator } from './navigation/RootNavigator';
 
+import { AlertProvider } from './context/AlertContext';
+
 const App = () => {
   return (
     <GestureHandlerRootView style={styles.container}>
       <SafeAreaProvider>
-        <AuthProvider>
-          <NavigationContainer>
-            <RootNavigator />
-          </NavigationContainer>
-        </AuthProvider>
+        <AlertProvider>
+          <AuthProvider>
+            <NavigationContainer>
+              <RootNavigator />
+            </NavigationContainer>
+          </AuthProvider>
+        </AlertProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

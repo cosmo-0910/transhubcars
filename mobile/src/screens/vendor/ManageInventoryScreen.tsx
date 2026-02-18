@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { partsService } from '../../services/parts.service';
 import { useAuth } from '../../hooks/useAuth';
+import { useAlert } from '../../context/AlertContext';
 import { carsService } from '../../services/cars.service';
 import { Car } from '../../types';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '../../utils/theme';
@@ -21,6 +22,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 
 export const ManageInventoryScreen = ({ navigation }: any) => {
   const { user, profile } = useAuth();
+  const { showAlert } = useAlert();
   const [inventoryType, setInventoryType] = useState<'cars' | 'parts'>(
     profile?.vendor_type === 'parts' ? 'parts' : 'cars'
   );
@@ -46,10 +48,10 @@ export const ManageInventoryScreen = ({ navigation }: any) => {
   }, [user]);
 
   const handleDeleteCar = async (carId: string) => {
-    Alert.alert(
-      'Delete Listing',
-      'Are you sure you want to delete this vehicle listing? This action cannot be undone.',
-      [
+    showAlert({
+      title: 'Delete Listing',
+      message: 'Are you sure you want to delete this vehicle listing? This action cannot be undone.',
+      buttons: [
         { text: 'Cancel', style: 'cancel' },
         { 
           text: 'Delete', 
@@ -59,16 +61,16 @@ export const ManageInventoryScreen = ({ navigation }: any) => {
               setLoading(true);
               await carsService.deleteCar(carId);
               setCars(prev => prev.filter(car => car.id !== carId));
-              Alert.alert('Success', 'Vehicle listing deleted.');
+              showAlert({ title: 'Success', message: 'Vehicle listing deleted.' });
             } catch (error) {
-              Alert.alert('Error', 'Failed to delete listing.');
+              showAlert({ title: 'Error', message: 'Failed to delete listing.', buttons: [{ text: 'OK', style: 'destructive' }] });
             } finally {
               setLoading(false);
             }
           }
         }
       ]
-    );
+    });
   };
 
   const onRefresh = () => {

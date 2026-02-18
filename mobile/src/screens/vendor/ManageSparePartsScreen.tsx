@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useAuth } from '../../hooks/useAuth';
+import { useAlert } from '../../context/AlertContext';
 import { partsService } from '../../services/parts.service';
 import { SparePart } from '../../types';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '../../utils/theme';
@@ -19,6 +20,7 @@ import { formatCurrency } from '../../utils/helpers';
 
 export const ManageSparePartsScreen = ({ navigation }: any) => {
   const { user } = useAuth();
+  const { showAlert } = useAlert();
   const [parts, setParts] = useState<SparePart[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -46,10 +48,10 @@ export const ManageSparePartsScreen = ({ navigation }: any) => {
   };
 
   const handleDeletePart = (partId: string) => {
-    Alert.alert(
-      'Delete Part',
-      'Are you sure you want to remove this spare part from your inventory?',
-      [
+    showAlert({
+      title: 'Delete Part',
+      message: 'Are you sure you want to remove this spare part from your inventory?',
+      buttons: [
         { text: 'Cancel', style: 'cancel' },
         { 
           text: 'Delete', 
@@ -59,16 +61,16 @@ export const ManageSparePartsScreen = ({ navigation }: any) => {
               setLoading(true);
               await partsService.deletePart(partId);
               setParts(prev => prev.filter(p => p.id !== partId));
-              Alert.alert('Success', 'Part deleted from inventory.');
+              showAlert({ title: 'Success', message: 'Part deleted from inventory.' });
             } catch (error) {
-              Alert.alert('Error', 'Failed to delete part.');
+              showAlert({ title: 'Error', message: 'Failed to delete part.', buttons: [{ text: 'OK', style: 'destructive' }] });
             } finally {
               setLoading(false);
             }
           }
         }
       ]
-    );
+    });
   };
 
   const renderItem = ({ item }: { item: SparePart }) => (

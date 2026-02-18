@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Switch, TouchableOpacity, Platform, Alert, ActivityIndicator } from 'react-native';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '../../utils/theme';
+import { useAlert } from '../../context/AlertContext';
 import Icon from 'react-native-vector-icons/Ionicons';
 
 export const NotificationSettingsScreen = ({ navigation }: any) => {
+  const { showAlert } = useAlert();
   const [settings, setSettings] = useState({
     push: true,
     email: true,
@@ -19,9 +21,9 @@ export const NotificationSettingsScreen = ({ navigation }: any) => {
       setLoading(true);
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
-      Alert.alert('Success', 'Notification settings saved successfully!');
+      showAlert({ title: 'Success', message: 'Notification settings saved successfully!' });
     } catch (error) {
-      Alert.alert('Error', 'Failed to save settings.');
+      showAlert({ title: 'Error', message: 'Failed to save settings.', buttons: [{ text: 'OK', style: 'destructive' }] });
     } finally {
       setLoading(false);
     }

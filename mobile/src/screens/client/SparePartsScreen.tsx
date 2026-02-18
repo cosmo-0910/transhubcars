@@ -4,6 +4,7 @@ import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '../../utils/theme';
 import { Input } from '../../components/common/Input';
 import { Button } from '../../components/common/Button';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { useAlert } from '../../context/AlertContext';
 import { useNavigation } from '@react-navigation/native';
 import { partsService } from '../../services/parts.service';
 import { useAuth } from '../../hooks/useAuth';
@@ -11,6 +12,7 @@ import { useAuth } from '../../hooks/useAuth';
 export const SparePartsScreen = () => {
   const navigation = useNavigation<any>();
   const { profile } = useAuth();
+  const { showAlert } = useAlert();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     part_name: '',
@@ -23,7 +25,7 @@ export const SparePartsScreen = () => {
 
   const handleSubmit = async () => {
     if (!form.part_name || !form.vehicle_make || !form.vehicle_model) {
-      Alert.alert('Error', 'Please fill in all required fields.');
+      showAlert({ title: 'Error', message: 'Please fill in all required fields.', buttons: [{ text: 'OK', style: 'destructive' }] });
       return;
     }
 
@@ -39,14 +41,14 @@ export const SparePartsScreen = () => {
         description: form.description,
       });
 
-      Alert.alert(
-        'Success',
-        'Your spare part order has been submitted! Our team will source it and contact you soon.',
-        [{ text: 'OK', onPress: () => navigation.goBack() }]
-      );
+      showAlert({
+        title: 'Order Published',
+        message: 'Your spare part order has been submitted! Our elite sourcing team will contact you soon.',
+        buttons: [{ text: 'OK', onPress: () => navigation.goBack() }]
+      });
     } catch (error) {
       console.error('Error submitting part order:', error);
-      Alert.alert('Error', 'Failed to submit order. Please try again.');
+      showAlert({ title: 'Error', message: 'Failed to submit order. Please try again.', buttons: [{ text: 'OK', style: 'destructive' }] });
     } finally {
       setLoading(false);
     }

@@ -47,12 +47,20 @@ function VendorApp() {
   return <VendorDashboard />;
 }
 
+import { AlertProvider } from '../shared/context/AlertContext';
+
+import { MaintenanceGuard } from '../shared/components/MaintenanceGuard';
+
 export default function App() {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <VendorApp />
-      </AuthProvider>
+      <AlertProvider>
+        <AuthProvider>
+          <MaintenanceGuard>
+            <VendorApp />
+          </MaintenanceGuard>
+        </AuthProvider>
+      </AlertProvider>
     </ThemeProvider>
   );
 }

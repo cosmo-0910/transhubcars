@@ -279,11 +279,15 @@ function AppContent() {
   );
 }
 
+import { MaintenanceGuard } from '../shared/components/MaintenanceGuard.tsx';
+
 function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <AppContent />
+        <MaintenanceGuard>
+          <AppContent />
+        </MaintenanceGuard>
       </AuthProvider>
     </ThemeProvider>
   );

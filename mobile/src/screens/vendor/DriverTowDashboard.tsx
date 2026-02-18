@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert, Switch, ScrollView } f
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '../../utils/theme';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { useAlert } from '../../context/AlertContext';
 import { useNavigation } from '@react-navigation/native';
 import { towService } from '../../services/tow.service';
 import { useAuth } from '../../hooks/useAuth';
@@ -12,6 +13,7 @@ import { TRANSHUB_MAP_STYLE } from '../../utils/mapTheme';
 export const DriverTowDashboard = () => {
   const navigation = useNavigation<any>();
   const { user, profile } = useAuth();
+  const { showAlert } = useAlert();
   const [isOnline, setIsOnline] = useState(profile?.is_online || false);
   const [currentRequest, setCurrentRequest] = useState<any>(null);
   const [location, setLocation] = useState({
@@ -48,7 +50,7 @@ export const DriverTowDashboard = () => {
     if (currentRequest && currentRequest.status !== 'Searching' && currentRequest.status !== 'Cancelled') {
       const statusSubscription = towService.subscribeToRequest(currentRequest.id, (updated) => {
         if (updated.status === 'Cancelled') {
-          Alert.alert('Request Cancelled', 'This tow request has been cancelled by the user.');
+          showAlert({ title: 'Request Cancelled', message: 'This tow request has been cancelled by the user.' });
           setCurrentRequest(null);
         } else {
           setCurrentRequest(updated);
@@ -82,7 +84,7 @@ export const DriverTowDashboard = () => {
         if (!value) setCurrentRequest(null);
       } catch (error) {
         console.error('Error toggling online status:', error);
-        Alert.alert('Error', 'Failed to update status.');
+        showAlert({ title: 'Error', message: 'Failed to update status.', buttons: [{ text: 'OK', style: 'destructive' }] });
       }
     }
   };
@@ -93,10 +95,10 @@ export const DriverTowDashboard = () => {
       setLoading(true);
       await towService.acceptTowRequest(currentRequest.id, user.id);
       setCurrentRequest({ ...currentRequest, status: 'En Route', driver_id: user.id });
-      Alert.alert('Request Accepted', 'Navigate to pickup location.');
+      showAlert({ title: 'Request Accepted', message: 'Navigate to pickup location.' });
     } catch (error) {
       console.error('Error accepting request:', error);
-      Alert.alert('Error', 'Failed to accept request.');
+      showAlert({ title: 'Error', message: 'Failed to accept request.', buttons: [{ text: 'OK', style: 'destructive' }] });
     } finally {
       setLoading(false);
     }
@@ -108,14 +110,14 @@ export const DriverTowDashboard = () => {
       setLoading(true);
       await towService.updateRequestStatus(currentRequest.id, status);
       if (status === 'Completed') {
-        Alert.alert('Success', 'Tow request completed!');
+        showAlert({ title: 'Success', message: 'Tow request completed!' });
         setCurrentRequest(null);
       } else {
         setCurrentRequest({ ...currentRequest, status });
       }
     } catch (error) {
       console.error('Error updating status:', error);
-      Alert.alert('Error', 'Failed to update status.');
+      showAlert({ title: 'Error', message: 'Failed to update status.', buttons: [{ text: 'OK', style: 'destructive' }] });
     } finally {
       setLoading(false);
     }

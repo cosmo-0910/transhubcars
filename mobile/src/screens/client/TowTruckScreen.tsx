@@ -4,6 +4,7 @@ import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '../../utils/theme';
 import { Input } from '../../components/common/Input';
 import { Button } from '../../components/common/Button';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { useAlert } from '../../context/AlertContext';
 import { useNavigation } from '@react-navigation/native';
 import { towService } from '../../services/tow.service';
 import { useAuth } from '../../hooks/useAuth';
@@ -11,6 +12,7 @@ import { useAuth } from '../../hooks/useAuth';
 export const TowTruckScreen = () => {
   const navigation = useNavigation<any>();
   const { profile } = useAuth();
+  const { showAlert } = useAlert();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     pickup_address: '',
@@ -21,7 +23,7 @@ export const TowTruckScreen = () => {
 
   const handleSubmit = async () => {
     if (!form.pickup_address || !form.vehicle_type) {
-      Alert.alert('Error', 'Please provide pickup address and vehicle type.');
+      showAlert({ title: 'Error', message: 'Please provide pickup address and vehicle type.', buttons: [{ text: 'OK', style: 'destructive' }] });
       return;
     }
 
@@ -35,14 +37,14 @@ export const TowTruckScreen = () => {
         notes: form.notes,
       });
 
-      Alert.alert(
-        'Request Sent',
-        'We are searching for the nearest tow truck in your vicinity. You will be redirected to live tracking.',
-        [{ text: 'OK', onPress: () => navigation.replace('TowTracking', { requestId: request.id }) }]
-      );
+      showAlert({
+        title: 'Recovery Requested',
+        message: 'We are searching for the nearest tow truck in your vicinity. You will be redirected to live tracking.',
+        buttons: [{ text: 'Affirmative', onPress: () => navigation.replace('TowTracking', { requestId: request.id }) }]
+      });
     } catch (error) {
       console.error('Error requesting tow:', error);
-      Alert.alert('Error', 'Failed to send request. Please try again.');
+      showAlert({ title: 'System Error', message: 'Failed to send request. Please try again.', buttons: [{ text: 'OK', style: 'destructive' }] });
     } finally {
       setLoading(false);
     }

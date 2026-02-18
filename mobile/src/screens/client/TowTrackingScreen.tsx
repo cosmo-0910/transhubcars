@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from 'react
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '../../utils/theme';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { useAlert } from '../../context/AlertContext';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { towService } from '../../services/tow.service';
 import { TRANSHUB_MAP_STYLE } from '../../utils/mapTheme';
@@ -13,6 +14,7 @@ import { supabase } from '../../services/supabase';
 export const TowTrackingScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const { showAlert } = useAlert();
   const { requestId } = route.params;
 
   const [request, setRequest] = useState<TowRequest | null>(null);
@@ -26,9 +28,11 @@ export const TowTrackingScreen = () => {
     const subscription = towService.subscribeToRequest(requestId, (updated) => {
       setRequest(updated);
       if (updated.status === 'Completed') {
-        Alert.alert('Completed', 'Your tow service has been completed successfully.', [
-          { text: 'OK', onPress: () => navigation.navigate('Home') }
-        ]);
+        showAlert({ 
+          title: 'Mission Completed', 
+          message: 'Your tow service has been completed successfully.', 
+          buttons: [{ text: 'OK', onPress: () => navigation.navigate('Home') }] 
+        });
       }
     });
 
@@ -76,7 +80,7 @@ export const TowTrackingScreen = () => {
       setRequest(data as TowRequest);
     } catch (error) {
       console.error('Error fetching request:', error);
-      Alert.alert('Error', 'Failed to load tracking data.');
+      showAlert({ title: 'Error', message: 'Failed to load tracking data.', buttons: [{ text: 'OK', style: 'destructive' }] });
     } finally {
       setLoading(false);
     }
@@ -98,25 +102,25 @@ export const TowTrackingScreen = () => {
   };
 
   const handleCancelRequest = async () => {
-    Alert.alert(
-      'Cancel Request',
-      'Are you sure you want to cancel this tow request?',
-      [
-        { text: 'No', style: 'cancel' },
+    showAlert({
+      title: 'Abort Mission',
+      message: 'Are you sure you want to cancel this tow recovery request?',
+      buttons: [
+        { text: 'Negative', style: 'cancel' },
         {
-          text: 'Yes, Cancel',
+          text: 'Abort Request',
           style: 'destructive',
           onPress: async () => {
             try {
               await towService.cancelTowRequest(requestId);
               navigation.goBack();
             } catch (error) {
-              Alert.alert('Error', 'Failed to cancel request.');
+              showAlert({ title: 'Error', message: 'Failed to cancel request.', buttons: [{ text: 'OK', style: 'destructive' }] });
             }
           }
         }
       ]
-    );
+    });
   };
 
   if (loading || !request) {

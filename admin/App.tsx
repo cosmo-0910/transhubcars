@@ -44,12 +44,20 @@ function AdminContent() {
   );
 }
 
+import { AlertProvider } from '../shared/context/AlertContext.tsx';
+
+import { MaintenanceGuard } from '../shared/components/MaintenanceGuard.tsx';
+
 function App() {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <AdminContent />
-      </AuthProvider>
+      <AlertProvider>
+        <AuthProvider>
+          <MaintenanceGuard>
+            <AdminContent />
+          </MaintenanceGuard>
+        </AuthProvider>
+      </AlertProvider>
     </ThemeProvider>
   );
 }

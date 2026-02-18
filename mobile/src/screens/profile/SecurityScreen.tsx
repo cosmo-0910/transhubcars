@@ -3,9 +3,11 @@ import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert,
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '../../utils/theme';
 import { authService } from '../../services/auth.service';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { useAlert } from '../../context/AlertContext';
 import { Button } from '../../components/common/Button';
 
 export const SecurityScreen = ({ navigation }: any) => {
+  const { showAlert } = useAlert();
   const [loading, setLoading] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -15,39 +17,41 @@ export const SecurityScreen = ({ navigation }: any) => {
 
   const handleChangePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
-      Alert.alert('Error', 'Please fill in all password fields');
+      showAlert({ title: 'Error', message: 'Please fill in all password fields', buttons: [{ text: 'OK', style: 'destructive' }] });
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      Alert.alert('Error', 'New passwords do not match');
+      showAlert({ title: 'Error', message: 'New passwords do not match', buttons: [{ text: 'OK', style: 'destructive' }] });
       return;
     }
 
     if (newPassword.length < 6) {
-      Alert.alert('Error', 'New password must be at least 6 characters long');
+      showAlert({ title: 'Error', message: 'New password must be at least 6 characters long', buttons: [{ text: 'OK', style: 'destructive' }] });
       return;
     }
 
     try {
       setLoading(true);
       await authService.updatePassword(newPassword);
-      Alert.alert('Success', 'Password updated successfully!', [
-        { text: 'OK', onPress: () => navigation.goBack() }
-      ]);
+      showAlert({ 
+        title: 'Success', 
+        message: 'Password updated successfully!', 
+        buttons: [{ text: 'OK', onPress: () => navigation.goBack() }] 
+      });
     } catch (error: any) {
       console.error('[Security] Update error:', error);
-      Alert.alert('Error', error.message || 'Failed to update password');
+      showAlert({ title: 'Error', message: error.message || 'Failed to update password', buttons: [{ text: 'OK', style: 'destructive' }] });
     } finally {
       setLoading(false);
     }
   };
 
   const handleSignOutAll = async () => {
-    Alert.alert(
-      'Sign Out All Devices',
-      'Are you sure you want to sign out from all other devices? You will remain signed in on this device.',
-      [
+    showAlert({
+      title: 'Security Protocol',
+      message: 'Are you sure you want to sign out from all other devices? You will remain signed in on this device.',
+      buttons: [
         { text: 'Cancel', style: 'cancel' },
         { 
           text: 'Sign Out All', 
@@ -56,20 +60,23 @@ export const SecurityScreen = ({ navigation }: any) => {
             try {
               setLoading(true);
               await authService.signOutAllDevices();
-              Alert.alert('Success', 'Signed out from all other sessions.');
+              showAlert({ title: 'Success', message: 'Signed out from all other sessions.' });
             } catch (error: any) {
-              Alert.alert('Error', error.message || 'Failed to sign out from other devices');
+              showAlert({ title: 'Error', message: error.message || 'Failed to sign out from other devices', buttons: [{ text: 'OK', style: 'destructive' }] });
             } finally {
               setLoading(false);
             }
           }
         }
       ]
-    );
+    });
   };
 
   const handleShowTrustedDevices = () => {
-    Alert.alert('Trusted Devices', 'This feature is currently being integrated with your secure hardware. Coming soon.');
+    showAlert({ 
+      title: 'Trusted Devices', 
+      message: 'This feature is currently being integrated with your secure hardware. Coming soon.' 
+    });
   };
 
   return (

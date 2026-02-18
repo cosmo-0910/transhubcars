@@ -22,6 +22,7 @@ import ImageUploadField from '../shared/components/ImageUploadField';
 import { useRef } from 'react';
 import { ThemeToggle } from '../shared/components/ThemeToggle';
 import { TowingManagement } from './components/TowingManagement';
+import { useAlert } from '../shared/context/AlertContext.tsx';
 
 // --- Types ---
 type Section = 'overview' | 'vendors' | 'users' | 'inventory' | 'orders' | 'sales' | 'ledger' | 'audit' | 'settings' | 'admins' | 'mechanics' | 'towing';
@@ -141,6 +142,7 @@ const StatusBadge = ({ status }: { status: string, type?: 'success' | 'warning' 
 
 export const AdminDashboard = () => {
   const { user, profile, signOut } = useAuth();
+  const { showAlert } = useAlert();
   
   const hasPermission = (perm: string) => {
     // Root admin key override
@@ -293,52 +295,84 @@ export const AdminDashboard = () => {
   // --- Actions ---
 
   const handleVendorAction = async (id: string, status: 'approved' | 'rejected') => {
-    if (window.confirm(`Are you sure you want to ${status} this vendor?`)) {
-      try {
-        console.log('Attempting to update vendor:', id, 'to status:', status);
-        
-        // When approving, also change role to 'vendor'
-        const updates: any = { vendor_status: status };
-        if (status === 'approved') {
-          updates.role = 'vendor';
+    showAlert({
+      title: 'Vendor Verification',
+      message: `Are you sure you want to ${status} this vendor?`,
+      buttons: [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: status === 'approved' ? 'Approve' : 'Reject', 
+          style: status === 'approved' ? 'default' : 'destructive',
+          onPress: async () => {
+            try {
+              const updates: any = { vendor_status: status };
+              if (status === 'approved') updates.role = 'vendor';
+              
+              const { error } = await supabase
+                .from('profiles')
+                .update(updates)
+                .eq('id', id);
+              
+              if (error) throw error;
+              
+              await db.logAction(`Vendor ${status}`, 'profile', id, { business_name: updates.business_name });
+              await loadAllData();
+              showAlert({
+                title: 'Success',
+                message: `Vendor ${status} successfully!`,
+              });
+            } catch (error) {
+              showAlert({
+                title: 'Error',
+                message: `Failed to ${status} vendor: ${(error as any)?.message || 'Unknown error'}`,
+                buttons: [{ text: 'OK', style: 'destructive' }]
+              });
+            }
+          }
         }
-        
-        // Use direct update instead of upsert
-        const { error } = await supabase
-          .from('profiles')
-          .update(updates)
-          .eq('id', id);
-        
-        if (error) throw error;
-        
-        console.log('Update successful, reloading data...');
-        await db.logAction(`Vendor ${status}`, 'profile', id, { business_name: updates.business_name });
-        await loadAllData();
-        alert(`Vendor ${status} successfully!`);
-      } catch (error) {
-        console.error('Failed to update vendor status:', error);
-        alert(`Failed to ${status} vendor: ${(error as any)?.message || 'Unknown error'}`);
-      }
-    }
+      ]
+    });
   };
 
   const handleCarApproval = async (id: string, status: 'approved' | 'rejected') => {
-    if (window.confirm(`Are you sure you want to ${status} this listing?`)) {
-      await db.updateCar(id, { approval_status: status });
-      await db.logAction(`Listing ${status}`, 'car', id);
-      loadAllData();
-    }
+    showAlert({
+      title: 'Review Listing',
+      message: `Are you sure you want to ${status} this vehicle listing?`,
+      buttons: [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: status === 'approved' ? 'Approve' : 'Reject', 
+          style: status === 'approved' ? 'default' : 'destructive',
+          onPress: async () => {
+            await db.updateCar(id, { approval_status: status });
+            await db.logAction(`Listing ${status}`, 'car', id);
+            loadAllData();
+          }
+        }
+      ]
+    });
   };
 
   const handleDeleteCar = async (id: string) => {
-    if (window.confirm('Delete this vehicle?')) {
-      const carToDelete = cars.find(c => c.id === id);
-      await db.deleteCar(id);
-      await db.logAction('Delete Vehicle', 'car', id, { 
-        vehicle: carToDelete ? `${carToDelete.year} ${carToDelete.make} ${carToDelete.model}` : 'Unknown' 
-      });
-      loadAllData();
-    }
+    showAlert({
+      title: 'Decommission Asset',
+      message: 'Are you sure you want to permanently remove this vehicle from the inventory?',
+      buttons: [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Delete', 
+          style: 'destructive',
+          onPress: async () => {
+            const carToDelete = cars.find(c => c.id === id);
+            await db.deleteCar(id);
+            await db.logAction('Delete Vehicle', 'car', id, { 
+              vehicle: carToDelete ? `${carToDelete.year} ${carToDelete.make} ${carToDelete.model}` : 'Unknown' 
+            });
+            loadAllData();
+          }
+        }
+      ]
+    });
   };
 
   const generatePassword = () => {
@@ -353,48 +387,67 @@ export const AdminDashboard = () => {
   const handleCreateAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newAdmin.fullName || (!editingAdmin && (!newAdmin.email || !newAdmin.password))) {
-      alert('Please fill in all required fields.');
+      showAlert({
+        title: 'Incomplete Protocol',
+        message: 'Please provide all required credentials to proceed with admin registration.',
+        buttons: [{ text: 'Affirmative', style: 'default' }]
+      });
       return;
     }
 
-    try {
-      if (editingAdmin) {
-        if (confirm(`Update permissions for ${newAdmin.fullName}?`)) {
-          await db.updateAdmin({
-            id: editingAdmin.id,
-            fullName: newAdmin.fullName,
-            permissions: newAdmin.permissions
-          });
-          await db.logAction('Update Admin Permissions', 'profile', editingAdmin.id, { 
-            fullName: newAdmin.fullName,
-            permissions: newAdmin.permissions 
-          });
-          alert('Admin permissions updated successfully.');
-          setShowAdminModal(false);
-          setEditingAdmin(null);
-          setNewAdmin({ fullName: '', email: '', password: '', permissions: [] });
-          loadAllData();
+    const actionText = editingAdmin ? 'update permissions' : 'create account';
+    
+    showAlert({
+      title: 'Credential Authority',
+      message: `Are you sure you want to ${actionText} for ${newAdmin.fullName}?`,
+      buttons: [
+        { text: 'Abort', style: 'cancel' },
+        { 
+          text: 'Confirm', 
+          style: 'default',
+          onPress: async () => {
+            try {
+              if (editingAdmin) {
+                await db.updateAdmin({
+                  id: editingAdmin.id,
+                  fullName: newAdmin.fullName,
+                  permissions: newAdmin.permissions
+                });
+                await db.logAction('Update Admin Permissions', 'profile', editingAdmin.id, { 
+                  fullName: newAdmin.fullName,
+                  permissions: newAdmin.permissions 
+                });
+                showAlert({ title: 'Success', message: 'Admin permissions updated successfully.' });
+                setShowAdminModal(false);
+                setEditingAdmin(null);
+                setNewAdmin({ fullName: '', email: '', password: '', permissions: [] });
+                loadAllData();
+              } else {
+                const result = await db.createAdmin(newAdmin);
+                await db.logAction('Create Admin Account', 'profile', result.id, { 
+                  fullName: newAdmin.fullName,
+                  email: newAdmin.email 
+                });
+                showAlert({ title: 'Success', message: 'Admin account created successfully.' });
+                setShowAdminModal(false);
+                setNewAdmin({ fullName: '', email: '', password: '', permissions: [] });
+                loadAllData();
+              }
+            } catch (err: any) {
+              const errorMessage = err.message === 'Failed to fetch' 
+                ? 'Failed to connect to the management server. Please ensure the backend (port 3001) is running.'
+                : `Failed to ${editingAdmin ? 'update' : 'create'} admin: ${err.message}`;
+              
+              showAlert({
+                title: 'System Access Error',
+                message: errorMessage,
+                buttons: [{ text: 'Acknowledged', style: 'destructive' }]
+              });
+            }
+          }
         }
-      } else {
-        if (confirm(`Create admin account for ${newAdmin.fullName}?`)) {
-          const result = await db.createAdmin(newAdmin);
-          await db.logAction('Create Admin Account', 'profile', result.id, { 
-            fullName: newAdmin.fullName,
-            email: newAdmin.email 
-          });
-          alert('Admin account created successfully.');
-          setShowAdminModal(false);
-          setNewAdmin({ fullName: '', email: '', password: '', permissions: [] });
-          loadAllData();
-        }
-      }
-    } catch (err: any) {
-      if (err.message === 'Failed to fetch') {
-        alert('Failed to connect to the management server. Please ensure the backend (port 3001) is running.');
-      } else {
-        alert(`Failed to ${editingAdmin ? 'update' : 'create'} admin: ${err.message}`);
-      }
-    }
+      ]
+    });
   };
 
   const togglePermission = (perm: string) => {
@@ -427,9 +480,16 @@ export const AdminDashboard = () => {
       await db.logAction(`Update ${key.charAt(0).toUpperCase() + key.slice(1)} Settings`, 'platform_settings', key, updates);
       
       await loadAllData();
-      alert('Security configurations synchronized successfully.');
+      showAlert({
+        title: 'System Synchronized',
+        message: 'Security configurations and platform settings have been updated.',
+      });
     } catch (err: any) {
-      alert(`Synthesis failed: ${err.message}`);
+      showAlert({
+        title: 'Synthesis Failed',
+        message: `System was unable to synchronize settings: ${err.message}`,
+        buttons: [{ text: 'Acknowledged', style: 'destructive' }]
+      });
     } finally {
       setLoading(false);
     }
@@ -496,11 +556,13 @@ export const AdminDashboard = () => {
         await db.logAction('Update Vehicle Listing', 'car', editingCar.id, { 
           vehicle: `${carData.year} ${carData.make} ${carData.model}` 
         });
+        showAlert({ title: 'Success', message: 'Vehicle protocol updated successfully.' });
       } else {
         const result = await db.saveCar(carData);
         await db.logAction('Create Vehicle Listing', 'car', result.id, { 
           vehicle: `${carData.year} ${carData.make} ${carData.model}` 
         });
+        showAlert({ title: 'Success', message: 'New vehicle asset published to the showroom.' });
       }
       
       loadAllData();
@@ -508,41 +570,77 @@ export const AdminDashboard = () => {
       setEditingCar(null);
     } catch (err: any) {
       console.error('Failed to save vehicle:', err);
-      setError(err.message || 'Failed to save vehicle listings');
+      showAlert({
+        title: 'Publishing Error',
+        message: err.message || 'Failed to save vehicle listings',
+        buttons: [{ text: 'OK', style: 'destructive' }]
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const handleUserAction = async (userId: string, action: 'active' | 'suspended' | 'banned' | 'disabled') => {
-    if (!confirm(`Are you sure you want to change this user's status to ${action}?`)) return;
-    try {
-      await db.updateProfileStatus(userId, action);
-      const user = users.find(u => u.id === userId);
-      await db.logAction(`User ${action.toUpperCase()}`, 'profile', userId, { 
-        email: user?.email,
-        fullName: user?.full_name 
-      });
-      loadAllData();
-      alert(`User status updated to ${action}`);
-    } catch (err: any) {
-      alert(`Failed to update status: ${err.message}`);
-    }
+    showAlert({
+      title: 'Status Authority',
+      message: `Are you sure you want to change this user's status to ${action}?`,
+      buttons: [
+        { text: 'Abort', style: 'cancel' },
+        { 
+          text: 'Confirm', 
+          style: action === 'active' ? 'default' : 'destructive',
+          onPress: async () => {
+            try {
+              await db.updateProfileStatus(userId, action);
+              const user = users.find(u => u.id === userId);
+              await db.logAction(`User ${action.toUpperCase()}`, 'profile', userId, { 
+                email: user?.email,
+                fullName: user?.full_name 
+              });
+              loadAllData();
+              showAlert({ title: 'Success', message: `User status updated to ${action}` });
+            } catch (err: any) {
+              showAlert({
+                title: 'Operation Failed',
+                message: `Failed to update status: ${err.message}`,
+                buttons: [{ text: 'OK', style: 'destructive' }]
+              });
+            }
+          }
+        }
+      ]
+    });
   };
 
   const handlePreorderReview = async (userId: string, status: 'approved' | 'rejected') => {
-    if (!confirm(`Confirm ${status.toUpperCase()} for preorder access?`)) return;
-    try {
-      await db.reviewPreorderApplication(userId, status);
-      const user = users.find(u => u.id === userId);
-      await db.logAction(`Preorder Application ${status.toUpperCase()}`, 'profile', userId, { 
-        email: user?.email 
-      });
-      loadAllData();
-      alert(`Application ${status}`);
-    } catch (err: any) {
-      alert(`Failed: ${err.message}`);
-    }
+    showAlert({
+      title: 'Preorder Verification',
+      message: `Confirm ${status.toUpperCase()} for preorder access application?`,
+      buttons: [
+        { text: 'Abort', style: 'cancel' },
+        { 
+          text: status === 'approved' ? 'Approve' : 'Reject', 
+          style: status === 'approved' ? 'default' : 'destructive',
+          onPress: async () => {
+            try {
+              await db.reviewPreorderApplication(userId, status);
+              const user = users.find(u => u.id === userId);
+              await db.logAction(`Preorder Application ${status.toUpperCase()}`, 'profile', userId, { 
+                email: user?.email 
+              });
+              loadAllData();
+              showAlert({ title: 'Success', message: `Application ${status}` });
+            } catch (err: any) {
+              showAlert({
+                title: 'Review Error',
+                message: `Failed to process application: ${err.message}`,
+                buttons: [{ text: 'OK', style: 'destructive' }]
+              });
+            }
+          }
+        }
+      ]
+    });
   };
 
   const handleMechanicSubmit = async (e: React.FormEvent) => {
@@ -567,9 +665,11 @@ export const AdminDashboard = () => {
       if (editingMechanic) {
         await db.updateMechanic(editingMechanic.id, mechanicData);
         await db.logAction('Update Mechanic', 'mechanic', editingMechanic.id);
+        showAlert({ title: 'Success', message: 'Mechanic record updated successfully.' });
       } else {
         await db.saveMechanic(mechanicData);
         await db.logAction('Add Mechanic', 'mechanic');
+        showAlert({ title: 'Success', message: 'New mechanic registered in the network.' });
       }
       
       loadAllData();
@@ -577,22 +677,42 @@ export const AdminDashboard = () => {
       setEditingMechanic(null);
     } catch (err: any) {
       console.error('Failed to save mechanic:', err);
-      setError(err.message || 'Failed to save mechanic details');
+      showAlert({
+        title: 'Registry Error',
+        message: err.message || 'Failed to save mechanic details',
+        buttons: [{ text: 'OK', style: 'destructive' }]
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const handleDeleteMechanic = async (id: string) => {
-    if (window.confirm('Delete this mechanic record?')) {
-      try {
-        await db.deleteMechanic(id);
-        await db.logAction('Delete Mechanic', 'mechanic', id);
-        loadAllData();
-      } catch (err: any) {
-        alert(`Failed to delete mechanic: ${err.message}`);
-      }
-    }
+    showAlert({
+      title: 'Remove Mechanic',
+      message: 'Are you sure you want to delete this specialist from the registry?',
+      buttons: [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Delete', 
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await db.deleteMechanic(id);
+              await db.logAction('Delete Mechanic', 'mechanic', id);
+              loadAllData();
+              showAlert({ title: 'Success', message: 'Mechanic record decommissioned.' });
+            } catch (err: any) {
+              showAlert({
+                title: 'Operation Failed',
+                message: `Failed to delete mechanic: ${err.message}`,
+                buttons: [{ text: 'OK', style: 'destructive' }]
+              });
+            }
+          }
+        }
+      ]
+    });
   };
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   

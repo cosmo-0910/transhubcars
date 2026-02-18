@@ -11,6 +11,7 @@ import {
   Linking,
 } from 'react-native';
 import { useAuth } from '../../hooks/useAuth';
+import { useAlert } from '../../context/AlertContext';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '../../utils/theme';
 import { Button } from '../../components/common/Button';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -20,6 +21,7 @@ import { checkMediaPermissions } from '../../utils/permissions';
 
 export const VendorProfileScreen = ({ navigation }: any) => {
   const { user, profile, signOut, refreshProfile } = useAuth();
+  const { showAlert } = useAlert();
 
   const handleUpdateProfileImage = async () => {
     try {
@@ -43,9 +45,9 @@ export const VendorProfileScreen = ({ navigation }: any) => {
             name: asset.fileName,
           });
           await refreshProfile();
-          Alert.alert('Success', 'Business logo updated successfully!');
+          showAlert({ title: 'Success', message: 'Business logo updated successfully!' });
         } else {
-          Alert.alert('Error', 'Invalid image selected. Please try again.');
+          showAlert({ title: 'Error', message: 'Invalid image selected. Please try again.', buttons: [{ text: 'OK', style: 'destructive' }] });
         }
       }
     } catch (error: any) {
@@ -60,7 +62,7 @@ export const VendorProfileScreen = ({ navigation }: any) => {
         errorMessage += error.message || 'Please try again or contact support.';
       }
       
-      Alert.alert('Upload Error', errorMessage);
+      showAlert({ title: 'Upload Error', message: errorMessage, buttons: [{ text: 'OK', style: 'destructive' }] });
     }
   };
 
@@ -170,10 +172,14 @@ export const VendorProfileScreen = ({ navigation }: any) => {
         title="Sign Out" 
         variant="outline" 
         onPress={() => {
-          Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Sign Out', style: 'destructive', onPress: signOut },
-          ]);
+          showAlert({
+            title: 'Sign Out',
+            message: 'Are you sure you want to sign out?',
+            buttons: [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Sign Out', style: 'destructive', onPress: signOut },
+            ]
+          });
         }} 
         style={styles.signOutButton}
         textStyle={{ color: COLORS.error }}

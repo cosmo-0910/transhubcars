@@ -29,9 +29,11 @@ import {
   X
 } from 'lucide-react';
 import { ThemeToggle } from '../shared/components/ThemeToggle';
+import { useAlert } from '../shared/context/AlertContext';
 
 export default function VendorDashboard() {
   const { user, profile, signOut } = useAuth();
+  const { showAlert } = useAlert();
   const [cars, setCars] = useState<Car[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [stats, setStats] = useState({
@@ -75,13 +77,30 @@ export default function VendorDashboard() {
   };
 
   const handleDeleteCar = async (id: string) => {
-    if (!window.confirm('Are you sure you want to decommission this asset?')) return;
-    try {
-      await db.deleteCar(id);
-      loadDashboardData();
-    } catch (err) {
-      alert('Failed to delete asset');
-    }
+    showAlert({
+      title: 'Decommission Asset',
+      message: 'Are you sure you want to permanently remove this vehicle from your inventory?',
+      buttons: [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Delete', 
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await db.deleteCar(id);
+              loadDashboardData();
+              showAlert({ title: 'Success', message: 'Asset successfully decommissioned.' });
+            } catch (err) {
+              showAlert({
+                title: 'Operation Failed',
+                message: 'Failed to delete asset from the inventory.',
+                buttons: [{ text: 'OK', style: 'destructive' }]
+              });
+            }
+          }
+        }
+      ]
+    });
   };
 
   const getStatusColor = (status: string) => {

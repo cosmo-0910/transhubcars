@@ -15,12 +15,17 @@ import { mechanicService } from '../services/mechanic.service';
 import { useAuth } from '../../shared/lib/AuthContext';
 import type { Mechanic } from '../../shared/lib/db';
 
+import { usePlatformSettings } from '../../shared/hooks/usePlatformSettings';
+
 type ServiceType = 'hub' | 'parts' | 'tow' | 'mechanics';
 
 export const Services = () => {
     const [view, setView] = useState<ServiceType>('hub');
     const [partsView, setPartsView] = useState<'marketplace' | 'request'>('marketplace');
     const { profile } = useAuth();
+    const { settings } = usePlatformSettings();
+
+    const isTowingEnabled = settings['operations']?.towing_service_enabled !== false;
 
     return (
         <div className="animate-fade-in" style={{ 
@@ -71,9 +76,10 @@ export const Services = () => {
                                 <ServiceCard 
                                     icon={<Truck size={40} />} 
                                     title="Tow Truck" 
-                                    description="Rapid roadside assistance and recovery in your vicinity."
-                                    onClick={() => setView('tow')}
-                                    accent="#E11D48"
+                                    description={isTowingEnabled ? "Rapid roadside assistance and recovery in your vicinity." : "Our towing network is currently undergoing strategic optimization."}
+                                    onClick={isTowingEnabled ? () => setView('tow') : undefined}
+                                    accent={isTowingEnabled ? "#E11D48" : "rgba(255,255,255,0.2)"}
+                                    disabled={!isTowingEnabled}
                                 />
                                 <ServiceCard 
                                     icon={<ShieldCheck size={40} />} 
@@ -119,28 +125,29 @@ export const Services = () => {
     );
 };
 
-const ServiceCard = ({ icon, title, description, onClick, accent = 'var(--accent-gold)' }: any) => (
+const ServiceCard = ({ icon, title, description, onClick, accent = 'var(--accent-gold)', disabled = false }: any) => (
     <motion.div 
-        whileHover={{ scale: 1.02, translateY: -5 }}
+        whileHover={!disabled ? { scale: 1.02, translateY: -5 } : {}}
         onClick={onClick}
         className="glass" 
         style={{ 
             padding: '3rem 2rem', 
             borderRadius: '2rem', 
-            cursor: 'pointer',
+            cursor: disabled ? 'not-allowed' : 'pointer',
             border: '1px solid var(--border-glass)',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             gap: '1.5rem',
-            background: 'var(--bg-glass-heavy)'
+            background: 'var(--bg-glass-heavy)',
+            opacity: disabled ? 0.6 : 1
         }}
     >
         <div style={{ color: accent, background: `${accent}15`, padding: '1.5rem', borderRadius: '1rem' }}>{icon}</div>
         <h3 className="luxury-font" style={{ fontSize: '1.8rem', color: 'var(--text-main)' }}>{title}</h3>
         <p style={{ color: 'var(--text-muted)', fontSize: '1rem', lineHeight: '1.6' }}>{description}</p>
         <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem', color: accent, fontWeight: 700, fontSize: '0.8rem', letterSpacing: '1px' }}>
-            ORDER NOW <ArrowRight size={16} />
+            {disabled ? 'TEMPORARILY OFFLINE' : <>ORDER NOW <ArrowRight size={16} /></>}
         </div>
     </motion.div>
 );
