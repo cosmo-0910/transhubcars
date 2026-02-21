@@ -6,7 +6,11 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-export const TowingManagement = () => {
+interface TowingManagementProps {
+  onSelectRequest?: (request: any) => void;
+}
+
+export const TowingManagement = ({ onSelectRequest }: TowingManagementProps) => {
   const [requests, setRequests] = useState<any[]>([]);
   const [drivers, setDrivers] = useState<any[]>([]);
   const [filter, setFilter] = useState<'all' | 'Searching' | 'En Route' | 'Completed'>('all');
@@ -141,6 +145,23 @@ export const TowingManagement = () => {
                         <td style={{ padding: '1.2rem 1.5rem' }}>
                           <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{req.profiles?.full_name || 'Anonymous User'}</div>
                           <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{req.vehicle_type}</div>
+                          {onSelectRequest && (
+                            <button 
+                              onClick={() => onSelectRequest(req)}
+                              style={{ 
+                                marginTop: '0.5rem',
+                                padding: '0.3rem 0.6rem',
+                                fontSize: '0.65rem',
+                                background: 'rgba(255,255,255,0.05)',
+                                border: '1px solid var(--border-glass)',
+                                borderRadius: '4px',
+                                color: 'var(--accent-gold)',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              VIEW DETAILS
+                            </button>
+                          )}
                         </td>
                         <td style={{ padding: '1.2rem 1.5rem' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem' }}>

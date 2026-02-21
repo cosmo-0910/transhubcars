@@ -3,6 +3,7 @@ import { db, type Order } from '../../shared/lib/db';
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../shared/lib/AuthContext';
 import { formatPrice } from '../../shared/lib/formatters';
+import { generateInvoice } from '../utils/invoiceGenerator';
 import { VendorApplication } from './VendorApplication';
 import {
   Package,
@@ -25,6 +26,7 @@ import {
 export const UserProfile = ({ onClose }: { onClose: () => void }) => {
   const { user, profile } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
+  const [platformSettings, setPlatformSettings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'acquisitions' | 'details' | 'membership' | 'vendor'>('acquisitions');
   const [showVendorApp, setShowVendorApp] = useState(false);
@@ -34,7 +36,9 @@ export const UserProfile = ({ onClose }: { onClose: () => void }) => {
     const fetchOrders = async () => {
       try {
         const data = await db.getOrders();
+        const settings = await db.getPlatformSettings();
         setOrders(data.filter(o => o.user_id === user.id));
+        setPlatformSettings(settings);
       } catch (err) {
         console.error('Failed to fetch orders:', err);
       } finally {
@@ -167,6 +171,25 @@ export const UserProfile = ({ onClose }: { onClose: () => void }) => {
                           <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.4rem', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.4rem' }}>
                             <Clock size={12} /> {new Date(order.created_at).toLocaleDateString()}
                           </div>
+                          <button 
+                            onClick={() => generateInvoice(order, platformSettings, 'RECEIPT')}
+                            style={{ 
+                              marginTop: '0.8rem',
+                              background: 'rgba(255,255,255,0.05)', 
+                              border: '1px solid var(--accent-gold)', 
+                              color: 'var(--accent-gold)', 
+                              padding: '0.4rem 0.8rem', 
+                              borderRadius: '0.4rem', 
+                              fontSize: '0.65rem', 
+                              fontWeight: 700, 
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.3rem'
+                            }}
+                          >
+                            <ExternalLink size={10} /> RECEIPT
+                          </button>
                         </div>
                       </div>
                     ))}

@@ -13,7 +13,8 @@ import { Footer } from './components/Footer.tsx';
 import { InstallPrompt } from '../shared/components/InstallPrompt.tsx';
 import { AuthProvider, useAuth } from '../shared/lib/AuthContext.tsx';
 import { ThemeProvider } from '../shared/context/ThemeContext.tsx';
-
+import { AlertProvider } from '../shared/context/AlertContext.tsx';
+import { MaintenanceGuard } from '../shared/components/MaintenanceGuard.tsx';
 import type { Car } from '../shared/lib/db.ts';
 
 function LogoBackground() {
@@ -38,6 +39,7 @@ function AppContent() {
 
   const [showProfile, setShowProfile] = useState(false);
   const [discoveryFilter, setDiscoveryFilter] = useState<{ type: 'body' | 'brand', value: string } | null>(null);
+  const [globalSearchQuery, setGlobalSearchQuery] = useState('');
   const { user, profile, signOut } = useAuth();
   const isAdmin = profile?.role === 'admin';
 
@@ -57,6 +59,11 @@ function AppContent() {
         onSignOut={signOut}
         currentView={currentView}
         onViewChange={setCurrentView}
+        onSearch={(query) => {
+          setGlobalSearchQuery(query);
+          if (currentView !== 'home') setCurrentView('home');
+          setTimeout(() => document.getElementById('inventory')?.scrollIntoView({ behavior: 'smooth' }), 100);
+        }}
       />
       
       <main>
@@ -183,6 +190,7 @@ function AppContent() {
                 <h2 className="luxury-font" style={{ fontSize: '2.5rem', marginBottom: '3rem', textAlign: 'center' }}>Available Inventory.</h2>
                 <Inventory 
                   onInquiry={(car) => setSelectedCar(car)} 
+                  externalSearchQuery={globalSearchQuery}
                 />
               </div>
             </section>
@@ -279,16 +287,18 @@ function AppContent() {
   );
 }
 
-import { MaintenanceGuard } from '../shared/components/MaintenanceGuard.tsx';
+
 
 function App() {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <MaintenanceGuard>
-          <AppContent />
-        </MaintenanceGuard>
-      </AuthProvider>
+      <AlertProvider>
+        <AuthProvider>
+          <MaintenanceGuard>
+            <AppContent />
+          </MaintenanceGuard>
+        </AuthProvider>
+      </AlertProvider>
     </ThemeProvider>
   );
 }

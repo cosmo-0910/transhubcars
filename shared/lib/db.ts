@@ -12,6 +12,14 @@ export interface Profile {
   vendor_status: 'none' | 'pending' | 'approved' | 'rejected';
   vendor_type: 'car' | 'parts' | 'both';
   business_name?: string;
+  business_details?: {
+    phone?: string;
+    address?: string;
+    description?: string;
+  };
+  store_video_url?: string;
+  store_image_url?: string;
+  preorder_status?: 'none' | 'pending' | 'approved' | 'rejected';
   created_at: string;
 }
 
@@ -36,6 +44,12 @@ export interface Car {
   vendor_id?: string;
   approval_status?: 'pending' | 'approved' | 'rejected';
   profiles?: Profile;
+  is_pinned?: boolean;
+  pinned_at?: string;
+  state?: string;
+  original_price?: number;
+  condition?: 'Foreign Used' | 'Nigerian Used' | 'New';
+  body_type?: string;
 }
 
 export interface Inquiry {
@@ -49,6 +63,7 @@ export interface Inquiry {
   message: string;
   status: 'New' | 'Contacted' | 'Archived';
   createdAt: string;
+  cars?: Car;
 }
 
 export interface Preorder {
@@ -74,6 +89,10 @@ export interface Order {
   payment_ref?: string;
   created_at: string;
   cars?: Car;
+  profiles?: {
+    full_name: string;
+    email?: string;
+  };
 }
 
 export interface AuditLog {
@@ -416,7 +435,7 @@ export const db = {
   getInquiries: async (): Promise<Inquiry[]> => {
     const { data, error } = await supabase
       .from('inquiries')
-      .select('*')
+      .select('*, cars(*)')
       .order('created_at', { ascending: false });
     
     if (error) throw error;
@@ -536,7 +555,7 @@ export const db = {
   getOrders: async (): Promise<Order[]> => {
     const { data, error } = await supabase
       .from('orders')
-      .select('*, cars(*)')
+      .select('*, cars(*), profiles!user_id(full_name, email)')
       .order('created_at', { ascending: false });
     
     if (error) throw error;
@@ -567,7 +586,7 @@ export const db = {
   getOrdersForVendor: async (vendorId: string): Promise<Order[]> => {
     const { data, error } = await supabase
       .from('orders')
-      .select('*, cars!inner(*)')
+      .select('*, cars!inner(*), profiles!user_id(full_name, email)')
       .eq('cars.vendor_id', vendorId)
       .order('created_at', { ascending: false });
     
@@ -802,5 +821,32 @@ export const db = {
       .single();
     if (error) throw error;
     return data;
+  },
+
+  // Ranking & Personalization
+  getRecommendedCars: async (userId?: string): Promise<Car[]> => {
+    const { data, error } = await supabase.rpc('get_recommended_cars', { p_user_id: userId || null });
+    if (error) throw error;
+    return data || [];
+  },
+
+  logActivity: async (userId: string | null | undefined, eventName: string, metadata: any = {}) => {
+    const { error } = await supabase
+      .from('usage_logs')
+      .insert([{ user_id: userId || null, event_name: eventName, metadata }]);
+    
+    if (error) console.error('Failed to log activity:', error);
+  },
+
+  togglePinCar: async (carId: string, isPinned: boolean) => {
+    const { error } = await supabase
+      .from('cars')
+      .update({ 
+        is_pinned: isPinned, 
+        pinned_at: isPinned ? new Date().toISOString() : null 
+      })
+      .eq('id', carId);
+    
+    if (error) throw error;
   }
 };

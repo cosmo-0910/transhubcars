@@ -9,7 +9,7 @@ const CoupeIcon = () => (
     <path d="M2,18 L2,15 C2,13 4,12 6,12 L14,12 L22,7 L36,7 L44,13 L46,15 L46,18 L2,18 Z" />
   </svg>
 );
-const SedanIcon = () => (
+const SaloonIcon = () => (
   <svg width="48" height="24" viewBox="0 0 48 24" fill="currentColor">
     <path d="M2,18 L2,15 C2,13 4,12 6,12 L12,12 L18,8 L32,8 L40,12 L44,12 L46,15 L46,18 L2,18 Z" />
   </svg>
@@ -78,7 +78,7 @@ export const Footer = ({ onDiscoverySelect }: FooterProps) => {
           }}>
             <BodyTypeCard label="SUVs" icon={<SUVIcon />} onClick={() => onDiscoverySelect({ type: 'body', value: 'SUV' })} />
             <BodyTypeCard label="COUPES" icon={<CoupeIcon />} onClick={() => onDiscoverySelect({ type: 'body', value: 'Coupe' })} />
-            <BodyTypeCard label="SALOONS" icon={<SedanIcon />} onClick={() => onDiscoverySelect({ type: 'body', value: 'Sedan' })} />
+            <BodyTypeCard label="SALOONS" icon={<SaloonIcon />} onClick={() => onDiscoverySelect({ type: 'body', value: 'Saloon' })} />
             <BodyTypeCard label="SPORTS" icon={<SportsIcon />} onClick={() => onDiscoverySelect({ type: 'body', value: 'Sports' })} />
             <BodyTypeCard label="CONVERTIBLES" icon={<ConvertibleIcon />} onClick={() => onDiscoverySelect({ type: 'body', value: 'Convertible' })} />
           </div>

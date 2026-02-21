@@ -23,8 +23,9 @@ export const DiscoveryGallery = ({ filter, onClose, onInquiry }: DiscoveryGaller
           if (filter.type === 'brand') {
             return car.make.toUpperCase() === filter.value.toUpperCase();
           } else {
-            // Check in specs or model for body type
-            return car.model.toLowerCase().includes(filter.value.toLowerCase()) || 
+            // Check body_type first (new logic), fallback to model/desc for legacy
+            return (car.body_type && car.body_type === filter.value) ||
+                   car.model.toLowerCase().includes(filter.value.toLowerCase()) || 
                    car.description?.toLowerCase().includes(filter.value.toLowerCase());
           }
         });

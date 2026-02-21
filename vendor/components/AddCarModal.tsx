@@ -227,11 +227,11 @@ export default function AddCarModal({ onClose, onSuccess, editingCar }: AddCarMo
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
               <div className="luxury-input-group">
                 <label className="luxury-label">Engine Details</label>
-                <input name="engine" type="text" defaultValue={editingCar?.engine} required className="luxury-input" placeholder="e.g. 4.0L V8 Twin-Turbo" />
+                <input name="engine" type="text" defaultValue={editingCar?.engine} className="luxury-input" placeholder="e.g. 4.0L V8 Twin-Turbo" />
               </div>
               <div className="luxury-input-group">
                 <label className="luxury-label">VIN Reference</label>
-                <input name="vin" type="text" defaultValue={editingCar?.vin} required className="luxury-input" placeholder="Enter vehicle VIN" />
+                <input name="vin" type="text" defaultValue={editingCar?.vin} className="luxury-input" placeholder="Enter vehicle VIN" />
               </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.5rem' }}>

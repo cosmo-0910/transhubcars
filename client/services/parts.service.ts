@@ -14,13 +14,8 @@ export const partsService = {
     try {
       return db.submitSparePartOrder(order);
     } catch (error) {
-      console.warn('DB Insert failed, falling back to mock:', error);
-      return {
-        id: Math.random().toString(36).substring(7),
-        ...order,
-        status: 'Pending',
-        created_at: new Date().toISOString(),
-      } as SparePartOrder;
+      console.error('DB Insert failed:', error);
+      throw error;
     }
   },
   

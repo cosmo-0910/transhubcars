@@ -13,9 +13,10 @@ interface NavbarProps {
   onSignOut?: () => void;
   currentView: 'home' | 'preorder' | 'services';
   onViewChange: (view: 'home' | 'preorder' | 'services') => void;
+  onSearch?: (query: string) => void;
 }
 
-export const Navbar = ({ onAdminToggle, isAdmin, onAuthClick, onProfileClick, user, onSignOut, currentView, onViewChange }: NavbarProps) => {
+export const Navbar = ({ onAdminToggle, isAdmin, onAuthClick, onProfileClick, user, onSignOut, currentView, onViewChange, onSearch }: NavbarProps) => {
   const [scrolled, setScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -97,10 +98,9 @@ export const Navbar = ({ onAdminToggle, isAdmin, onAuthClick, onProfileClick, us
                     placeholder="SEARCH MODELS..." 
                     onSearch={(query) => {
                       if (query) {
-                        window.location.hash = '#inventory';
-                        // We can use a custom event or a shared store if we had one, 
-                        // but for now, we'll let Inventory handle its own filter if it's visible.
-                        // Or we can just set the hash and let the user scroll.
+                        if (onSearch) onSearch(query);
+                        // window.location.hash = '#inventory'; 
+                        // Scroll is handled by App.tsx or onViewChange if needed
                       }
                     }}
                     autoFocus

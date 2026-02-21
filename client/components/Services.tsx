@@ -487,7 +487,7 @@ const TowTruckForm = ({ onBack, userId }: any) => {
                                 required
                                 className="luxury-input" 
                                 style={{ width: '100%' }} 
-                                placeholder="e.g. SUV, Luxury Sedan, Sports Car"
+                                placeholder="e.g. SUV, Luxury Saloon, Sports Car"
                                 value={form.vehicle_type}
                                 onChange={e => setForm({...form, vehicle_type: e.target.value})}
                             />

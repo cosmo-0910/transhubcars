@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { db } from '../../shared/lib/db';
+import { db, supabase } from '../../shared/lib/db';
 import type { Car } from '../../shared/lib/db';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatPrice } from '../../shared/lib/formatters';
@@ -11,21 +11,66 @@ import { FilterDropdown } from './FilterDropdown';
 
 // SVG icons moved to Footer.tsx
 
-export const Inventory = ({ onInquiry, initialStatus = 'All', hideFilters = false, title = 'The Collection.' }: { 
+import { SidebarFilter } from './SidebarFilter';
+import { Filter, X } from 'lucide-react'; // Import icons
+
+export const Inventory = ({ onInquiry, initialStatus = 'All', hideFilters = false, title = 'The Collection.', externalSearchQuery }: { 
   onInquiry: (car: Car) => void,
   initialStatus?: 'All' | 'Readily Available' | 'Preorder',
   hideFilters?: boolean,
-  title?: string
+  title?: string,
+  externalSearchQuery?: string
 }) => {
   const [cars, setCars] = useState<Car[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(externalSearchQuery || '');
   const [filterStatus, setFilterStatus] = useState<'All' | 'Readily Available' | 'Preorder'>(initialStatus);
+  
+  // Advanced Filters
+  const [filters, setFilters] = useState({
+    priceRange: [0, 1000000000] as [number, number],
+    conditions: [] as string[],
+    bodyTypes: [] as string[],
+    locations: [] as string[],
+    verifiedOnly: false,
+    discountOnly: false
+  });
+
+  const [counts, setCounts] = useState({
+    conditions: {} as Record<string, number>,
+    bodyTypes: {} as Record<string, number>,
+    locations: {} as Record<string, number>
+  });
+
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+
+  // Sync external search query
+  useEffect(() => {
+    if (externalSearchQuery !== undefined) {
+      setSearchQuery(externalSearchQuery);
+    }
+  }, [externalSearchQuery]);
 
   useEffect(() => {
     const loadCars = async () => {
       try {
-        const data = await db.getCars({ onlyApproved: true });
-        setCars(data);
+        const { data: { user } } = await supabase.auth.getUser();
+        const data = await db.getRecommendedCars(user?.id);
+        const approvedCars = data.filter(c => c.approval_status === 'approved');
+        setCars(approvedCars);
+        
+        // Calculate initial counts
+        const newCounts = {
+          conditions: {} as Record<string, number>,
+          bodyTypes: {} as Record<string, number>,
+          locations: {} as Record<string, number>
+        };
+        approvedCars.forEach(car => {
+          if (car.condition) newCounts.conditions[car.condition] = (newCounts.conditions[car.condition] || 0) + 1;
+          if (car.body_type) newCounts.bodyTypes[car.body_type] = (newCounts.bodyTypes[car.body_type] || 0) + 1;
+          if (car.state) newCounts.locations[car.state] = (newCounts.locations[car.state] || 0) + 1;
+        });
+        setCounts(newCounts);
+
       } catch (err) {
         console.error('Failed to load inventory:', err);
       }
@@ -35,11 +80,23 @@ export const Inventory = ({ onInquiry, initialStatus = 'All', hideFilters = fals
 
   const filteredCars = useMemo(() => {
     return cars.filter(car => {
+      // 1. Search Query
       const matchesSearch = `${car.make} ${car.model}`.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      // 2. Main Status Tab
       const matchesStatus = filterStatus === 'All' || car.status === filterStatus;
-      return matchesSearch && matchesStatus;
+      
+      // 3. Sidebar Filters
+      const matchesCondition = filters.conditions.length === 0 || (car.condition && filters.conditions.includes(car.condition));
+      const matchesBodyType = filters.bodyTypes.length === 0 || (car.body_type && filters.bodyTypes.includes(car.body_type));
+      const matchesLocation = filters.locations.length === 0 || (car.state && filters.locations.includes(car.state));
+      const matchesPrice = car.price >= filters.priceRange[0] && car.price <= filters.priceRange[1];
+      const matchesVerified = !filters.verifiedOnly || (car.vendor_id === null || (car.profiles && car.profiles.vendor_status === 'approved'));
+      const matchesDiscount = !filters.discountOnly || (car.original_price && car.original_price > car.price);
+
+      return matchesSearch && matchesStatus && matchesCondition && matchesBodyType && matchesLocation && matchesPrice && matchesVerified && matchesDiscount;
     });
-  }, [cars, searchQuery, filterStatus]);
+  }, [cars, searchQuery, filterStatus, filters]);
 
   return (
     <div>
@@ -72,6 +129,16 @@ export const Inventory = ({ onInquiry, initialStatus = 'All', hideFilters = fals
                    { label: 'PREORDER', value: 'Preorder' }
                  ]}
                />
+               
+               {/* Mobile Filter Button */}
+               <button 
+                 className="mobile-only btn-gold"
+                 style={{ padding: '0.6rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem' }}
+                 onClick={() => setShowMobileFilters(true)}
+               >
+                 <Filter size={16} />
+                 FILTERS
+               </button>
             </div>
           )}
         </div>
@@ -79,9 +146,33 @@ export const Inventory = ({ onInquiry, initialStatus = 'All', hideFilters = fals
         <div className="glass" style={{ height: '1px', width: '100%', marginBottom: '2rem', opacity: 0.3 }}></div>
       </div>
 
-      <motion.div layout className="inventory-grid">
-        <AnimatePresence mode="popLayout">
-          {filteredCars.map((car) => (
+      <div style={{ display: 'grid', gridTemplateColumns: hideFilters ? '1fr' : 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem', alignItems: 'start' }} className={!hideFilters ? "inventory-with-sidebar" : ""}>
+        
+        {/* Helper style for sidebar layout */}
+        <style>{`
+          @media (min-width: 769px) {
+            .inventory-with-sidebar {
+              grid-template-columns: 250px 1fr !important;
+            }
+          }
+        `}</style>
+        
+        {/* Sidebar */}
+        {!hideFilters && (
+          <div className="desktop-only">
+             <SidebarFilter 
+               filters={filters} 
+               onFilterChange={setFilters} 
+               priceBounds={[0, 100000000]} // Todo: dynamic bounds
+               counts={counts}
+             />
+          </div>
+        )}
+
+        {/* Grid */}
+        <motion.div layout className="inventory-grid">
+          <AnimatePresence mode="popLayout">
+            {filteredCars.map((car) => (
             <motion.div 
               layout
               initial={{ opacity: 0, scale: 0.9 }}
@@ -99,6 +190,20 @@ export const Inventory = ({ onInquiry, initialStatus = 'All', hideFilters = fals
             >
               {/* Status Badge Over Image */}
               <div style={{ position: 'absolute', top: '1rem', right: '1rem', zIndex: 5, display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'flex-end' }}>
+                {car.is_pinned && (
+                  <span className="glass" style={{ 
+                    fontSize: '0.65rem', 
+                    padding: '0.4rem 1rem', 
+                    borderRadius: '2rem',
+                    fontWeight: 800,
+                    letterSpacing: '1px',
+                    background: 'var(--accent-gold)', 
+                    color: 'black',
+                    boxShadow: '0 0 10px rgba(212, 175, 55, 0.5)'
+                  }}>
+                    PINNED
+                  </span>
+                )}
                 <span className="glass" style={{ 
                   fontSize: '0.65rem', 
                   padding: '0.4rem 1rem', 
@@ -112,6 +217,21 @@ export const Inventory = ({ onInquiry, initialStatus = 'All', hideFilters = fals
                   {car.status.toUpperCase()}
                 </span>
                 
+                {car.condition === 'New' && (
+                  <span className="glass" style={{ 
+                    fontSize: '0.65rem', 
+                    padding: '0.2rem 0.8rem', 
+                    borderRadius: '2rem',
+                    fontWeight: 800,
+                    letterSpacing: '1px',
+                    background: '#60a5fa', 
+                    color: 'white',
+                    border: 'none'
+                  }}>
+                    BRAND NEW
+                  </span>
+                )}
+
                 {/* Transhub Official Badge */}
                 {!car.vendor_id && (
                   <div className="glass" style={{ 
@@ -154,6 +274,14 @@ export const Inventory = ({ onInquiry, initialStatus = 'All', hideFilters = fals
                       <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '1px' }}>
                         {car.year}
                       </span>
+                      {car.state && (
+                        <>
+                           <div style={{ width: '3px', height: '3px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)' }} />
+                           <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '1px' }}>
+                             {car.state}
+                           </span>
+                        </>
+                      )}
                     </div>
                     <h3 className="luxury-font mobile-text-dense" style={{ fontSize: '1.6rem', lineHeight: '1.1' }}>
                       {car.make} {car.model}
@@ -163,6 +291,7 @@ export const Inventory = ({ onInquiry, initialStatus = 'All', hideFilters = fals
                 {/* Carwow-style Spec Row */}
                 <div className="mobile-spec-dense" style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', padding: '0.5rem 0', borderTop: '1px solid var(--border-glass)', borderBottom: '1px solid var(--border-glass)' }}>
                   <SpecQuickInfo label="KM" value={`${(car.mileage / 1000).toFixed(0)}K`} />
+                  <SpecQuickInfo label="TYPE" value={car.body_type ? car.body_type.toUpperCase() : 'N/A'} />
                   <SpecQuickInfo label="TRANS" value={car.transmission?.slice(0, 3).toUpperCase()} />
                 </div>
                 
@@ -170,6 +299,9 @@ export const Inventory = ({ onInquiry, initialStatus = 'All', hideFilters = fals
                   <div>
                     <div style={{ fontSize: '0.55rem', color: 'var(--text-muted)', letterSpacing: '1px', fontWeight: 600 }}>INVESTMENT</div>
                     <div className="mobile-text-dense" style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--accent-gold)' }}>
+                      {car.original_price && car.original_price > car.price && (
+                        <span style={{ textDecoration: 'line-through', color: 'var(--text-muted)', fontSize: '0.9rem', marginRight: '0.5rem' }}>{formatPrice(car.original_price)}</span>
+                      )}
                       {formatPrice(car.price)}
                     </div>
                   </div>
@@ -184,8 +316,51 @@ export const Inventory = ({ onInquiry, initialStatus = 'All', hideFilters = fals
               </div>
             </motion.div>
           ))}
-        </AnimatePresence>
-      </motion.div>
+          </AnimatePresence>
+        </motion.div>
+      </div>
+
+      {/* Mobile Filter Drawer */}
+      <AnimatePresence>
+        {showMobileFilters && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="mobile-filter-overlay"
+              onClick={() => setShowMobileFilters(false)}
+            />
+            <motion.div 
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="mobile-filter-drawer"
+            >
+              <div className="mobile-filter-header">
+                <span className="luxury-font" style={{ fontSize: '1.2rem' }}>Refine Selection</span>
+                <button className="close-filter-btn" onClick={() => setShowMobileFilters(false)}>
+                  <X size={24} />
+                </button>
+              </div>
+              <SidebarFilter 
+                filters={filters} 
+                onFilterChange={setFilters} 
+                priceBounds={[0, 100000000]} 
+                counts={counts}
+              />
+              <button 
+                className="btn-gold" 
+                style={{ width: '100%', marginTop: '1.5rem', padding: '1rem' }}
+                onClick={() => setShowMobileFilters(false)}
+              >
+                APPLY FILTERS ({filteredCars.length} Results)
+              </button>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

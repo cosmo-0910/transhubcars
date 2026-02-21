@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Zap, Gauge, Settings, Droplets, Palette, Fingerprint, Hash } from 'lucide-react';
-import type { Car } from '../../shared/lib/db';
+import { db, type Car } from '../../shared/lib/db';
 import { useAuth } from '../../shared/lib/AuthContext';
 import { Checkout } from './Checkout';
 import { formatPrice } from '../../shared/lib/formatters';
@@ -29,6 +29,18 @@ export const VehicleDetail = ({ car, onClose, onInquiry }: VehicleDetailProps) =
 
     return () => clearInterval(interval);
   }, [allImages.length, fullscreenImg, showCheckout]);
+
+  // Log view activity
+  useEffect(() => {
+    if (car?.id) {
+      db.logActivity(user?.id, 'view_car', { 
+        car_id: car.id, 
+        price: car.price, 
+        brand: car.make,
+        model: car.model
+      });
+    }
+  }, [car.id, user?.id]);
 
   if (showCheckout) {
     return (
@@ -185,7 +197,11 @@ export const VehicleDetail = ({ car, onClose, onInquiry }: VehicleDetailProps) =
                 <SpecItem label="Exterior" value={car.exterior_color} icon={<Palette size={16} />} />
                 <SpecItem label="Interior" value={car.interior_color} icon={<Fingerprint size={16} />} />
                 <SpecItem label="Engine Details" value={car.engine} icon={<Settings size={16} />} />
-                <SpecItem label="VIN Reference" value={car.vin} icon={<Hash size={16} />} />
+                <SpecItem 
+                  label="VIN Reference" 
+                  value={car.vin ? `${car.vin.slice(0, -6).padEnd(car.vin.length, '*')}` : 'Not Specified'} 
+                  icon={<Hash size={16} />} 
+                />
               </div>
             </div>
 
