@@ -334,6 +334,20 @@ body::before, .logo-grid-bg::before {
   .mobile-only-flex {
     display: flex !important;
   }
+
+  /* Optimize Background Logo for Mobile */
+  .logo-column:nth-child(n+8) {
+    display: none;
+  }
+  
+  .logo-column {
+    width: 60px;
+    background-size: 40px;
+  }
+  
+  .logo-column-container {
+    opacity: calc(var(--logo-grid-opacity) * 0.7);
+  }
 }
 
 .mobile-only-flex {
