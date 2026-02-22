@@ -1,7 +1,7 @@
 
 
 import { db, supabase } from '../shared/lib/db';
-import type { Car, Order, Inquiry, Preorder, SparePartOrder, TowRequest } from '../shared/lib/db';
+import type { Car, Order, Inquiry, Preorder, SparePartOrder, TowRequest, SparePart } from '../shared/lib/db';
 import { formatPrice } from '../shared/lib/formatters';
 import { generateInvoice } from '../client/utils/invoiceGenerator';
 import { useState, useEffect, useMemo } from 'react';
@@ -36,11 +36,13 @@ import { VendorManagementTable } from './components/VendorManagementTable';
 import { OrderManagementTable } from './components/OrderManagementTable';
 import { PreorderManagementTable } from './components/PreorderManagementTable';
 import { PartsRequestManagementTable } from './components/PartsRequestManagementTable';
+import { SparePartsCatalogTable } from './components/SparePartsCatalogTable';
+import AddPartModal from '../vendor/components/AddPartModal';
 import { MessageManagement } from './components/MessageManagement';
 import { MessageSquare } from 'lucide-react';
 
 // --- Types ---
-type Section = 'overview' | 'vendors' | 'users' | 'inventory' | 'orders' | 'sales' | 'ledger' | 'audit' | 'settings' | 'admins' | 'mechanics' | 'towing' | 'inquiries' | 'preorders' | 'parts-requests' | 'messages';
+type Section = 'overview' | 'vendors' | 'users' | 'inventory' | 'orders' | 'sales' | 'ledger' | 'audit' | 'settings' | 'admins' | 'mechanics' | 'towing' | 'inquiries' | 'preorders' | 'parts-requests' | 'parts-catalog' | 'messages';
 
 
 
@@ -179,6 +181,7 @@ export const AdminDashboard = () => {
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [preorders, setPreorders] = useState<Preorder[]>([]);
   const [partsRequests, setPartsRequests] = useState<SparePartOrder[]>([]);
+  const [spareParts, setSpareParts] = useState<SparePart[]>([]);
   const [towRequests, setTowRequests] = useState<TowRequest[]>([]);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [platformSettings, setPlatformSettings] = useState<any[]>([]);
@@ -201,12 +204,15 @@ export const AdminDashboard = () => {
   const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(null);
   const [selectedPreorder, setSelectedPreorder] = useState<Preorder | null>(null);
   const [selectedPartsRequest, setSelectedPartsRequest] = useState<SparePartOrder | null>(null);
+  const [selectedSparePart, setSelectedSparePart] = useState<SparePart | null>(null);
   const [selectedTowRequest, setSelectedTowRequest] = useState<TowRequest | null>(null);
 
   // Editing State
   const [editingCar, setEditingCar] = useState<Car | null>(null);
+  const [editingPart, setEditingPart] = useState<SparePart | null>(null);
   const [previewCar, setPreviewCar] = useState<Car | null>(null);
   const [showAddCarForm, setShowAddCarForm] = useState(false);
+  const [showAddPartForm, setShowAddPartForm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editingMechanic, setEditingMechanic] = useState<any | null>(null);
@@ -318,7 +324,8 @@ export const AdminDashboard = () => {
       adminsData, 
       inquiriesData, 
       preordersData, 
-      partsData, 
+      partsRequestsData, 
+      sparePartsData,
       towData, 
       settingsData
     ] = await Promise.all([
@@ -328,7 +335,8 @@ export const AdminDashboard = () => {
       db.getAdmins().catch(err => { console.error('Admins fetch fail:', err); return []; }),
       db.getInquiries().catch(err => { console.error('Inquiries fetch fail:', err); return []; }),
       db.getPreorders().catch(err => { console.error('Preorders fetch fail:', err); return []; }),
-      db.getSparePartOrders().catch(err => { console.error('Parts fetch fail:', err); return []; }),
+      db.getSparePartOrders().catch(err => { console.error('Parts requests fetch fail:', err); return []; }),
+      db.getSpareParts().catch(err => { console.error('Spare parts fetch fail:', err); return []; }),
       db.getTowRequests().catch(err => { console.error('Tow fetch fail:', err); return []; }),
       db.getPlatformSettings().catch(err => { console.error('Settings fetch fail:', err); return []; })
     ]);
@@ -349,7 +357,8 @@ export const AdminDashboard = () => {
     setAdmins(adminsData);
     setInquiries(inquiriesData);
     setPreorders(preordersData);
-    setPartsRequests(partsData);
+    setPartsRequests(partsRequestsData);
+    setSpareParts(sparePartsData);
     setTowRequests(towData);
     setAuditLogs(logsData);
     setPlatformSettings(settingsData);
@@ -956,6 +965,7 @@ export const AdminDashboard = () => {
             {hasPermission('inquiries') && <SidebarItem icon={Phone} label="Client Inquiries" active={activeSection === 'inquiries'} onClick={() => setActiveSection('inquiries')} badge={stats.pendingInquiries} />}
             {hasPermission('preorders') && <SidebarItem icon={RefreshCw} label="Preorder Requests" active={activeSection === 'preorders'} onClick={() => setActiveSection('preorders')} badge={stats.pendingPreorders} />}
             {hasPermission('parts-requests') && <SidebarItem icon={Package} label="Parts Requests" active={activeSection === 'parts-requests'} onClick={() => setActiveSection('parts-requests')} badge={stats.pendingParts} />}
+            <SidebarItem icon={Wrench} label="Parts Catalog" active={activeSection === 'parts-catalog'} onClick={() => setActiveSection('parts-catalog')} />
             <SidebarItem icon={MessageSquare} label="Messages" active={activeSection === 'messages'} onClick={() => setActiveSection('messages')} />
           </div>
 
@@ -1077,7 +1087,7 @@ export const AdminDashboard = () => {
               )}
 
               {/* --- MANAGEMENT VIEWS --- */}
-              {['vendors', 'users', 'inventory', 'orders', 'inquiries', 'preorders', 'parts-requests'].includes(activeSection) && (
+              {['vendors', 'users', 'inventory', 'orders', 'inquiries', 'preorders', 'parts-requests', 'parts-catalog'].includes(activeSection) && (
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                     <h2 className="luxury-font" style={{ fontSize: '2rem', margin: 0, textTransform: 'capitalize' }}>
@@ -1086,6 +1096,7 @@ export const AdminDashboard = () => {
                        activeSection === 'inquiries' ? 'Client Inquiries' :
                        activeSection === 'preorders' ? 'Preorder Requests' :
                        activeSection === 'parts-requests' ? 'Parts Sourcing' :
+                       activeSection === 'parts-catalog' ? 'Parts Catalog' :
                        `${activeSection} Management`}
                     </h2>
                     <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
@@ -1163,6 +1174,14 @@ export const AdminDashboard = () => {
                         partsRequests={filteredData}
                         onSelectedPartsRequest={setSelectedPartsRequest}
                         onUpdateStatus={(id, status) => db.updateSparePartOrderStatus(id, status).then(loadAllData)}
+                      />
+                    )}
+                    {activeSection === 'parts-catalog' && (
+                      <SparePartsCatalogTable 
+                        parts={spareParts} 
+                        onRefresh={loadAllData} 
+                        onEdit={(part) => { setEditingPart(part); setShowAddPartForm(true); }}
+                        onAdd={() => { setEditingPart(null); setShowAddPartForm(true); }}
                       />
                     )}
                   </div>
@@ -2723,6 +2742,19 @@ export const AdminDashboard = () => {
           </div>
         )}
       </AnimatePresence>
+
+      {/* AddPartModal for Parts Catalog */}
+      {showAddPartForm && (
+        <AddPartModal 
+          editingPart={editingPart}
+          onClose={() => setShowAddPartForm(false)}
+          onSuccess={() => {
+            setShowAddPartForm(false);
+            loadAllData();
+            showAlert({ title: 'Success', message: 'Catalog entry synchronized.' });
+          }}
+        />
+      )}
 
     </div>
   );

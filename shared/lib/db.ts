@@ -778,6 +778,16 @@ export const db = {
     return [...new Set(values)];
   },
 
+  getSpareParts: async (): Promise<SparePart[]> => {
+    const { data, error } = await supabase
+      .from('spare_parts')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data || [];
+  },
+
   getVendorSpareParts: async (vendorId: string): Promise<SparePart[]> => {
     const { data, error } = await supabase
       .from('spare_parts')
