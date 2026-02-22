@@ -1,5 +1,5 @@
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, Plus, Package } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { X, Package } from 'lucide-react';
 import { useState, useRef } from 'react';
 import { db, type SparePart } from '../../shared/lib/db';
 import { useAuth } from '../../shared/lib/AuthContext';

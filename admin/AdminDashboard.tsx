@@ -204,7 +204,7 @@ export const AdminDashboard = () => {
   const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(null);
   const [selectedPreorder, setSelectedPreorder] = useState<Preorder | null>(null);
   const [selectedPartsRequest, setSelectedPartsRequest] = useState<SparePartOrder | null>(null);
-  const [selectedSparePart, setSelectedSparePart] = useState<SparePart | null>(null);
+  const [_selectedSparePart, _setSelectedSparePart] = useState<SparePart | null>(null);
   const [selectedTowRequest, setSelectedTowRequest] = useState<TowRequest | null>(null);
 
   // Editing State
