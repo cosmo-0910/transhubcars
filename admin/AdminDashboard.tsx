@@ -8,7 +8,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { 
   LayoutDashboard, Users, ShoppingBag, CarFront, Store, 
   Settings, ShieldAlert, FileText, Activity, 
-  Bell, LogOut, ChevronRight,
+  LogOut, ChevronRight,
   TrendingUp, Zap, ShieldCheck, DollarSign,
   CheckCircle2, X, Plus, Trash2, Edit, RefreshCw, Copy,
   Menu, Wrench, Truck, Phone, Package
@@ -28,15 +28,19 @@ import { StatsOverview } from './components/StatsOverview';
 import type { KpiData } from './components/StatsOverview';
 import { StatusBadge } from './components/StatusBadge';
 import { CarManagementTable } from './components/CarManagementTable';
+import { NotificationInbox } from '../shared/components/NotificationInbox';
+import { ChatSystem } from '../shared/components/ChatSystem';
 import { UserManagementTable } from './components/UserManagementTable';
 import { InquiryFeed } from './components/InquiryFeed';
 import { VendorManagementTable } from './components/VendorManagementTable';
 import { OrderManagementTable } from './components/OrderManagementTable';
 import { PreorderManagementTable } from './components/PreorderManagementTable';
 import { PartsRequestManagementTable } from './components/PartsRequestManagementTable';
+import { MessageManagement } from './components/MessageManagement';
+import { MessageSquare } from 'lucide-react';
 
 // --- Types ---
-type Section = 'overview' | 'vendors' | 'users' | 'inventory' | 'orders' | 'sales' | 'ledger' | 'audit' | 'settings' | 'admins' | 'mechanics' | 'towing' | 'inquiries' | 'preorders' | 'parts-requests';
+type Section = 'overview' | 'vendors' | 'users' | 'inventory' | 'orders' | 'sales' | 'ledger' | 'audit' | 'settings' | 'admins' | 'mechanics' | 'towing' | 'inquiries' | 'preorders' | 'parts-requests' | 'messages';
 
 
 
@@ -136,6 +140,23 @@ const MODEL_BODY_TYPE_MAPPING: Record<string, string> = {
   "Lc": "Coupe", "Rc": "Coupe", "Supra": "Coupe", "Cle": "Coupe"
 };
 
+const STANDARD_FEATURES = [
+  'Air Conditioning', 'Alloy Wheels', 'AM/FM Radio', 'Android Auto / Apple CarPlay',
+  'Anti-Lock Brakes', 'Armrests', 'Blind Spot Monitor', 'CD Player',
+  'Cruise Control', 'Cup Holders', 'DVD Player', 'Electric Mirrors',
+  'Electric Windows', 'Fog Lights', 'Front Fog Lamps', 'Heated Seats',
+  'Keyless Entry / Start', 'Leather Seats / Upholstery', 'LED Headlights',
+  'Navigation System', 'Parking Sensors', 'Power Steering', 'Rear Camera',
+  'Roof Rack', 'Sunroof / Moonroof', 'Touchscreen', 'Traction Control',
+  'USB / AUX Port', 'Xenon Lights',
+];
+
+const NIGERIAN_MARKET_TAGS = [
+  'Accident Free', 'First Body', 'First Owner', 'Full Option / Fully Loaded',
+  'Leather Interior', 'Low Mileage', 'Neatly Used', 'New Shape / Facelift',
+  'No Faults', 'Registered', 'Reverse Camera', 'Soundproofed',
+];
+
 export const AdminDashboard = () => {
   const { user, profile, signOut } = useAuth();
   const { showAlert } = useAlert();
@@ -195,6 +216,7 @@ export const AdminDashboard = () => {
   const [primaryImage, setPrimaryImage] = useState<File | string | null>(null);
   const [galleryImages, setGalleryImages] = useState<(File | string)[]>([]);
   const [selectedMake, setSelectedMake] = useState<string>('');
+  const [adminSelectedFeatures, setAdminSelectedFeatures] = useState<string[]>([]);
   const cachedMakes = useRef<any[] | null>(null);
 
   // Sync state when editing
@@ -203,11 +225,13 @@ export const AdminDashboard = () => {
       setPrimaryImage(editingCar.image_url || null);
       setGalleryImages(editingCar.gallery_urls || []);
       setSelectedMake(editingCar.make || '');
+      setAdminSelectedFeatures(editingCar.features || []);
       // If editing, use existing body_type or auto-detect if missing
     } else {
       setPrimaryImage(null);
       setGalleryImages([]);
       setSelectedMake('');
+      setAdminSelectedFeatures([]);
     }
   }, [editingCar, showAddCarForm]);
 
@@ -373,6 +397,49 @@ export const AdminDashboard = () => {
               showAlert({
                 title: 'Error',
                 message: `Failed to ${status} vendor: ${(error as any)?.message || 'Unknown error'}`,
+                buttons: [{ text: 'OK', style: 'destructive' }]
+              });
+            }
+          }
+        }
+      ]
+    });
+  };
+
+  const handleRevokeVendor = async (id: string, name: string) => {
+    showAlert({
+      title: 'Revoke Vendor Status',
+      message: `Are you sure you want to revoke vendor status for ${name}? This will convert them back to a regular customer.`,
+      buttons: [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Revoke Status', 
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('profiles')
+                .update({
+                  role: 'customer',
+                  vendor_status: null,
+                  vendor_type: null,
+                  business_name: null,
+                  business_details: null
+                })
+                .eq('id', id);
+              
+              if (error) throw error;
+              
+              await db.logAction('Revoke Vendor Status', 'profile', id, { name });
+              await loadAllData();
+              showAlert({
+                title: 'Status Revoked',
+                message: `${name} has been successfully converted to a regular customer.`,
+              });
+            } catch (error) {
+              showAlert({
+                title: 'Error',
+                message: `Failed to revoke vendor status: ${(error as any)?.message || 'Unknown error'}`,
                 buttons: [{ text: 'OK', style: 'destructive' }]
               });
             }
@@ -614,6 +681,7 @@ export const AdminDashboard = () => {
         engine: formData.get('engine'),
         vin: formData.get('vin'),
         description: formData.get('description'),
+        features: adminSelectedFeatures,
         image_url: primaryUrl || 'https://images.unsplash.com/photo-1542362567-b055034b4c1d?q=80',
         gallery_urls: galleryUrls.filter(url => typeof url === 'string' && url.trim() !== ''),
         vendor_id: null, // Explicitly null for Transhub Official posts
@@ -829,7 +897,10 @@ export const AdminDashboard = () => {
         return matchesQuery;
       });
       case 'users': return users.filter(u => (u.full_name || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q));
-      case 'inventory': return cars.filter(c => `${c.make} ${c.model}`.toLowerCase().includes(q));
+      case 'inventory': return cars.filter(c => 
+        `${c.make} ${c.model}`.toLowerCase().includes(q) || 
+        (Array.isArray(c.features) && c.features.some(f => f.toLowerCase().includes(q)))
+      );
       case 'orders': 
       case 'sales':
       case 'ledger': return orders.filter(o => o.id.includes(q) || (o.payment_ref || '').toLowerCase().includes(q));
@@ -885,6 +956,7 @@ export const AdminDashboard = () => {
             {hasPermission('inquiries') && <SidebarItem icon={Phone} label="Client Inquiries" active={activeSection === 'inquiries'} onClick={() => setActiveSection('inquiries')} badge={stats.pendingInquiries} />}
             {hasPermission('preorders') && <SidebarItem icon={RefreshCw} label="Preorder Requests" active={activeSection === 'preorders'} onClick={() => setActiveSection('preorders')} badge={stats.pendingPreorders} />}
             {hasPermission('parts-requests') && <SidebarItem icon={Package} label="Parts Requests" active={activeSection === 'parts-requests'} onClick={() => setActiveSection('parts-requests')} badge={stats.pendingParts} />}
+            <SidebarItem icon={MessageSquare} label="Messages" active={activeSection === 'messages'} onClick={() => setActiveSection('messages')} />
           </div>
 
           {(hasPermission('finance') || hasPermission('sales')) && (
@@ -935,7 +1007,7 @@ export const AdminDashboard = () => {
               NETWORK SOVEREIGN
             </div>
             <ThemeToggle />
-            <button style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}><Bell size={20} /></button>
+            <NotificationInbox />
           </div>
         </header>
 
@@ -1046,6 +1118,7 @@ export const AdminDashboard = () => {
                         onVendorAction={handleVendorAction}
                         onPreorderReview={handlePreorderReview}
                         onSelectVendor={setSelectedVendor}
+                        onRevokeVendor={handleRevokeVendor}
                       />
                     )}
                     {activeSection === 'users' && (
@@ -1385,6 +1458,9 @@ export const AdminDashboard = () => {
 
               {/* --- TOWING FLEET --- */}
               {activeSection === 'towing' && <TowingManagement onSelectRequest={setSelectedTowRequest} />}
+
+              {/* --- MESSAGES --- */}
+              {activeSection === 'messages' && <MessageManagement />}
 
               {/* --- SETTINGS --- */}
               {activeSection === 'settings' && (
@@ -1729,6 +1805,8 @@ export const AdminDashboard = () => {
         </div>
       </main>
 
+      <ChatSystem />
+
       {/* Add Car Modal */}
       <AnimatePresence>
         {showAddCarForm && (
@@ -1873,6 +1951,86 @@ export const AdminDashboard = () => {
                     </div>
                   </div>
 
+                  {/* Features & Options */}
+                  <div style={{ gridColumn: 'span 2' }}>
+                    <div style={{ fontSize: '0.7rem', letterSpacing: '2px', color: 'var(--accent-gold)', marginBottom: '1.5rem', marginTop: '1rem' }}>VEHICLE FEATURES & OPTIONS</div>
+                    
+                    <div style={{ marginBottom: '1rem' }}>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.8rem', fontWeight: 600 }}>STANDARD FEATURES</div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem' }}>
+                        {STANDARD_FEATURES.map(feature => {
+                          const active = adminSelectedFeatures.includes(feature);
+                          return (
+                            <button
+                              key={feature}
+                              type="button"
+                              onClick={() => setAdminSelectedFeatures(prev =>
+                                prev.includes(feature) ? prev.filter(f => f !== feature) : [...prev, feature]
+                              )}
+                              style={{
+                                padding: '0.4rem 0.9rem',
+                                borderRadius: '2rem',
+                                border: active ? '1px solid var(--accent-gold)' : '1px solid var(--border-glass)',
+                                background: active ? 'rgba(197,160,89,0.12)' : 'rgba(255,255,255,0.03)',
+                                color: active ? 'var(--accent-gold)' : 'var(--text-muted)',
+                                cursor: 'pointer',
+                                fontSize: '0.72rem',
+                                fontWeight: active ? 700 : 400,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.35rem',
+                                transition: 'all 0.2s',
+                              }}
+                            >
+                              {active && <CheckCircle2 size={11} />}
+                              {feature}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div style={{ marginTop: '1.5rem' }}>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.8rem', fontWeight: 600 }}>MARKET CONDITION TAGS</div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem' }}>
+                        {NIGERIAN_MARKET_TAGS.map(tag => {
+                          const active = adminSelectedFeatures.includes(tag);
+                          return (
+                            <button
+                              key={tag}
+                              type="button"
+                              onClick={() => setAdminSelectedFeatures(prev =>
+                                prev.includes(tag) ? prev.filter(f => f !== tag) : [...prev, tag]
+                              )}
+                              style={{
+                                padding: '0.4rem 0.9rem',
+                                borderRadius: '2rem',
+                                border: active ? '1px solid #3b82f6' : '1px solid var(--border-glass)',
+                                background: active ? 'rgba(59,130,246,0.12)' : 'rgba(255,255,255,0.03)',
+                                color: active ? '#60a5fa' : 'var(--text-muted)',
+                                cursor: 'pointer',
+                                fontSize: '0.72rem',
+                                fontWeight: active ? 700 : 400,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.35rem',
+                                transition: 'all 0.2s',
+                              }}
+                            >
+                              {active && <CheckCircle2 size={11} />}
+                              {tag}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    {adminSelectedFeatures.length > 0 && (
+                      <div style={{ marginTop: '1rem', fontSize: '0.7rem', color: 'var(--accent-gold)' }}>
+                        {adminSelectedFeatures.length} feature{adminSelectedFeatures.length !== 1 ? 's' : ''} selected
+                      </div>
+                    )}
+                  </div>
+
                   {/* Media */}
                   <div style={{ gridColumn: 'span 2' }}>
                     <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Primary Visual Asset</label>
@@ -2008,6 +2166,10 @@ export const AdminDashboard = () => {
             onClose={() => setPreviewCar(null)} 
             onInquiry={() => {
               alert('Preview Mode: Inquiry functionality disabled for administrators.');
+            }}
+            onVendorClick={(vendorId) => {
+              const vendor = vendors.find(v => v.id === vendorId);
+              if (vendor) setSelectedVendor(vendor);
             }}
           />
         )}

@@ -149,7 +149,22 @@ export const Checkout = ({ car, onClose }: { car: Car, onClose: () => void }) =>
                 <p style={{ color: 'var(--text-muted)', marginBottom: '3rem' }}>
                   Your acquisition request for the {car.year} {car.make} has been successfully registered. Our concierge will contact you within the hour.
                 </p>
-                <button className="btn-gold" style={{ width: '100%' }} onClick={onClose}>RETURN TO GALLERY</button>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                  <button className="smooth-transition glass-hover" style={{ flex: 1, background: 'var(--bg-glass)', border: '1px solid var(--border-glass)', color: 'var(--text-main)', padding: '1rem', borderRadius: '0.4rem', fontWeight: 600 }} onClick={onClose}>RETURN TO GALLERY</button>
+                  <button 
+                    className="btn-gold" 
+                    style={{ flex: 1 }} 
+                    onClick={() => {
+                      const event = new CustomEvent('open-chat', { 
+                        detail: { carId: car.id, vendorId: car.vendor_id } 
+                      });
+                      window.dispatchEvent(event);
+                      onClose();
+                    }}
+                  >
+                    CONTACT VENDOR
+                  </button>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>

@@ -3,6 +3,7 @@ import { X, Upload, Video, Image as ImageIcon } from 'lucide-react';
 import { useState } from 'react';
 import { db } from '../../shared/lib/db';
 import { useAuth } from '../../shared/lib/AuthContext';
+import { useAlert } from '../../shared/context/AlertContext';
 import ImageUploadField from '../../shared/components/ImageUploadField';
 
 interface UpgradeToPreorderModalProps {
@@ -12,8 +13,8 @@ interface UpgradeToPreorderModalProps {
 
 export default function UpgradeToPreorderModal({ onClose, onSuccess }: UpgradeToPreorderModalProps) {
   const { user, profile } = useAuth();
+  const { showAlert } = useAlert();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [imageFile, setImageFile] = useState<File | string | null>(null);
 
@@ -21,13 +22,12 @@ export default function UpgradeToPreorderModal({ onClose, onSuccess }: UpgradeTo
     e.preventDefault();
     if (!user) return;
     if (!videoFile || !imageFile) {
-      setError('Both video and image evidence are required.');
+      showAlert({ title: 'Discovery Protocol', message: 'Both video and image evidence are required.', buttons: [{ text: 'OK' }] });
       return;
     }
 
     try {
       setLoading(true);
-      setError(null);
 
       // Upload Video (simulated as image bucket for now, ideally separate bucket)
       const videoUrl = await db.uploadImage(videoFile); // No watermark for video
@@ -47,7 +47,7 @@ export default function UpgradeToPreorderModal({ onClose, onSuccess }: UpgradeTo
       const msg = err.message === 'Duplicate image prohibited'
         ? 'Duplicate image prohibited. This evidence has already been submitted.'
         : (err.message === 'HTTP 400 error' ? 'System rejected the upload protocol. Please verify your connection.' : (err.message || 'Failed to submit application'));
-      setError(msg);
+      showAlert({ title: 'Verification Error', message: msg, buttons: [{ text: 'OK', style: 'destructive' }] });
     } finally {
       setLoading(false);
     }
@@ -69,12 +69,6 @@ export default function UpgradeToPreorderModal({ onClose, onSuccess }: UpgradeTo
           <h2 className="luxury-font" style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>Elite <span style={{ color: 'var(--accent-gold)' }}>Verification.</span></h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', letterSpacing: '0.5px' }}>Unlock preorder privileges by verifying your dealership credentials.</p>
         </div>
-
-        {error && (
-          <div style={{ padding: '1rem', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', borderRadius: '0.8rem', marginBottom: '2rem', fontSize: '0.9rem' }}>
-            {error}
-          </div>
-        )}
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           

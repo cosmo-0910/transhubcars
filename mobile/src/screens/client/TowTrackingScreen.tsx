@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
-import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
+// import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
+const MapView: any = View;
+const Marker: any = View;
+const Polyline: any = View;
+const PROVIDER_GOOGLE = 'google';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '../../utils/theme';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useAlert } from '../../context/AlertContext';
@@ -151,30 +155,11 @@ export const TowTrackingScreen = () => {
         </View>
       </View>
 
-      <MapView
-        provider={PROVIDER_GOOGLE}
-        style={styles.map}
-        region={{
-          ...(driverLocation || pickupLocation),
-          latitudeDelta: 0.015,
-          longitudeDelta: 0.015,
-        }}
-        customMapStyle={TRANSHUB_MAP_STYLE}
-      >
-        <Marker coordinate={pickupLocation} title="Your Location">
-          <View style={styles.clientMarker}>
-            <Icon name="person" size={20} color="#FFF" />
-          </View>
-        </Marker>
-
-        {driverLocation && (
-          <Marker coordinate={driverLocation} title="Tow Truck">
-            <View style={styles.driverMarker}>
-              <Icon name="car" size={24} color={COLORS.primary} />
-            </View>
-          </Marker>
-        )}
-      </MapView>
+      <View style={[styles.map, styles.placeholderMap]}>
+        <Icon name="navigate-circle-outline" size={64} color={COLORS.primary} />
+        <Text style={styles.placeholderMapText}>Live Location Syncing</Text>
+        <Text style={styles.placeholderMapSub}>Status updates will appear below as the team arrives</Text>
+      </View>
 
       <View style={styles.bottomSheet}>
         {request.status === 'Searching' ? (
@@ -397,5 +382,21 @@ const styles = StyleSheet.create({
   },
   cancelBtn: {
     marginTop: SPACING.sm,
-  }
+  },
+  placeholderMap: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.backgroundCard,
+    gap: SPACING.md,
+  },
+  placeholderMapText: {
+    fontSize: FONT_SIZES.lg,
+    fontWeight: 'bold',
+    color: COLORS.text,
+  },
+  placeholderMapSub: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+  },
 });

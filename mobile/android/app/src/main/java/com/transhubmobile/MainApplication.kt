@@ -1,4 +1,4 @@
-package com.transhub.mobile
+package com.transhubmobile
 
 import android.app.Application
 import com.facebook.react.PackageList

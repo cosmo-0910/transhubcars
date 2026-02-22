@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Zap, Gauge, Settings, Droplets, Palette, Fingerprint, Hash } from 'lucide-react';
+import { X, Zap, Gauge, Settings, Droplets, Palette, Fingerprint, Hash, Store } from 'lucide-react';
 import { db, type Car } from '../../shared/lib/db';
 import { useAuth } from '../../shared/lib/AuthContext';
 import { Checkout } from './Checkout';
@@ -10,9 +10,10 @@ interface VehicleDetailProps {
   car: Car;
   onClose: () => void;
   onInquiry: () => void;
+  onVendorClick: (vendorId: string) => void;
 }
 
-export const VehicleDetail = ({ car, onClose, onInquiry }: VehicleDetailProps) => {
+export const VehicleDetail = ({ car, onClose, onInquiry, onVendorClick }: VehicleDetailProps) => {
   const allImages = [car.image_url, ...(car.gallery_urls || [])].filter(Boolean);
   const [activeImg, setActiveImg] = useState(0);
   const [showCheckout, setShowCheckout] = useState(false);
@@ -162,6 +163,48 @@ export const VehicleDetail = ({ car, onClose, onInquiry }: VehicleDetailProps) =
                     </div>
                   </>
                 )}
+
+                {/* Vendor Partner Badge */}
+                {car.vendor_id && (
+                  <>
+                    <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'var(--border-glass)' }} />
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onVendorClick(car.vendor_id!);
+                      }}
+                      className="glass-hover"
+                      style={{ 
+                        background: 'none', 
+                        border: 'none', 
+                        padding: 0, 
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center'
+                      }}
+                    >
+                      <div className="glass" style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '0.4rem',
+                        padding: '0.3rem 0.6rem', 
+                        borderRadius: '2rem',
+                        background: 'rgba(255,255,255,0.05)',
+                        border: '1px solid var(--border-glass)'
+                      }}>
+                        <Store size={12} color="var(--accent-gold)" />
+                        <span style={{ 
+                          fontSize: '0.55rem', 
+                          fontWeight: 800,
+                          letterSpacing: '1px',
+                          color: 'var(--text-main)'
+                        }}>
+                          {car.profiles?.business_name || 'VIEW VENDOR'}
+                        </span>
+                      </div>
+                    </button>
+                  </>
+                )}
             </div>
           </div>
         </div>
@@ -204,6 +247,36 @@ export const VehicleDetail = ({ car, onClose, onInquiry }: VehicleDetailProps) =
                 />
               </div>
             </div>
+
+            {/* Vehicle Features & Options */}
+            {car.features && car.features.length > 0 && (
+              <div style={{ marginBottom: '3rem' }}>
+                <h4 style={{ fontSize: '0.75rem', color: 'var(--accent-gold)', letterSpacing: '3px', marginBottom: '1.5rem', fontWeight: 800 }}>FEATURES & OPTIONS</h4>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  {car.features.map((feature, idx) => {
+                    const isMarketTag = [
+                      'Accident Free','First Body','First Owner','Full Option / Fully Loaded',
+                      'Leather Interior','Low Mileage','Neatly Used','New Shape / Facelift',
+                      'No Faults','Registered','Reverse Camera','Soundproofed'
+                    ].includes(feature);
+                    return (
+                      <span key={idx} style={{
+                        padding: '0.35rem 0.85rem',
+                        borderRadius: '2rem',
+                        fontSize: '0.72rem',
+                        fontWeight: 600,
+                        border: isMarketTag ? '1px solid rgba(96,165,250,0.4)' : '1px solid rgba(212,175,55,0.35)',
+                        background: isMarketTag ? 'rgba(59,130,246,0.08)' : 'rgba(212,175,55,0.06)',
+                        color: isMarketTag ? '#93c5fd' : 'var(--accent-gold)',
+                        letterSpacing: '0.3px',
+                      }}>
+                        {feature}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             <div style={{ marginBottom: '3rem' }}>
                 <h4 style={{ fontSize: '0.75rem', color: 'var(--text-muted)', letterSpacing: '3px', marginBottom: '1rem', fontWeight: 800 }}>CURATOR'S ANALYSIS</h4>

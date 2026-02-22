@@ -30,6 +30,8 @@ import {
 } from 'lucide-react';
 import { ThemeToggle } from '../shared/components/ThemeToggle';
 import { useAlert } from '../shared/context/AlertContext';
+import { NotificationInbox } from '../shared/components/NotificationInbox';
+import { ChatSystem } from '../shared/components/ChatSystem';
 
 export default function VendorDashboard() {
   const { user, profile, signOut } = useAuth();
@@ -246,10 +248,8 @@ export default function VendorDashboard() {
           </button>
         </div>
       </motion.div>
-
       {/* Main Content */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        {/* Header */}
         <div style={{ padding: '2rem', borderBottom: '1px solid var(--border-glass)', background: 'rgba(0,0,0,0.4)', position: 'sticky', top: 0, zIndex: 10, backdropFilter: 'blur(10px)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
@@ -264,18 +264,23 @@ export default function VendorDashboard() {
                 {activeSection === 'analytics' && 'Real-time performance metrics'}
               </p>
             </div>
-            {activeSection === 'inventory' && (
-              <button 
-                onClick={() => { setEditingCar(null); setShowAddModal(true); }}
-                className="btn-gold" 
-                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '1rem 2rem' }}
-              >
-                <Plus size={18} />
-                ADD ASSET
-              </button>
-            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+              <NotificationInbox />
+              {activeSection === 'inventory' && (
+                <button 
+                  onClick={() => { setEditingCar(null); setShowAddModal(true); }}
+                  className="btn-gold" 
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '1rem 2rem' }}
+                >
+                  <Plus size={18} />
+                  ADD ASSET
+                </button>
+              )}
+            </div>
           </div>
         </div>
+        
+        <ChatSystem />
 
         {/* Content Area */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '2rem' }}>

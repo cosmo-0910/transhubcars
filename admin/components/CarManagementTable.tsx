@@ -37,7 +37,21 @@ export const CarManagementTable = ({
         <tbody>
           {cars.map((item) => (
             <tr key={item.id} style={{ borderBottom: '1px solid var(--border-glass)' }}>
-              <td style={{ padding: '1.5rem' }}>{item.year} {item.make} {item.model}</td>
+              <td style={{ padding: '1.5rem' }}>
+                <div style={{ fontWeight: 600 }}>{item.year} {item.make} {item.model}</div>
+                {item.features && item.features.length > 0 && (
+                  <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.4rem', flexWrap: 'wrap' }}>
+                    {item.features.slice(0, 3).map((f, i) => (
+                      <span key={i} style={{ fontSize: '0.65rem', background: 'rgba(197, 160, 89, 0.1)', color: 'var(--accent-gold)', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
+                        {f}
+                      </span>
+                    ))}
+                    {item.features.length > 3 && (
+                      <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>+{item.features.length - 3} more</span>
+                    )}
+                  </div>
+                )}
+              </td>
               <td style={{ padding: '1.5rem' }}>{formatPrice(item.price)}</td>
               <td style={{ padding: '1.5rem' }}>
                 {item.profiles?.business_name ? (

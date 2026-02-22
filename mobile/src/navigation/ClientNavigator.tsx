@@ -28,6 +28,10 @@ import { TowTruckScreen } from '../screens/client/TowTruckScreen';
 import { TowTruckMapScreen } from '../screens/client/TowTruckMapScreen';
 import { TowTrackingScreen } from '../screens/client/TowTrackingScreen';
 import { MechanicsScreen } from '../screens/client/MechanicsScreen';
+import { MessagesScreen } from '../screens/chat/MessagesScreen';
+import { NotificationsScreen } from '../screens/chat/NotificationsScreen';
+import { ChatDetailScreen } from '../screens/chat/ChatDetailScreen';
+import { VendorApplicationScreen } from '../screens/profile/VendorApplicationScreen';
 
 export type ClientStackParamList = {
   MainTabs: undefined;
@@ -50,11 +54,17 @@ export type ClientStackParamList = {
   TowTruckMap: undefined;
   TowTracking: { requestId: string };
   Mechanics: undefined;
+  Messages: undefined;
+  Notifications: undefined;
+  ChatDetail: { conversation: any };
+  VendorApplication: undefined;
 };
 
 export type ClientTabParamList = {
   Home: undefined;
   Inventory: undefined;
+  Messages: undefined;
+  Notifications: undefined;
   Profile: undefined;
 };
 
@@ -101,6 +111,24 @@ const TabNavigator = () => {
         }}
       />
       <Tab.Screen
+        name="Messages"
+        component={MessagesScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Icon name="chatbubbles-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Notifications"
+        component={NotificationsScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Icon name="notifications-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
         name="Profile"
         component={ProfileScreen}
         options={{
@@ -136,6 +164,10 @@ export const ClientNavigator = () => {
       <Stack.Screen name="TowTruckMap" component={TowTruckMapScreen} />
       <Stack.Screen name="TowTracking" component={TowTrackingScreen} />
       <Stack.Screen name="Mechanics" component={MechanicsScreen} />
+      <Stack.Screen name="Messages" component={MessagesScreen} />
+      <Stack.Screen name="Notifications" component={NotificationsScreen} />
+      <Stack.Screen name="ChatDetail" component={ChatDetailScreen} />
+      <Stack.Screen name="VendorApplication" component={VendorApplicationScreen} />
     </Stack.Navigator>
   );
 };

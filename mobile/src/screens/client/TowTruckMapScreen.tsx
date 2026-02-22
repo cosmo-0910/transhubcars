@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform, Alert, Dimensions, PermissionsAndroid } from 'react-native';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+// import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+const MapView: any = View;
+const Marker: any = View;
+const PROVIDER_GOOGLE = 'google';
 import Geolocation from 'react-native-geolocation-service';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '../../utils/theme';
 import { useAlert } from '../../context/AlertContext';
@@ -16,7 +19,7 @@ const { width, height } = Dimensions.get('window');
 
 export const TowTruckMapScreen = () => {
   const navigation = useNavigation<any>();
-  const mapRef = useRef<MapView>(null);
+  const mapRef = useRef<any>(null);
   const { profile } = useAuth();
   const { showAlert } = useAlert();
   const [loading, setLoading] = useState(false);
@@ -135,34 +138,11 @@ export const TowTruckMapScreen = () => {
 
   return (
     <View style={styles.container}>
-      <MapView
-        ref={mapRef}
-        provider={PROVIDER_GOOGLE}
-        style={styles.map}
-        initialRegion={region}
-        onRegionChangeComplete={setRegion}
-        onPress={handleMapPress}
-        customMapStyle={TRANSHUB_MAP_STYLE}
-      >
-        {pickupLocation && (
-          <Marker
-            coordinate={pickupLocation}
-            title="Pickup point"
-            pinColor={COLORS.primary}
-          />
-        )}
-        {nearbyDrivers.map((driver) => (
-          <Marker
-            key={driver.id}
-            coordinate={{ latitude: driver.last_lat, longitude: driver.last_long }}
-            title={driver.full_name}
-          >
-            <View style={styles.driverMarker}>
-              <Icon name="car" size={24} color={COLORS.primary} />
-            </View>
-          </Marker>
-        ))}
-      </MapView>
+      <View style={[styles.map, styles.placeholderMap]}>
+        <Icon name="map-outline" size={64} color={COLORS.primary} />
+        <Text style={styles.placeholderMapText}>Map Service Offline</Text>
+        <Text style={styles.placeholderMapSub}>Address-based towing is still available below</Text>
+      </View>
 
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
@@ -304,5 +284,21 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
+  },
+  placeholderMap: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.backgroundCard,
+    gap: SPACING.md,
+  },
+  placeholderMapText: {
+    fontSize: FONT_SIZES.lg,
+    fontWeight: 'bold',
+    color: COLORS.text,
+  },
+  placeholderMapSub: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
   },
 });

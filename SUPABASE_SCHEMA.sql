@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS cars (
   description TEXT,
   image_url TEXT,
   gallery_urls TEXT[] DEFAULT '{}',
+  features TEXT[] DEFAULT '{}',
   mileage INTEGER DEFAULT 0,
   vin TEXT,
   transmission TEXT CHECK (transmission IN ('Automatic', 'Manual', 'Semi-Auto')),

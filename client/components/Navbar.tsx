@@ -3,6 +3,7 @@ import { Car, Search, Menu, User, LogOut, Shield, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import SearchAutocomplete from '../../shared/components/SearchAutocomplete';
 import { ThemeToggle } from '../../shared/components/ThemeToggle';
+import { NotificationInbox } from '../../shared/components/NotificationInbox';
 
 interface NavbarProps {
   onAdminToggle: () => void;
@@ -118,6 +119,8 @@ export const Navbar = ({ onAdminToggle, isAdmin, onAuthClick, onProfileClick, us
           </div>
 
           <ThemeToggle />
+          
+          {user && <NotificationInbox />}
           
           <div className="desktop-nav">
             {user ? (

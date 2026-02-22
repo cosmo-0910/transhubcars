@@ -94,6 +94,24 @@ export const partsService = {
     if (error) throw error;
   },
 
+  async bulkDeleteParts(ids: string[]): Promise<void> {
+    const { error } = await supabase
+      .from('spare_parts')
+      .delete()
+      .in('id', ids);
+    
+    if (error) throw error;
+  },
+
+  async bulkUpdateParts(ids: string[], updates: Partial<SparePart>): Promise<void> {
+    const { error } = await supabase
+      .from('spare_parts')
+      .update(updates)
+      .in('id', ids);
+    
+    if (error) throw error;
+  },
+
   async submitOrder(order: Omit<SparePartOrder, 'id' | 'status' | 'created_at'>): Promise<SparePartOrder> {
     const { data, error } = await supabase
       .from('spare_part_orders')

@@ -1,11 +1,29 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Upload, Plus } from 'lucide-react';
+import { X, Upload, Plus, Check } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { db, type Car } from '../../shared/lib/db';
 import { useAuth } from '../../shared/lib/AuthContext';
+import { useAlert } from '../../shared/context/AlertContext';
 import LuxurySelect from './LuxurySelect';
 import LuxuryAutocomplete from './LuxuryAutocomplete';
 import ImageUploadField from '../../shared/components/ImageUploadField';
+
+const STANDARD_FEATURES = [
+  'Air Conditioning', 'Alloy Wheels', 'AM/FM Radio', 'Android Auto / Apple CarPlay',
+  'Anti-Lock Brakes', 'Armrests', 'Blind Spot Monitor', 'CD Player',
+  'Cruise Control', 'Cup Holders', 'DVD Player', 'Electric Mirrors',
+  'Electric Windows', 'Fog Lights', 'Front Fog Lamps', 'Heated Seats',
+  'Keyless Entry / Start', 'Leather Seats / Upholstery', 'LED Headlights',
+  'Navigation System', 'Parking Sensors', 'Power Steering', 'Rear Camera',
+  'Roof Rack', 'Sunroof / Moonroof', 'Touchscreen', 'Traction Control',
+  'USB / AUX Port', 'Xenon Lights',
+];
+
+const NIGERIAN_MARKET_TAGS = [
+  'Accident Free', 'First Body', 'First Owner', 'Full Option / Fully Loaded',
+  'Leather Interior', 'Low Mileage', 'Neatly Used', 'New Shape / Facelift',
+  'No Faults', 'Registered', 'Reverse Camera', 'Soundproofed',
+];
 
 interface AddCarModalProps {
   onClose: () => void;
@@ -15,11 +33,12 @@ interface AddCarModalProps {
 
 export default function AddCarModal({ onClose, onSuccess, editingCar }: AddCarModalProps) {
   const { user, profile } = useAuth();
+  const { showAlert } = useAlert();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [primaryImage, setPrimaryImage] = useState<File | string | null>(editingCar?.image_url || null);
   const [galleryImages, setGalleryImages] = useState<(File | string)[]>(editingCar?.gallery_urls || []);
   const [selectedMake, setSelectedMake] = useState<string>(editingCar?.make || '');
+  const [selectedFeatures, setSelectedFeatures] = useState<string[]>(editingCar?.features || []);
   const cachedMakes = useRef<any[] | null>(null);
 
   const fetchMakes = async (query: string) => {
@@ -54,6 +73,12 @@ export default function AddCarModal({ onClose, onSuccess, editingCar }: AddCarMo
     }
   };
 
+  const toggleFeature = (feature: string) => {
+    setSelectedFeatures(prev =>
+      prev.includes(feature) ? prev.filter(f => f !== feature) : [...prev, feature]
+    );
+  };
+
   const handleAddGalleryImage = () => {
     setGalleryImages([...galleryImages, '']);
   };
@@ -76,7 +101,6 @@ export default function AddCarModal({ onClose, onSuccess, editingCar }: AddCarMo
 
     try {
       setLoading(true);
-      setError(null);
 
       // 1. Upload Primary Image if it's a File
       let primaryUrl = editingCar?.image_url || '';
@@ -106,11 +130,12 @@ export default function AddCarModal({ onClose, onSuccess, editingCar }: AddCarMo
         mileage: parseInt(formData.get('mileage') as string),
         transmission: formData.get('transmission'),
         fuel_type: formData.get('fuel_type'),
-        exterior_color: formData.get('exterior_color'), // Added
-        interior_color: formData.get('interior_color'), // Added
-        engine: formData.get('engine'),                 // Updated
-        vin: formData.get('vin'),                       // Added
+        exterior_color: formData.get('exterior_color'),
+        interior_color: formData.get('interior_color'),
+        engine: formData.get('engine'),
+        vin: formData.get('vin'),
         description: formData.get('description'),
+        features: selectedFeatures,
         image_url: primaryUrl || 'https://images.unsplash.com/photo-1544636331-e26859203199?auto=format&fit=crop&q=80',
         gallery_urls: galleryUrls.filter(url => typeof url === 'string' && url.trim() !== ''),
         vendor_id: user.id,
@@ -128,7 +153,7 @@ export default function AddCarModal({ onClose, onSuccess, editingCar }: AddCarMo
       const msg = err.message === 'Duplicate image prohibited' 
         ? 'Duplicate image prohibited. This file has already been posted.' 
         : (err.message === 'HTTP 400 error' ? 'System rejected the upload. Please verify your connection.' : (err.message || 'Failed to save vehicle protocol'));
-      setError(msg);
+      showAlert({ title: 'Save Error', message: msg, buttons: [{ text: 'OK', style: 'destructive' }] });
     } finally {
       setLoading(false);
     }
@@ -150,12 +175,6 @@ export default function AddCarModal({ onClose, onSuccess, editingCar }: AddCarMo
           <h2 className="luxury-font" style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>{editingCar ? 'Refine Listing' : 'New Vehicle Protocol'}</h2>
           <p style={{ color: 'var(--text-muted)' }}>Enter high-precision data for your luxury asset</p>
         </div>
-
-        {error && (
-          <div style={{ padding: '1rem', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', borderRadius: '0.8rem', marginBottom: '2rem', fontSize: '0.9rem' }}>
-            {error}
-          </div>
-        )}
 
         <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
           {/* Main Info */}
@@ -261,6 +280,82 @@ export default function AddCarModal({ onClose, onSuccess, editingCar }: AddCarMo
                 ]}
               />
             </div>
+          </div>
+
+          {/* Vehicle Features & Options */}
+          <div style={{ gridColumn: 'span 2' }}>
+            <div style={{ fontSize: '0.7rem', letterSpacing: '2px', color: 'var(--accent-gold)', marginBottom: '1.5rem', marginTop: '1rem' }}>VEHICLE FEATURES & OPTIONS</div>
+            
+            <div style={{ marginBottom: '1rem' }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.8rem', fontWeight: 600 }}>STANDARD FEATURES</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem' }}>
+                {STANDARD_FEATURES.map(feature => {
+                  const active = selectedFeatures.includes(feature);
+                  return (
+                    <button
+                      key={feature}
+                      type="button"
+                      onClick={() => toggleFeature(feature)}
+                      style={{
+                        padding: '0.4rem 0.9rem',
+                        borderRadius: '2rem',
+                        border: active ? '1px solid var(--accent-gold)' : '1px solid var(--border-glass)',
+                        background: active ? 'var(--accent-gold-soft)' : 'rgba(255,255,255,0.03)',
+                        color: active ? 'var(--accent-gold)' : 'var(--text-muted)',
+                        cursor: 'pointer',
+                        fontSize: '0.72rem',
+                        fontWeight: active ? 700 : 400,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        transition: 'all 0.2s',
+                      }}
+                    >
+                      {active && <Check size={11} />}
+                      {feature}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div style={{ marginTop: '1.5rem' }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.8rem', fontWeight: 600 }}>MARKET CONDITION TAGS</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem' }}>
+                {NIGERIAN_MARKET_TAGS.map(tag => {
+                  const active = selectedFeatures.includes(tag);
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => toggleFeature(tag)}
+                      style={{
+                        padding: '0.4rem 0.9rem',
+                        borderRadius: '2rem',
+                        border: active ? '1px solid #3b82f6' : '1px solid var(--border-glass)',
+                        background: active ? 'rgba(59,130,246,0.12)' : 'rgba(255,255,255,0.03)',
+                        color: active ? '#60a5fa' : 'var(--text-muted)',
+                        cursor: 'pointer',
+                        fontSize: '0.72rem',
+                        fontWeight: active ? 700 : 400,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        transition: 'all 0.2s',
+                      }}
+                    >
+                      {active && <Check size={11} />}
+                      {tag}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            {selectedFeatures.length > 0 && (
+              <div style={{ marginTop: '1rem', fontSize: '0.7rem', color: 'var(--accent-gold)' }}>
+                {selectedFeatures.length} feature{selectedFeatures.length !== 1 ? 's' : ''} selected
+              </div>
+            )}
           </div>
 
           {/* Media & Narrative */}

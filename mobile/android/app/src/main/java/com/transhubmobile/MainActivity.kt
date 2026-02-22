@@ -1,4 +1,4 @@
-package com.transhub.mobile
+package com.transhubmobile
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate

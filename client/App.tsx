@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Navbar } from './components/Navbar.tsx';
 import { Inventory } from './components/Inventory.tsx';
@@ -8,6 +8,7 @@ import { DiscoveryGallery } from './components/DiscoveryGallery.tsx';
 import { AuthForm } from './components/AuthForms.tsx';
 import { UserProfile } from './components/UserProfile.tsx';
 import { Preorder } from './components/Preorder.tsx';
+import { VendorProfile } from './components/VendorProfile.tsx';
 import { Services } from './components/Services.tsx';
 import { Footer } from './components/Footer.tsx';
 import { InstallPrompt } from '../shared/components/InstallPrompt.tsx';
@@ -15,6 +16,7 @@ import { AuthProvider, useAuth } from '../shared/lib/AuthContext.tsx';
 import { ThemeProvider } from '../shared/context/ThemeContext.tsx';
 import { AlertProvider } from '../shared/context/AlertContext.tsx';
 import { MaintenanceGuard } from '../shared/components/MaintenanceGuard.tsx';
+import { ChatSystem } from '../shared/components/ChatSystem.tsx';
 import type { Car } from '../shared/lib/db.ts';
 
 function LogoBackground() {
@@ -40,10 +42,17 @@ function AppContent() {
   const [showProfile, setShowProfile] = useState(false);
   const [discoveryFilter, setDiscoveryFilter] = useState<{ type: 'body' | 'brand', value: string } | null>(null);
   const [globalSearchQuery, setGlobalSearchQuery] = useState('');
+  const [selectedVendorId, setSelectedVendorId] = useState<string | null>(null);
   const { user, profile, signOut } = useAuth();
   const isAdmin = profile?.role === 'admin';
 
-
+  useEffect(() => {
+    const handleSelectCar = (e: any) => {
+      setSelectedCar(e.detail.car);
+    };
+    window.addEventListener('select-car', handleSelectCar);
+    return () => window.removeEventListener('select-car', handleSelectCar);
+  }, []);
 
   return (
     <div className="min-h-screen">
@@ -221,6 +230,10 @@ function AppContent() {
               setShowInquiry({ type: 'Purchase', carName: `${selectedCar.make} ${selectedCar.model}` });
               setSelectedCar(null);
             }}
+            onVendorClick={(vendorId) => {
+              setSelectedVendorId(vendorId);
+              setSelectedCar(null);
+            }}
           />
         )}
       </AnimatePresence>
@@ -272,6 +285,12 @@ function AppContent() {
             {showProfile && (
               <UserProfile onClose={() => setShowProfile(false)} />
             )}
+            {selectedVendorId && (
+              <VendorProfile 
+                vendorId={selectedVendorId} 
+                onClose={() => setSelectedVendorId(null)} 
+              />
+            )}
 
               <button 
                 onClick={() => { setShowInquiry(null); setShowAuth(null); setShowProfile(false); }}
@@ -283,6 +302,9 @@ function AppContent() {
 
       {/* PWA Install Prompt */}
       <InstallPrompt />
+
+      {/* Real-time Chat System */}
+      <ChatSystem />
     </div>
   );
 }

@@ -121,6 +121,34 @@ export const UserProfile = ({ onClose }: { onClose: () => void }) => {
             <NavTab active={activeTab === 'membership'} onClick={() => setActiveTab('membership')} icon={<ShieldCheck size={18} />} label="MEMBERSHIP" />
             <NavTab active={activeTab === 'vendor'} onClick={() => setActiveTab('vendor')} icon={<Store size={18} />} label="VENDOR PORTAL" />
             <div style={{ height: '1px', background: 'var(--border-glass)', margin: '1rem 0' }} />
+            <button 
+              onClick={() => {
+                const event = new CustomEvent('open-chat', { detail: { carId: null, vendorId: null } });
+                window.dispatchEvent(event);
+                onClose();
+              }}
+              className="glass-hover"
+              style={{
+                width: '100%',
+                padding: '1.2rem',
+                borderRadius: '1rem',
+                border: '1px solid var(--accent-gold)',
+                background: 'rgba(197, 160, 89, 0.05)',
+                color: 'var(--accent-gold)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '1rem',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                fontWeight: 700,
+                fontSize: '0.75rem',
+                letterSpacing: '1.5px',
+                marginBottom: '0.5rem'
+              }}
+            >
+              <Mail size={18} />
+              <span>CONTACT CONCIERGE</span>
+            </button>
             <NavTab active={false} onClick={() => {}} icon={<Settings size={18} />} label="SETTINGS" />
           </div>
         </div>

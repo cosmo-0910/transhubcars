@@ -120,6 +120,34 @@ export const ProfileScreen = ({ navigation }: any) => {
         </View>
       </View>
 
+      {/* Vendor Application CTA — only for non-vendor users */}
+      {profile?.role === 'customer' && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Sell on Transhub</Text>
+          <TouchableOpacity 
+            style={styles.vendorCTACard} 
+            onPress={() => navigation.navigate('VendorApplication')}
+          >
+            <View style={styles.vendorCTALeft}>
+              <View style={styles.vendorCTAIcon}>
+                <Icon name="storefront-outline" size={24} color={COLORS.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.vendorCTATitle}>
+                  {profile?.vendor_status === 'pending' ? 'Application Pending' : 'Become a Vendor'}
+                </Text>
+                <Text style={styles.vendorCTADesc}>
+                  {profile?.vendor_status === 'pending'
+                    ? 'Your application is under review. Tap to view status.'
+                    : 'Start selling cars or spare parts to thousands of buyers.'}
+                </Text>
+              </View>
+            </View>
+            <Icon name="chevron-forward" size={18} color={COLORS.primary} />
+          </TouchableOpacity>
+        </View>
+      )}
+
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Activity</Text>
         <View style={styles.card}>
@@ -304,5 +332,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: COLORS.background,
+  },
+  vendorCTACard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(197, 160, 89, 0.08)',
+    borderRadius: BORDER_RADIUS.lg,
+    padding: SPACING.md,
+    borderWidth: 1,
+    borderColor: 'rgba(197, 160, 89, 0.35)',
+  },
+  vendorCTALeft: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  vendorCTAIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(197, 160, 89, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: SPACING.md,
+  },
+  vendorCTATitle: {
+    fontSize: FONT_SIZES.md,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginBottom: 2,
+  },
+  vendorCTADesc: {
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textMuted,
+    lineHeight: 16,
   },
 });

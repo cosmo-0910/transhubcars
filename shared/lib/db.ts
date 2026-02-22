@@ -41,6 +41,7 @@ export interface Car {
   exterior_color: string;
   engine: string;
   stock_number: string;
+  features?: string[];
   vendor_id?: string;
   approval_status?: 'pending' | 'approved' | 'rejected';
   profiles?: Profile;
@@ -795,6 +796,28 @@ export const db = {
       .single();
     if (error) throw error;
     return data;
+  },
+
+  // Engagement checks
+  hasEngagementWithVendor: async (userId: string, vendorId: string): Promise<boolean> => {
+    // Check for inquiries tied to this vendor's cars
+    const { data: inquiryCount, error: inquiryError } = await supabase
+      .from('inquiries')
+      .select('id, cars!inner(vendor_id)', { count: 'exact', head: true })
+      .eq('cars.vendor_id', vendorId);
+
+    if (inquiryError) console.error('Engagement check (inquiries) failed:', inquiryError);
+    if (inquiryCount && inquiryCount.length > 0) return true;
+
+    // Check for orders tied to this vendor's cars
+    const { data: orderCount, error: orderError } = await supabase
+      .from('orders')
+      .select('id, cars!inner(vendor_id)', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('cars.vendor_id', vendorId);
+
+    if (orderError) console.error('Engagement check (orders) failed:', orderError);
+    return (orderCount && orderCount.length > 0) || false;
   },
 
   updateSparePart: async (id: string, part: Partial<SparePart>) => {

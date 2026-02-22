@@ -16,14 +16,17 @@ import { Input } from '../../components/common/Input';
 import { Button } from '../../components/common/Button';
 import { AutocompleteInput } from '../../components/common/AutocompleteInput';
 import { partsService } from '../../services/parts.service';
+import { vendorService } from '../../services/vendor.service';
 import { useAuth } from '../../hooks/useAuth';
 import { SparePart } from '../../types';
+import { formatCurrency } from '../../utils/helpers';
 
 export const AddSparePartScreen = ({ route, navigation }: any) => {
   const { user } = useAuth();
   const { showAlert } = useAlert();
   const editPart = route.params?.part as SparePart;
   const [loading, setLoading] = useState(false);
+  const [financeSettings, setFinanceSettings] = useState<any>(null);
   
   const [form, setForm] = useState({
     name: editPart?.name || '',
@@ -37,6 +40,22 @@ export const AddSparePartScreen = ({ route, navigation }: any) => {
     description: editPart?.description || '',
     image_url: editPart?.image_url || '',
   });
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      const settings = await vendorService.getPlatformFinanceSettings();
+      setFinanceSettings(settings);
+    };
+    fetchSettings();
+  }, []);
+
+  const calculateFees = () => {
+    const price = parseFloat(form.price) || 0;
+    const commissionPct = financeSettings?.parts_sale_commission_pct || 10.0;
+    const fee = (price * commissionPct) / 100;
+    const payout = price - fee;
+    return { fee, payout, pct: commissionPct };
+  };
 
   const handleSubmit = async () => {
     if (!form.name || !form.category || !form.price || !form.vehicle_make) {
@@ -152,6 +171,19 @@ export const AddSparePartScreen = ({ route, navigation }: any) => {
           </View>
         </View>
 
+        {form.price ? (
+          <View style={styles.feeBreakdown}>
+            <View style={styles.feeRow}>
+              <Text style={styles.feeLabel}>Platform Fee ({calculateFees().pct}%)</Text>
+              <Text style={styles.feeValue}>- {formatCurrency(calculateFees().fee)}</Text>
+            </View>
+            <View style={[styles.feeRow, styles.payoutRow]}>
+              <Text style={styles.payoutLabel}>Your Payout</Text>
+              <Text style={styles.payoutValue}>{formatCurrency(calculateFees().payout)}</Text>
+            </View>
+          </View>
+        ) : null}
+
         <Input
           label="Description"
           placeholder="Detailed description of the part..."
@@ -214,5 +246,47 @@ const styles = StyleSheet.create({
   },
   submitBtn: {
     marginTop: SPACING.xl,
+  },
+  feeBreakdown: {
+    backgroundColor: COLORS.backgroundCard,
+    padding: SPACING.md,
+    borderRadius: BORDER_RADIUS.md,
+    marginTop: SPACING.sm,
+    marginBottom: SPACING.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderStyle: 'dashed',
+  },
+  feeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  feeLabel: {
+    fontSize: 10,
+    color: COLORS.textMuted,
+    fontWeight: '600',
+  },
+  feeValue: {
+    fontSize: 10,
+    color: COLORS.error,
+    fontWeight: '700',
+  },
+  payoutRow: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    marginBottom: 0,
+  },
+  payoutLabel: {
+    fontSize: 12,
+    color: COLORS.text,
+    fontWeight: '800',
+  },
+  payoutValue: {
+    fontSize: 14,
+    color: COLORS.primary,
+    fontWeight: '800',
   },
 });

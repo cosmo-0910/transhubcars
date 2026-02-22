@@ -16,6 +16,7 @@ export interface Car {
   exterior_color?: string;
   engine?: string;
   stock_number?: string;
+  features?: string[];
   vendor_id?: string;
   approval_status?: 'pending' | 'approved' | 'rejected';
   created_at: string;
@@ -149,5 +150,50 @@ export interface Mechanic {
   is_approved: boolean; // Transhub Approved
   phone?: string;
   image_url?: string;
+  created_at: string;
+}
+
+export interface Conversation {
+  id: string;
+  car_id?: string;
+  buyer_id: string;
+  vendor_id: string;
+  last_message?: string;
+  updated_at: string;
+  buyer?: {
+    full_name: string;
+    avatar_url?: string;
+  };
+  vendor?: {
+    full_name: string;
+    avatar_url?: string;
+    business_name?: string;
+  };
+  car?: {
+    make: string;
+    model: string;
+    year: number;
+    image_url?: string;
+  };
+}
+
+export interface Message {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  text?: string;
+  image_url?: string;
+  is_read: boolean;
+  created_at: string;
+}
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  title: string;
+  body: string;
+  type: 'info' | 'success' | 'warning' | 'error';
+  link?: string;
+  is_read: boolean;
   created_at: string;
 }

@@ -11,21 +11,43 @@ import {
   Image,
 } from 'react-native';
 import { useAuth } from '../../hooks/useAuth';
+import { useAlert } from '../../context/AlertContext';
 import { carsService } from '../../services/cars.service';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '../../utils/theme';
 import { Input } from '../../components/common/Input';
 import { Button } from '../../components/common/Button';
-import { CustomAlert } from '../../components/common/CustomAlert';
 import { LuxuryPicker } from '../../components/common/LuxuryPicker';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { checkMediaPermissions } from '../../utils/permissions';
+import { vendorService } from '../../services/vendor.service';
+import { formatCurrency } from '../../utils/helpers';
+
+const STANDARD_FEATURES = [
+  'Air Conditioning', 'Alloy Wheels', 'AM/FM Radio', 'Android Auto / Apple CarPlay',
+  'Anti-Lock Brakes', 'Armrests', 'Blind Spot Monitor', 'CD Player',
+  'Cruise Control', 'Cup Holders', 'DVD Player', 'Electric Mirrors',
+  'Electric Windows', 'Fog Lights', 'Front Fog Lamps', 'Heated Seats',
+  'Keyless Entry / Start', 'Leather Seats / Upholstery', 'LED Headlights',
+  'Navigation System', 'Parking Sensors', 'Power Steering', 'Rear Camera',
+  'Roof Rack', 'Sunroof / Moonroof', 'Touchscreen', 'Traction Control',
+  'USB / AUX Port', 'Xenon Lights',
+];
+
+const NIGERIAN_MARKET_TAGS = [
+  'Accident Free', 'First Body', 'First Owner', 'Full Option / Fully Loaded',
+  'Leather Interior', 'Low Mileage', 'Neatly Used', 'New Shape / Facelift',
+  'No Faults', 'Registered', 'Reverse Camera', 'Soundproofed',
+];
 
 export const AddVehicleScreen = ({ navigation, route }: any) => {
   const { user, profile } = useAuth();
+  const { showAlert } = useAlert();
   const editCar = route.params?.car;
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1);
+  const [financeSettings, setFinanceSettings] = useState<any>(null);
+  const [selectedFeatures, setSelectedFeatures] = useState<string[]>(editCar?.features || []);
   
   const [form, setForm] = useState({
     make: editCar?.make || '',
@@ -42,12 +64,22 @@ export const AddVehicleScreen = ({ navigation, route }: any) => {
     images: (editCar?.gallery_urls || []) as string[],
   });
 
-  const [alertConfig, setAlertConfig] = useState({
-    visible: false,
-    title: '',
-    message: '',
-    buttons: [] as any[],
-  });
+  React.useEffect(() => {
+    const fetchSettings = async () => {
+      const settings = await vendorService.getPlatformFinanceSettings();
+      setFinanceSettings(settings);
+    };
+    fetchSettings();
+  }, []);
+
+  const calculateFees = () => {
+    const price = parseFloat(form.price) || 0;
+    const commissionPct = financeSettings?.car_listing_commission_pct || 2.5;
+    const fee = (price * commissionPct) / 100;
+    const payout = price - fee;
+    return { fee, payout, pct: commissionPct };
+  };
+
 
   const [pickerConfig, setPickerConfig] = useState({
     visible: false,
@@ -57,17 +89,12 @@ export const AddVehicleScreen = ({ navigation, route }: any) => {
     selectedValue: null as any,
   });
 
-  const showAlert = (title: string, message: string, buttons?: any[]) => {
-    setAlertConfig({ visible: true, title, message, buttons: buttons || [] });
-  };
-
-  const hideAlert = () => {
-    setAlertConfig(prev => ({ ...prev, visible: false }));
-  };
-
   const updateForm = (key: string, value: any) => {
     setForm({ ...form, [key]: value });
   };
+
+  const toggleFeature = (f: string) =>
+    setSelectedFeatures(prev => prev.includes(f) ? prev.filter(x => x !== f) : [...prev, f]);
 
   const handleNext = () => {
     if (step < 3) setStep(step + 1);
@@ -79,7 +106,7 @@ export const AddVehicleScreen = ({ navigation, route }: any) => {
 
   const handleSubmit = async () => {
     if (!form.make || !form.model || !form.price) {
-      showAlert('Error', 'Please fill in the required fields (Make, Model, Price)');
+      showAlert({ title: 'Error', message: 'Please fill in the required fields (Make, Model, Price)' });
       return;
     }
 
@@ -90,28 +117,29 @@ export const AddVehicleScreen = ({ navigation, route }: any) => {
         year: parseInt(form.year),
         price: parseFloat(form.price),
         mileage: parseInt(form.mileage),
+        features: selectedFeatures,
         vendor_id: user?.id,
         approval_status: 'pending' as const,
       };
 
       if (editCar) {
         await carsService.updateCar(editCar.id, carData as any);
-        showAlert(
-          'Success',
-          'Vehicle listing has been updated.',
-          [{ text: 'Awesome', onPress: () => navigation.goBack() }]
-        );
+        showAlert({
+          title: 'Success',
+          message: 'Vehicle listing has been updated.',
+          buttons: [{ text: 'Awesome', onPress: () => navigation.goBack() }]
+        });
       } else {
         await carsService.addCar(carData as any);
-        showAlert(
-          'Success',
-          'Vehicle listing has been submitted for approval.',
-          [{ text: 'Awesome', onPress: () => navigation.navigate('Inventory') }]
-        );
+        showAlert({
+          title: 'Success',
+          message: 'Vehicle listing has been submitted for approval.',
+          buttons: [{ text: 'Awesome', onPress: () => navigation.navigate('Inventory') }]
+        });
       }
     } catch (error) {
       console.error('Error saving car:', error);
-      showAlert('Error', 'Failed to save listing. Please try again.');
+      showAlert({ title: 'Error', message: 'Failed to save listing. Please try again.' });
     } finally {
       setLoading(false);
     }
@@ -148,7 +176,7 @@ export const AddVehicleScreen = ({ navigation, route }: any) => {
     } catch (error) {
       console.error('Image picker error:', error);
       setLoading(false);
-      showAlert('Error', 'Failed to pick images');
+      showAlert({ title: 'Error', message: 'Failed to pick images' });
     }
   };
 
@@ -177,13 +205,6 @@ export const AddVehicleScreen = ({ navigation, route }: any) => {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
-      <CustomAlert
-        visible={alertConfig.visible}
-        title={alertConfig.title}
-        message={alertConfig.message}
-        onClose={hideAlert}
-        buttons={alertConfig.buttons}
-      />
       <LuxuryPicker
         visible={pickerConfig.visible}
         title={pickerConfig.title}
@@ -231,6 +252,20 @@ export const AddVehicleScreen = ({ navigation, route }: any) => {
                 onChangeText={(text) => updateForm('price', text)}
               />
             </View>
+
+            {form.price ? (
+              <View style={styles.feeBreakdown}>
+                <View style={styles.feeRow}>
+                  <Text style={styles.feeLabel}>Platform Fee ({calculateFees().pct}%)</Text>
+                  <Text style={styles.feeValue}>- {formatCurrency(calculateFees().fee)}</Text>
+                </View>
+                <View style={[styles.feeRow, styles.payoutRow]}>
+                  <Text style={styles.payoutLabel}>Your Payout</Text>
+                  <Text style={styles.payoutValue}>{formatCurrency(calculateFees().payout)}</Text>
+                </View>
+              </View>
+            ) : null}
+
             <Input
               label="Status"
               placeholder="Select status"
@@ -317,6 +352,45 @@ export const AddVehicleScreen = ({ navigation, route }: any) => {
                 onChangeText={(text) => updateForm('interior_color', text)}
               />
             </View>
+
+            {/* Features & Options */}
+            <Text style={styles.sectionLabel}>Features & Options</Text>
+            <Text style={styles.sectionSublabel}>STANDARD FEATURES</Text>
+            <View style={styles.tagsContainer}>
+              {STANDARD_FEATURES.map(f => {
+                const active = selectedFeatures.includes(f);
+                return (
+                  <TouchableOpacity
+                    key={f}
+                    onPress={() => toggleFeature(f)}
+                    style={[styles.featureTag, active && styles.featureTagActive]}
+                  >
+                    {active && <Icon name="checkmark" size={11} color={COLORS.primary} style={{ marginRight: 4 }} />}
+                    <Text style={[styles.featureTagText, active && styles.featureTagTextActive]}>{f}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <Text style={[styles.sectionSublabel, { marginTop: SPACING.lg }]}>MARKET CONDITION TAGS</Text>
+            <View style={styles.tagsContainer}>
+              {NIGERIAN_MARKET_TAGS.map(f => {
+                const active = selectedFeatures.includes(f);
+                return (
+                  <TouchableOpacity
+                    key={f}
+                    onPress={() => toggleFeature(f)}
+                    style={[styles.featureTag, active && styles.featureTagBlueActive]}
+                  >
+                    {active && <Icon name="checkmark" size={11} color="#60a5fa" style={{ marginRight: 4 }} />}
+                    <Text style={[styles.featureTagText, active && styles.featureTagTextBlue]}>{f}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            {selectedFeatures.length > 0 && (
+              <Text style={styles.featureCount}>{selectedFeatures.length} feature{selectedFeatures.length !== 1 ? 's' : ''} selected</Text>
+            )}
           </View>
         )}
 
@@ -531,5 +605,104 @@ const styles = StyleSheet.create({
   buttonContainer: {
     flexDirection: 'row',
     marginTop: SPACING.xxl,
+  },
+  feeBreakdown: {
+    backgroundColor: COLORS.backgroundCard,
+    padding: SPACING.md,
+    borderRadius: BORDER_RADIUS.md,
+    marginTop: -SPACING.md,
+    marginBottom: SPACING.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderStyle: 'dashed',
+  },
+  feeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  feeLabel: {
+    fontSize: 10,
+    color: COLORS.textMuted,
+    fontWeight: '600',
+  },
+  feeValue: {
+    fontSize: 10,
+    color: COLORS.error,
+    fontWeight: '700',
+  },
+  payoutRow: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    marginBottom: 0,
+  },
+  payoutLabel: {
+    fontSize: 12,
+    color: COLORS.text,
+    fontWeight: '800',
+  },
+  payoutValue: {
+    fontSize: 14,
+    color: COLORS.primary,
+    fontWeight: '800',
+  },
+  sectionLabel: {
+    fontSize: FONT_SIZES.md,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginTop: SPACING.xl,
+    marginBottom: SPACING.sm,
+  },
+  sectionSublabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: COLORS.textMuted,
+    letterSpacing: 0.5,
+    marginBottom: SPACING.sm,
+    textTransform: 'uppercase',
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  featureTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: SPACING.md,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.backgroundCard,
+  },
+  featureTagActive: {
+    borderColor: COLORS.primary,
+    backgroundColor: 'rgba(197, 160, 89, 0.1)',
+  },
+  featureTagBlueActive: {
+    borderColor: 'rgba(96,165,250,0.5)',
+    backgroundColor: 'rgba(59,130,246,0.08)',
+  },
+  featureTagText: {
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textMuted,
+    fontWeight: '500',
+  },
+  featureTagTextActive: {
+    color: COLORS.primary,
+    fontWeight: '700',
+  },
+  featureTagTextBlue: {
+    color: '#93c5fd',
+    fontWeight: '700',
+  },
+  featureCount: {
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.primary,
+    marginTop: SPACING.sm,
+    fontWeight: '600',
   },
 });

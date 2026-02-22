@@ -10,6 +10,7 @@ import { ManageInventoryScreen } from '../screens/vendor/ManageInventoryScreen';
 import { AddVehicleScreen } from '../screens/vendor/AddVehicleScreen';
 import { ManageSparePartsScreen } from '../screens/vendor/ManageSparePartsScreen';
 import { AddSparePartScreen } from '../screens/vendor/AddSparePartScreen';
+import { VendorFinancialsScreen } from '../screens/vendor/VendorFinancialsScreen';
 import { VendorProfileScreen } from '../screens/vendor/VendorProfileScreen';
 import { DriverTowDashboard } from '../screens/vendor/DriverTowDashboard';
 import { EditProfileScreen } from '../screens/profile/EditProfileScreen';
@@ -40,6 +41,7 @@ export type VendorStackParamList = {
   About: undefined;
   ManageSpareParts: undefined;
   AddSparePart: { part?: any };
+  Financials: undefined;
 };
 
 const Tab = createBottomTabNavigator<VendorTabParamList>();
@@ -133,6 +135,7 @@ export const VendorNavigator = () => {
       <Stack.Screen name="About" component={AboutScreen} />
       <Stack.Screen name="ManageSpareParts" component={ManageSparePartsScreen} />
       <Stack.Screen name="AddSparePart" component={AddSparePartScreen} />
+      <Stack.Screen name="Financials" component={VendorFinancialsScreen} />
     </Stack.Navigator>
   );
 };

@@ -22,3 +22,8 @@ export const truncateText = (text: string, maxLength: number): string => {
   if (text.length <= maxLength) return text;
   return text.substring(0, maxLength) + '...';
 };
+
+export const maskVIN = (vin?: string): string => {
+  if (!vin) return 'Not Specified';
+  return `${vin.slice(0, -6).padEnd(vin.length, '*')}`;
+};

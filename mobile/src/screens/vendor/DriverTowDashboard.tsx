@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Switch, ScrollView } from 'react-native';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+// import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+const MapView: any = View;
+const Marker: any = View;
+const PROVIDER_GOOGLE = 'google';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '../../utils/theme';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useAlert } from '../../context/AlertContext';
@@ -175,22 +178,13 @@ export const DriverTowDashboard = () => {
         />
       </View>
 
-      <MapView
-        provider={PROVIDER_GOOGLE}
-        style={styles.map}
-        region={{
-          ...location,
-          latitudeDelta: 0.0122,
-          longitudeDelta: 0.0121,
-        }}
-        customMapStyle={TRANSHUB_MAP_STYLE}
-      >
-        <Marker coordinate={location} title="You">
-          <View style={styles.driverMarker}>
-            <Icon name="car" size={24} color={COLORS.primary} />
-          </View>
-        </Marker>
-      </MapView>
+      <View style={[styles.map, styles.placeholderMap]}>
+        <Icon name="map-outline" size={64} color={isOnline ? COLORS.primary : COLORS.textMuted} />
+        <Text style={styles.placeholderMapText}>{isOnline ? 'Scanning for Requests' : 'System Offline'}</Text>
+        <Text style={styles.placeholderMapSub}>
+          {isOnline ? 'Go to list view for active requests' : 'Switch online to begin shift'}
+        </Text>
+      </View>
 
       <View style={styles.bottomSheet}>
         {currentRequest ? (
@@ -336,5 +330,22 @@ const styles = StyleSheet.create({
     color: '#000',
     fontSize: 10,
     fontWeight: 'bold',
-  }
+  },
+  placeholderMap: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.backgroundCard,
+    gap: SPACING.md,
+  },
+  placeholderMapText: {
+    fontSize: FONT_SIZES.lg,
+    fontWeight: 'bold',
+    color: COLORS.text,
+  },
+  placeholderMapSub: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    paddingHorizontal: SPACING.xl,
+  },
 });

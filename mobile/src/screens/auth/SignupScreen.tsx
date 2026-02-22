@@ -10,10 +10,10 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
-import { CustomAlert } from '../../components/common/CustomAlert';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useAuth } from '../../hooks/useAuth';
+import { useAlert } from '../../context/AlertContext';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '../../utils/theme';
 import type { AuthStackParamList } from '../../navigation/AuthNavigator';
 
@@ -22,52 +22,39 @@ type SignupScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Signu
 export const SignupScreen = () => {
   const navigation = useNavigation<SignupScreenNavigationProp>();
   const { signUp } = useAuth();
+  const { showAlert } = useAlert();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [role, setRole] = useState<'customer' | 'vendor'>('customer');
   const [loading, setLoading] = useState(false);
-  const [alertConfig, setAlertConfig] = useState({
-    visible: false,
-    title: '',
-    message: '',
-    buttons: [] as any[],
-  });
-
-  const showAlert = (title: string, message: string, buttons?: any[]) => {
-    setAlertConfig({
-      visible: true,
-      title,
-      message,
-      buttons: buttons || [{ text: 'OK', onPress: () => setAlertConfig(prev => ({ ...prev, visible: false })) }]
-    });
-  };
 
   const handleSignup = async () => {
     if (!fullName || !email || !password || !confirmPassword) {
-      showAlert('Error', 'Please fill in all fields');
+      showAlert({ title: 'Error', message: 'Please fill in all fields' });
       return;
     }
 
     if (password !== confirmPassword) {
-      showAlert('Error', 'Passwords do not match');
+      showAlert({ title: 'Error', message: 'Passwords do not match' });
       return;
     }
 
     if (password.length < 6) {
-      showAlert('Error', 'Password must be at least 6 characters');
+      showAlert({ title: 'Error', message: 'Password must be at least 6 characters' });
       return;
     }
 
     setLoading(true);
     try {
-      await signUp(email, password, fullName, role);
-      showAlert('Success', 'Account created successfully!', [
-         { text: 'Login', onPress: () => navigation.navigate('Login') }
-      ]);
+      await signUp(email, password, fullName, 'customer');
+      showAlert({
+        title: 'Success',
+        message: 'Account created successfully!',
+        buttons: [{ text: 'Login', onPress: () => navigation.navigate('Login') }]
+      });
     } catch (error: any) {
-      showAlert('Signup Failed', error.message || 'Failed to create account');
+      showAlert({ title: 'Signup Failed', message: error.message || 'Failed to create account' });
     } finally {
       setLoading(false);
     }
@@ -78,13 +65,6 @@ export const SignupScreen = () => {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
-      <CustomAlert
-        visible={alertConfig.visible}
-        title={alertConfig.title}
-        message={alertConfig.message}
-        onClose={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
-        buttons={alertConfig.buttons}
-      />
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <Text style={styles.title}>Create Account</Text>
@@ -142,28 +122,6 @@ export const SignupScreen = () => {
               secureTextEntry
               autoCapitalize="none"
             />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Account Type</Text>
-            <View style={styles.roleContainer}>
-              <TouchableOpacity
-                style={[styles.roleButton, role === 'customer' && styles.roleButtonActive]}
-                onPress={() => setRole('customer')}
-              >
-                <Text style={[styles.roleButtonText, role === 'customer' && styles.roleButtonTextActive]}>
-                  Customer
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.roleButton, role === 'vendor' && styles.roleButtonActive]}
-                onPress={() => setRole('vendor')}
-              >
-                <Text style={[styles.roleButtonText, role === 'vendor' && styles.roleButtonTextActive]}>
-                  Vendor
-                </Text>
-              </TouchableOpacity>
-            </View>
           </View>
 
           <TouchableOpacity

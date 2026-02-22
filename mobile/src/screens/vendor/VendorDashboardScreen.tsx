@@ -11,8 +11,13 @@ import {
 import { useAuth } from '../../hooks/useAuth';
 import { carsService } from '../../services/cars.service';
 import { partsService } from '../../services/parts.service';
+import { vendorService } from '../../services/vendor.service';
+import { chatService } from '../../services/chat.service';
+import { notificationService } from '../../services/notification.service';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '../../utils/theme';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { Conversation } from '../../types';
+import { formatDistanceToNow } from 'date-fns';
 
 export const VendorDashboardScreen = ({ navigation }: any) => {
   const { user, profile } = useAuth();
@@ -22,29 +27,26 @@ export const VendorDashboardScreen = ({ navigation }: any) => {
     activeListings: 0,
     pendingApprovals: 0,
     totalSales: 0,
+    totalEarnings: 0,
     inquiries: 0,
   });
+  const [conversations, setConversations] = useState<Conversation[]>([]);
 
   const fetchDashboardData = async () => {
     if (!user || !profile) return;
     try {
-      if (profile.vendor_type === 'parts') {
-        const parts = await partsService.getVendorParts(user.id);
-        setStats({
-          activeListings: parts.filter((p: any) => p.status === 'active').length,
-          pendingApprovals: parts.filter((p: any) => p.stock_quantity === 0).length, // Using pending as "Out of stock" for parts
-          totalSales: 0,
-          inquiries: 3,
-        });
-      } else {
-        const cars = await carsService.getVendorCars(user.id);
-        setStats({
-          activeListings: cars.filter((c: any) => c.approval_status === 'approved').length,
-          pendingApprovals: cars.filter((c: any) => c.approval_status === 'pending').length,
-          totalSales: 0,
-          inquiries: 5,
-        });
-      }
+      const convs = await chatService.getConversations(user.id);
+      setConversations(convs.slice(0, 5));
+
+      const vendorStats = await vendorService.getVendorStats(user.id, profile.vendor_type);
+
+      setStats({
+        activeListings: vendorStats.activeListings,
+        pendingApprovals: vendorStats.pendingApprovals,
+        totalSales: vendorStats.totalSales,
+        totalEarnings: vendorStats.totalEarnings,
+        inquiries: convs.length,
+      });
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
@@ -111,12 +113,18 @@ export const VendorDashboardScreen = ({ navigation }: any) => {
           icon="chatbubbles-outline" 
           color="#2196F3" 
         />
-        <StatCard 
-          title="Total Sales" 
-          value={`₦${stats.totalSales}`} 
-          icon="cash-outline" 
-          color={COLORS.primary} 
-        />
+        <TouchableOpacity 
+          style={{ width: '48%' }} 
+          onPress={() => navigation.navigate('Financials')}
+        >
+          <StatCard 
+            title="Total Earnings" 
+            value={`₦${stats.totalEarnings?.toLocaleString()}`} 
+            icon="cash-outline" 
+            color={COLORS.primary} 
+            isClickable
+          />
+        </TouchableOpacity>
       </View>
 
       <View style={styles.section}>
@@ -161,20 +169,34 @@ export const VendorDashboardScreen = ({ navigation }: any) => {
         </View>
         
         <View style={styles.card}>
-          {[1, 2, 3].map((i) => (
-            <TouchableOpacity key={i} style={styles.inquiryItem}>
-              <View style={styles.inquiryLeft}>
-                <View style={styles.inquiryAvatar}>
-                  <Text style={styles.avatarText}>J</Text>
+          {conversations.length === 0 ? (
+            <View style={{ padding: 20, alignItems: 'center' }}>
+              <Text style={{ color: COLORS.textMuted }}>No active inquiries</Text>
+            </View>
+          ) : (
+            conversations.map((conv) => (
+              <TouchableOpacity 
+                key={conv.id} 
+                style={styles.inquiryItem}
+                onPress={() => navigation.navigate('Chat', { conversation: conv })}
+              >
+                <View style={styles.inquiryLeft}>
+                  <View style={styles.inquiryAvatar}>
+                    <Text style={styles.avatarText}>
+                      {(conv.buyer?.full_name || 'U').charAt(0)}
+                    </Text>
+                  </View>
+                  <View>
+                    <Text style={styles.inquiryUser}>{conv.buyer?.full_name || 'Buyer'}</Text>
+                    <Text style={styles.inquiryCar}>{conv.car ? `${conv.car.year} ${conv.car.make} ${conv.car.model}` : 'General Inquiry'}</Text>
+                  </View>
                 </View>
-                <View>
-                  <Text style={styles.inquiryUser}>John Doe</Text>
-                  <Text style={styles.inquiryCar}>2022 Toyota Corolla</Text>
-                </View>
-              </View>
-              <Text style={styles.inquiryTime}>2h ago</Text>
-            </TouchableOpacity>
-          ))}
+                <Text style={styles.inquiryTime}>
+                  {formatDistanceToNow(new Date(conv.updated_at), { addSuffix: true })}
+                </Text>
+              </TouchableOpacity>
+            ))
+          )}
         </View>
       </View>
 
