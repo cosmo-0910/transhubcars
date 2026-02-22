@@ -52,13 +52,7 @@ export default defineConfig({
         start_url: '/',
         icons: [
           {
-            src: 'pwa-192x192.png',
-            sizes: '192x192',
-            type: 'image/png',
-            purpose: 'any maskable'
-          },
-          {
-            src: 'pwa-512x512.png',
+            src: 'logo.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any maskable'
@@ -70,14 +64,14 @@ export default defineConfig({
             short_name: 'Inventory',
             description: 'View available luxury vehicles',
             url: '/#inventory',
-            icons: [{ src: 'pwa-192x192.png', sizes: '192x192' }]
+            icons: [{ src: 'logo.png', sizes: '512x512' }]
           },
           {
             name: 'Preorder Vehicle',
             short_name: 'Preorder',
             description: 'Request a custom vehicle preorder',
             url: '/#preorder',
-            icons: [{ src: 'pwa-192x192.png', sizes: '192x192' }]
+            icons: [{ src: 'logo.png', sizes: '512x512' }]
           }
         ]
       },
