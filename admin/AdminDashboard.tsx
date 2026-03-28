@@ -691,6 +691,10 @@ export const AdminDashboard = () => {
         vin: formData.get('vin'),
         description: formData.get('description'),
         features: adminSelectedFeatures,
+        powertrain: formData.get('powertrain'),
+        registered_car: formData.get('registered_car') === 'true',
+        exchange_possible: formData.get('exchange_possible') === 'true',
+        second_condition: formData.get('second_condition'),
         image_url: primaryUrl || 'https://images.unsplash.com/photo-1542362567-b055034b4c1d?q=80',
         gallery_urls: galleryUrls.filter(url => typeof url === 'string' && url.trim() !== ''),
         vendor_id: null, // Explicitly null for Transhub Official posts
@@ -1966,6 +1970,39 @@ export const AdminDashboard = () => {
                       <div className="form-group">
                         <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>VIN Reference</label>
                         <input name="vin" type="text" defaultValue={editingCar?.vin} className="admin-input" style={{ width: '100%' }} placeholder="VIN..." />
+                      </div>
+                      <LuxurySelect 
+                        name="powertrain" 
+                        label="Powertrain"
+                        defaultValue={editingCar?.powertrain}
+                        options={[
+                          { value: '2WD', label: '2WD' },
+                          { value: '4WD', label: '4WD' },
+                          { value: 'AWD', label: 'AWD' },
+                          { value: 'RWD', label: 'RWD' }
+                        ]}
+                      />
+                      <LuxurySelect 
+                        name="registered_car" 
+                        label="Is Registered?"
+                        defaultValue={editingCar?.registered_car ? 'true' : 'false'}
+                        options={[
+                          { value: 'true', label: 'Yes' },
+                          { value: 'false', label: 'No' }
+                        ]}
+                      />
+                      <LuxurySelect 
+                        name="exchange_possible" 
+                        label="Exchange Possible?"
+                        defaultValue={editingCar?.exchange_possible ? 'true' : 'false'}
+                        options={[
+                          { value: 'true', label: 'Yes' },
+                          { value: 'false', label: 'No' }
+                        ]}
+                      />
+                      <div className="form-group">
+                        <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Second Condition (Notes)</label>
+                        <input name="second_condition" type="text" defaultValue={editingCar?.second_condition} className="admin-input" style={{ width: '100%' }} placeholder="e.g. Accident Free" />
                       </div>
                     </div>
                   </div>

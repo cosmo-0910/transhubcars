@@ -126,15 +126,13 @@ export default function AddCarModal({ onClose, onSuccess, editingCar }: AddCarMo
         model: formData.get('model'),
         year: parseInt(formData.get('year') as string),
         price: parseFloat(formData.get('price') as string),
-        status: formData.get('status'),
-        mileage: parseInt(formData.get('mileage') as string),
-        transmission: formData.get('transmission'),
-        fuel_type: formData.get('fuel_type'),
-        exterior_color: formData.get('exterior_color'),
-        interior_color: formData.get('interior_color'),
-        engine: formData.get('engine'),
-        vin: formData.get('vin'),
-        description: formData.get('description'),
+        condition: formData.get('condition'),
+        body_type: formData.get('body_type'),
+        state: formData.get('state'),
+        powertrain: formData.get('powertrain'),
+        registered_car: formData.get('registered_car') === 'true',
+        exchange_possible: formData.get('exchange_possible') === 'true',
+        second_condition: formData.get('second_condition'),
         features: selectedFeatures,
         image_url: primaryUrl || 'https://images.unsplash.com/photo-1544636331-e26859203199?auto=format&fit=crop&q=80',
         gallery_urls: galleryUrls.filter(url => typeof url === 'string' && url.trim() !== ''),
@@ -219,11 +217,34 @@ export default function AddCarModal({ onClose, onSuccess, editingCar }: AddCarMo
               ...(profile?.preorder_status === 'approved' ? [{ value: 'Preorder', label: 'Preorder' }] : [])
             ]}
           />
-          {profile?.preorder_status !== 'approved' && (
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '-1rem', marginBottom: '1rem', fontStyle: 'italic' }}>
-              * Preorder listings require verification. <button type="button" onClick={onClose} style={{ color: 'var(--accent-gold)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Unlock Access</button>
-            </div>
-          )}
+          <LuxurySelect 
+            name="condition" 
+            label="Vehicle Condition"
+            defaultValue={editingCar?.condition}
+            options={[
+              { value: 'New', label: 'Brand New' },
+              { value: 'Foreign Used', label: 'Foreign Used' },
+              { value: 'Nigerian Used', label: 'Locally Used' }
+            ]}
+          />
+          <LuxurySelect 
+            name="state" 
+            label="Location (State)"
+            defaultValue={editingCar?.state}
+            options={[
+              { value: 'Lagos', label: 'Lagos' },
+              { value: 'Abuja', label: 'Abuja' },
+              { value: 'Rivers', label: 'Rivers' },
+              { value: 'Ogun', label: 'Ogun' },
+              { value: 'Oyo', label: 'Oyo' },
+              { value: 'Kano', label: 'Kano' },
+              // ... more if needed, but keeping it simple for now or using a better list
+            ]}
+          />
+          <div className="form-group">
+            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Body Type</label>
+            <input name="body_type" type="text" defaultValue={editingCar?.body_type} className="admin-input" style={{ width: '100%' }} placeholder="e.g. SUV, Sedan" />
+          </div>
 
           {/* Aesthetic Identity */}
           <div style={{ gridColumn: 'span 2' }}>
@@ -279,6 +300,39 @@ export default function AddCarModal({ onClose, onSuccess, editingCar }: AddCarMo
                   { value: 'Electric', label: 'Electric' }
                 ]}
               />
+              <LuxurySelect 
+                name="powertrain" 
+                label="Powertrain"
+                defaultValue={editingCar?.powertrain}
+                options={[
+                  { value: '2WD', label: '2WD' },
+                  { value: '4WD', label: '4WD' },
+                  { value: 'AWD', label: 'AWD' },
+                  { value: 'RWD', label: 'RWD' }
+                ]}
+              />
+              <LuxurySelect 
+                name="registered_car" 
+                label="Is Registered?"
+                defaultValue={editingCar?.registered_car ? 'true' : 'false'}
+                options={[
+                  { value: 'true', label: 'Yes' },
+                  { value: 'false', label: 'No' }
+                ]}
+              />
+              <LuxurySelect 
+                name="exchange_possible" 
+                label="Exchange Possible?"
+                defaultValue={editingCar?.exchange_possible ? 'true' : 'false'}
+                options={[
+                  { value: 'true', label: 'Yes' },
+                  { value: 'false', label: 'No' }
+                ]}
+              />
+            </div>
+            <div style={{ marginTop: '1.5rem' }}>
+              <label className="luxury-label">Secondary Condition Details</label>
+              <input name="second_condition" type="text" defaultValue={editingCar?.second_condition} className="luxury-input" placeholder="e.g. Accident Free, First Body" />
             </div>
           </div>
 

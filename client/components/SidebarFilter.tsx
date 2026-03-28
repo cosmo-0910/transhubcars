@@ -12,11 +12,20 @@ const CAR_BODY_TYPES = ["SUV", "Saloon", "Coupe", "Convertible", "Sports", "Pick
 
 interface FilterState {
   priceRange: [number, number];
+  yearRange: [number, number];
+  mileageRange: [number, number];
   conditions: string[];
   bodyTypes: string[];
   locations: string[];
+  transmissions: string[];
+  fuels: string[];
+  powertrains: string[];
+  colors: string[];
+  registeredOnly: boolean;
+  exchangeOnly: boolean;
   verifiedOnly: boolean;
   discountOnly: boolean;
+  searchQuery?: string;
 }
 
 interface SidebarFilterProps {
@@ -68,15 +77,15 @@ const FilterSection = ({ title, icon: Icon, children, defaultOpen = false }: any
 
 export const SidebarFilter = ({ filters, onFilterChange, priceBounds, counts }: SidebarFilterProps) => {
   
-  const handleCheckboxChange = (category: 'conditions' | 'locations' | 'bodyTypes', value: string) => {
-    const current = filters[category];
+  const handleCheckboxChange = (category: 'conditions' | 'locations' | 'bodyTypes' | 'transmissions' | 'fuels' | 'powertrains' | 'colors', value: string) => {
+    const current = filters[category] || [];
     const updated = current.includes(value)
       ? current.filter(item => item !== value)
       : [...current, value];
     onFilterChange({ ...filters, [category]: updated });
   };
 
-  const handleToggle = (key: 'verifiedOnly' | 'discountOnly') => {
+  const handleToggle = (key: 'verifiedOnly' | 'discountOnly' | 'registeredOnly' | 'exchangeOnly') => {
     onFilterChange({ ...filters, [key]: !filters[key] });
   };
 
@@ -107,6 +116,30 @@ export const SidebarFilter = ({ filters, onFilterChange, priceBounds, counts }: 
             type="checkbox" 
             checked={filters.discountOnly} 
             onChange={() => handleToggle('discountOnly')}
+            style={{ accentColor: 'var(--accent-gold)', width: '16px', height: '16px' }} 
+          />
+        </label>
+        <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+             <Check size={16} color="var(--accent-gold)" />
+             <span style={{ fontSize: '0.9rem' }}>Registered Cars</span>
+          </div>
+          <input 
+            type="checkbox" 
+            checked={filters.registeredOnly} 
+            onChange={() => handleToggle('registeredOnly')}
+            style={{ accentColor: 'var(--accent-gold)', width: '16px', height: '16px' }} 
+          />
+        </label>
+        <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+             <Tag size={16} color="var(--accent-gold)" />
+             <span style={{ fontSize: '0.9rem' }}>Exchange Possible</span>
+          </div>
+          <input 
+            type="checkbox" 
+            checked={filters.exchangeOnly} 
+            onChange={() => handleToggle('exchangeOnly')}
             style={{ accentColor: 'var(--accent-gold)', width: '16px', height: '16px' }} 
           />
         </label>
@@ -228,9 +261,87 @@ export const SidebarFilter = ({ filters, onFilterChange, priceBounds, counts }: 
         </div>
       </FilterSection>
       
+      {/* Technicals */}
+      <FilterSection title="Technical Details" icon={Tag}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* Transmission */}
+          <div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.8rem' }}>TRANSMISSION</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+              {["Automatic", "Manual", "Semi-Auto"].map(t => (
+                <button
+                  key={t}
+                  onClick={() => handleCheckboxChange('transmissions', t)}
+                  style={{
+                    padding: '0.4rem 0.8rem', borderRadius: '0.4rem', fontSize: '0.75rem', border: '1px solid var(--border-glass)',
+                    background: filters.transmissions?.includes(t) ? 'var(--accent-gold)' : 'transparent',
+                    color: filters.transmissions?.includes(t) ? 'black' : 'var(--text-main)', cursor: 'pointer'
+                  }}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          </div>
+          {/* Fuel */}
+          <div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.8rem' }}>FUEL TYPE</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+              {["Petrol", "Diesel", "Hybrid", "Electric"].map(f => (
+                <button
+                  key={f}
+                  onClick={() => handleCheckboxChange('fuels', f)}
+                  style={{
+                    padding: '0.4rem 0.8rem', borderRadius: '0.4rem', fontSize: '0.75rem', border: '1px solid var(--border-glass)',
+                    background: filters.fuels?.includes(f) ? 'var(--accent-gold)' : 'transparent',
+                    color: filters.fuels?.includes(f) ? 'black' : 'var(--text-main)', cursor: 'pointer'
+                  }}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
+          </div>
+          {/* Powertrain */}
+          <div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.8rem' }}>POWERTRAIN</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+              {["2WD", "4WD", "AWD", "RWD"].map(p => (
+                <button
+                  key={p}
+                  onClick={() => handleCheckboxChange('powertrains', p)}
+                  style={{
+                    padding: '0.4rem 0.8rem', borderRadius: '0.4rem', fontSize: '0.75rem', border: '1px solid var(--border-glass)',
+                    background: filters.powertrains?.includes(p) ? 'var(--accent-gold)' : 'transparent',
+                    color: filters.powertrains?.includes(p) ? 'black' : 'var(--text-main)', cursor: 'pointer'
+                  }}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </FilterSection>
+
       {/* Reset Button */}
       <button 
-        onClick={() => onFilterChange({ priceRange: priceBounds, conditions: [], bodyTypes: [], locations: [], verifiedOnly: false, discountOnly: false })}
+        onClick={() => onFilterChange({ 
+          priceRange: priceBounds, 
+          yearRange: [1900, 2100],
+          mileageRange: [0, 1000000],
+          conditions: [], 
+          bodyTypes: [], 
+          locations: [], 
+          transmissions: [],
+          fuels: [],
+          powertrains: [],
+          colors: [],
+          registeredOnly: false,
+          exchangeOnly: false,
+          verifiedOnly: false, 
+          discountOnly: false 
+        })}
         style={{ width: '100%', padding: '1rem', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-glass)', color: 'var(--text-muted)', borderRadius: '0.5rem', cursor: 'pointer', marginTop: '1rem', fontSize: '0.8rem' }}
       >
         RESET FILTERS

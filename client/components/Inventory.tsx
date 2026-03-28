@@ -28,9 +28,17 @@ export const Inventory = ({ onInquiry, initialStatus = 'All', hideFilters = fals
   // Advanced Filters
   const [filters, setFilters] = useState({
     priceRange: [0, 1000000000] as [number, number],
+    yearRange: [1900, 2100] as [number, number],
+    mileageRange: [0, 1000000] as [number, number],
     conditions: [] as string[],
     bodyTypes: [] as string[],
     locations: [] as string[],
+    transmissions: [] as string[],
+    fuels: [] as string[],
+    powertrains: [] as string[],
+    colors: [] as string[],
+    registeredOnly: false,
+    exchangeOnly: false,
     verifiedOnly: false,
     discountOnly: false
   });
@@ -91,10 +99,19 @@ export const Inventory = ({ onInquiry, initialStatus = 'All', hideFilters = fals
       const matchesBodyType = filters.bodyTypes.length === 0 || (car.body_type && filters.bodyTypes.includes(car.body_type));
       const matchesLocation = filters.locations.length === 0 || (car.state && filters.locations.includes(car.state));
       const matchesPrice = car.price >= filters.priceRange[0] && car.price <= filters.priceRange[1];
+      const matchesYear = car.year >= filters.yearRange[0] && car.year <= filters.yearRange[1];
+      const matchesMileage = car.mileage <= (filters.mileageRange[1] || 1000000);
+      const matchesTransmission = filters.transmissions.length === 0 || (car.transmission && filters.transmissions.includes(car.transmission));
+      const matchesFuel = filters.fuels.length === 0 || (car.fuel_type && filters.fuels.includes(car.fuel_type));
+      const matchesPowertrain = filters.powertrains.length === 0 || (car.powertrain && filters.powertrains.includes(car.powertrain));
+      const matchesRegistered = !filters.registeredOnly || car.registered_car;
+      const matchesExchange = !filters.exchangeOnly || car.exchange_possible;
       const matchesVerified = !filters.verifiedOnly || (car.vendor_id === null || (car.profiles && car.profiles.vendor_status === 'approved'));
       const matchesDiscount = !filters.discountOnly || (car.original_price && car.original_price > car.price);
 
-      return matchesSearch && matchesStatus && matchesCondition && matchesBodyType && matchesLocation && matchesPrice && matchesVerified && matchesDiscount;
+      return matchesSearch && matchesStatus && matchesCondition && matchesBodyType && matchesLocation && 
+             matchesPrice && matchesYear && matchesMileage && matchesTransmission && matchesFuel && 
+             matchesPowertrain && matchesRegistered && matchesExchange && matchesVerified && matchesDiscount;
     });
   }, [cars, searchQuery, filterStatus, filters]);
 

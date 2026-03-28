@@ -51,6 +51,10 @@ export interface Car {
   original_price?: number;
   condition?: 'Foreign Used' | 'Nigerian Used' | 'New';
   body_type?: string;
+  powertrain?: string;
+  registered_car?: boolean;
+  exchange_possible?: boolean;
+  second_condition?: string;
 }
 
 export interface Inquiry {
