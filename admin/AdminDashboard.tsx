@@ -1226,7 +1226,8 @@ export const AdminDashboard = () => {
                    </div>
 
                    <div className="glass" style={{ borderRadius: '1.5rem', overflow: 'hidden' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <div className="responsive-table-wrapper" style={{width: "100%"}}>
+<table style={{ width: '100%', borderCollapse: 'collapse' }}>
                         <thead style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--border-glass)' }}>
                           <tr>
                             <th style={{ padding: '1.5rem', textAlign: 'left' }}>Product</th>
@@ -1248,6 +1249,7 @@ export const AdminDashboard = () => {
                           ))}
                         </tbody>
                       </table>
+</div>
                    </div>
                 </div>
               )}
@@ -1255,7 +1257,8 @@ export const AdminDashboard = () => {
               {/* --- LEDGER --- */}
               {activeSection === 'ledger' && (
                 <div className="glass" style={{ borderRadius: '1.5rem', overflow: 'hidden' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <div className="responsive-table-wrapper" style={{width: "100%"}}>
+<table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--border-glass)' }}>
                       <tr>
                         <th style={{ padding: '1.5rem', textAlign: 'left' }}>Reference</th>
@@ -1279,6 +1282,7 @@ export const AdminDashboard = () => {
                       ))}
                     </tbody>
                   </table>
+</div>
                 </div>
               )}
 
@@ -1288,7 +1292,8 @@ export const AdminDashboard = () => {
                    <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border-glass)', background: 'rgba(255,255,255,0.01)' }}>
                      <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>Historical record of all administrative actions performed on the sovereign network.</p>
                    </div>
-                   <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                   <div className="responsive-table-wrapper" style={{width: "100%"}}>
+<table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--border-glass)' }}>
                       <tr>
                         <th style={{ padding: '1.5rem', textAlign: 'left' }}>Administrator</th>
@@ -1320,6 +1325,7 @@ export const AdminDashboard = () => {
                       ))}
                     </tbody>
                    </table>
+</div>
                 </div>
               )}
 
@@ -1341,7 +1347,8 @@ export const AdminDashboard = () => {
                   </div>
                 
                   <div className="glass" style={{ borderRadius: '1.5rem', overflow: 'hidden' }}>
-                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                     <div className="responsive-table-wrapper" style={{width: "100%"}}>
+<table style={{ width: '100%', borderCollapse: 'collapse' }}>
                       <thead style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--border-glass)' }}>
                         <tr>
                           <th style={{ padding: '1.5rem', textAlign: 'left' }}>Identity</th>
@@ -1397,6 +1404,7 @@ export const AdminDashboard = () => {
                         ))}
                       </tbody>
                      </table>
+</div>
                   </div>
                 </div>
               )}
@@ -1419,7 +1427,8 @@ export const AdminDashboard = () => {
                   </div>
                 
                   <div className="glass" style={{ borderRadius: '1.5rem', overflow: 'hidden' }}>
-                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                     <div className="responsive-table-wrapper" style={{width: "100%"}}>
+<table style={{ width: '100%', borderCollapse: 'collapse' }}>
                       <thead style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--border-glass)' }}>
                         <tr>
                           <th style={{ padding: '1.5rem', textAlign: 'left' }}>Workshop</th>
@@ -1475,6 +1484,7 @@ export const AdminDashboard = () => {
                         ))}
                       </tbody>
                      </table>
+</div>
                   </div>
                 </div>
               )}

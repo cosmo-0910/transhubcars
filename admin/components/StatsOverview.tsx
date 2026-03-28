@@ -65,7 +65,7 @@ export const StatsOverview = ({ stats, orders, hasPermission }: StatsOverviewPro
        </div>
 
        {/* Additional Widgets */}
-       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
+       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
          <div className="glass" style={{ padding: '2rem', borderRadius: '1.5rem', minHeight: '300px' }}>
            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
              <h3 style={{ fontSize: '1.2rem', fontWeight: 600 }}>Revenue Velocity</h3>

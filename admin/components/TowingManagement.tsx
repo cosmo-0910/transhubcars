@@ -122,7 +122,8 @@ export const TowingManagement = ({ onSelectRequest }: TowingManagementProps) => 
           </div>
           <div style={{ maxHeight: '600px', overflowY: 'auto' }}>
             {filteredRequests.length > 0 ? (
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <div className="responsive-table-wrapper" style={{width: "100%"}}>
+<table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead style={{ position: 'sticky', top: 0, background: 'var(--bg-deep)', zIndex: 5 }}>
                   <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border-glass)' }}>
                     <th style={{ padding: '1rem 1.5rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>CLIENT</th>
@@ -206,6 +207,7 @@ export const TowingManagement = ({ onSelectRequest }: TowingManagementProps) => 
                   })}
                 </tbody>
               </table>
+</div>
             ) : (
               <div style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-muted)' }}>
                 No recovery requests found matching the current filter.

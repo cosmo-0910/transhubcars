@@ -295,7 +295,7 @@ export default function VendorDashboard() {
       {/* Main Content */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '2rem', borderBottom: '1px solid var(--border-glass)', background: 'rgba(0,0,0,0.4)', position: 'sticky', top: 0, zIndex: 10, backdropFilter: 'blur(10px)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div className="responsive-flex-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
               <h2 className="luxury-font" style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>
                 {activeSection === 'inventory' && (profile?.vendor_type === 'parts' ? 'Parts Catalog' : 'Inventory Management')}
@@ -468,7 +468,7 @@ export default function VendorDashboard() {
 
           {activeSection === 'analytics' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem' }}>
+              <div className="responsive-grid-4">
                 <KpiCard title="TOTAL REVENUE" value={formatPrice(stats.totalEarnings)} icon={DollarSign} color="var(--accent-gold)" />
                 <KpiCard title="ACTIVE ASSETS" value={stats.activeListings} icon={CarFront} color="#4ade80" />
                 <KpiCard title="TOTAL SALES" value={stats.totalSales} icon={ShoppingBag} color="white" />
@@ -485,8 +485,8 @@ export default function VendorDashboard() {
           )}
 
           {activeSection === 'orders' && (
-            <div className="glass" style={{ borderRadius: '1.5rem', overflow: 'hidden' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <div className="glass responsive-table-wrapper" style={{ borderRadius: '1.5rem' }}>
+              <table style={{ minWidth: '800px', width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid var(--border-glass)' }}>
                     <th style={{ padding: '1.2rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--text-muted)' }}>ORDER ID</th>

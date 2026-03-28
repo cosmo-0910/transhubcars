@@ -16,7 +16,8 @@ interface UserManagementTableProps {
 export const UserManagementTable = ({ users, onAction }: UserManagementTableProps) => {
   return (
     <div className="glass" style={{ borderRadius: '1.5rem', overflow: 'hidden' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <div className="responsive-table-wrapper" style={{width: "100%"}}>
+<table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--border-glass)' }}>
             <th style={{ padding: '1.5rem', textAlign: 'left' }}>Name</th>
@@ -50,6 +51,7 @@ export const UserManagementTable = ({ users, onAction }: UserManagementTableProp
           ))}
         </tbody>
       </table>
+</div>
     </div>
   );
 };

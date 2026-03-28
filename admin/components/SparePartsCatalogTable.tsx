@@ -64,7 +64,8 @@ export const SparePartsCatalogTable = ({ parts, onRefresh, onEdit, onAdd }: Spar
       </div>
 
       <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+        <div className="responsive-table-wrapper" style={{width: "100%"}}>
+<table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid var(--border-glass)', background: 'rgba(255,255,255,0.01)' }}>
               <th style={{ padding: '1.2rem 2rem', fontSize: '0.7rem', color: 'var(--text-muted)', letterSpacing: '2px' }}>COMPONENT</th>
@@ -138,6 +139,7 @@ export const SparePartsCatalogTable = ({ parts, onRefresh, onEdit, onAdd }: Spar
             ))}
           </tbody>
         </table>
+</div>
       </div>
     </div>
   );
