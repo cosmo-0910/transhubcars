@@ -250,10 +250,25 @@ export default function AddCarModal({ onClose, onSuccess, editingCar }: AddCarMo
               // ... more if needed, but keeping it simple for now or using a better list
             ]}
           />
-          <div className="form-group">
-            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Body Type</label>
-            <input name="body_type" type="text" defaultValue={editingCar?.body_type} className="admin-input" style={{ width: '100%' }} placeholder="e.g. SUV, Sedan" />
-          </div>
+          <LuxurySelect 
+            name="body_type" 
+            label="Architecture (Body Type)"
+            defaultValue={editingCar?.body_type}
+            options={[
+              { value: 'SUV', label: 'SUV' },
+              { value: 'Saloon', label: 'Saloon (Sedan)' },
+              { value: 'Coupe', label: 'Coupe' },
+              { value: 'Convertible', label: 'Convertible' },
+              { value: 'Sports', label: 'Sports' },
+              { value: 'Pickup', label: 'Pickup Truck' },
+              { value: 'Crossover', label: 'Crossover' },
+              { value: 'Hatchback', label: 'Hatchback' },
+              { value: 'Van', label: 'Van / Minivan' },
+              { value: 'Wagon', label: 'Station Wagon' },
+              { value: 'Limousine', label: 'Limousine' },
+              { value: 'Other', label: 'Other' }
+            ]}
+          />
 
           {/* Aesthetic Identity */}
           <div style={{ gridColumn: 'span 2' }}>
