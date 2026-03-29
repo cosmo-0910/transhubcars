@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Zap, Gauge, Settings, Droplets, Palette, Fingerprint, Hash, Store } from 'lucide-react';
+import { X, Zap, Gauge, Settings, Droplets, Palette, Fingerprint, Hash, Store, MessageSquare } from 'lucide-react';
 import { db, type Car } from '../../shared/lib/db';
 import { useAuth } from '../../shared/lib/AuthContext';
 import { Checkout } from './Checkout';
@@ -306,21 +306,41 @@ export const VehicleDetail = ({ car, onClose, onInquiry, onVendorClick }: Vehicl
             </div>
           </div>
 
-          <div style={{ marginTop: 'auto', display: 'flex', gap: '1rem' }}>
+          <div style={{ marginTop: 'auto', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
             <button 
               className="btn-gold" 
-              style={{ flex: 2, padding: '1.4rem', borderRadius: '0.8rem', fontSize: '0.9rem', fontWeight: 800 }} 
+              style={{ flex: 2, padding: '1.4rem', borderRadius: '0.8rem', fontSize: '0.9rem', fontWeight: 800, minWidth: '180px' }} 
               onClick={() => user ? setShowCheckout(true) : alert('Please Sign In to proceed.')}
             >
               {user ? 'PROCEED TO ACQUISITION' : 'SIGN IN TO RESERVE'}
             </button>
-            <button 
-              onClick={onInquiry}
-              className="smooth-transition glass-hover"
-              style={{ flex: 1, background: 'var(--bg-glass)', border: '1px solid var(--border-glass)', color: 'var(--text-main)', borderRadius: '0.8rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.75rem' }}
-            >
-              INQUIRE
-            </button>
+            {/* Message Vendor / Concierge button */}
+            {user ? (
+              <button 
+                onClick={() => {
+                  const event = new CustomEvent('open-chat', {
+                    detail: {
+                      carId: car.id,
+                      vendorId: car.vendor_id || null,
+                      autoSendMessage: true,
+                    }
+                  });
+                  window.dispatchEvent(event);
+                }}
+                className="smooth-transition glass-hover"
+                style={{ flex: 1, background: 'var(--accent-gold-soft)', border: '1px solid var(--accent-gold)', color: 'var(--accent-gold)', borderRadius: '0.8rem', cursor: 'pointer', fontWeight: 700, fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '1rem', minWidth: '120px' }}
+              >
+                <MessageSquare size={16} /> {car.vendor_id ? 'MESSAGE VENDOR' : 'CONTACT CONCIERGE'}
+              </button>
+            ) : (
+              <button 
+                onClick={onInquiry}
+                className="smooth-transition glass-hover"
+                style={{ flex: 1, background: 'var(--bg-glass)', border: '1px solid var(--border-glass)', color: 'var(--text-main)', borderRadius: '0.8rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.75rem', minWidth: '100px' }}
+              >
+                INQUIRE
+              </button>
+            )}
           </div>
         </div>
       </motion.div>

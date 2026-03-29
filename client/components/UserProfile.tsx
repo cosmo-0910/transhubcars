@@ -5,6 +5,7 @@ import { useAuth } from '../../shared/lib/AuthContext';
 import { formatPrice } from '../../shared/lib/formatters';
 import { generateInvoice } from '../utils/invoiceGenerator';
 import { VendorApplication } from './VendorApplication';
+import { MessagingPanel } from './MessagingPanel';
 import {
   Package,
   Clock,
@@ -20,7 +21,8 @@ import {
   Settings,
   LayoutGrid,
   Gem,
-  Building2
+  Building2,
+  MessageSquare
 } from 'lucide-react';
 
 export const UserProfile = ({ onClose }: { onClose: () => void }) => {
@@ -28,7 +30,7 @@ export const UserProfile = ({ onClose }: { onClose: () => void }) => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [platformSettings, setPlatformSettings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'acquisitions' | 'details' | 'membership' | 'vendor'>('acquisitions');
+  const [activeTab, setActiveTab] = useState<'acquisitions' | 'messages' | 'details' | 'membership' | 'vendor'>('acquisitions');
   const [showVendorApp, setShowVendorApp] = useState(false);
 
   useEffect(() => {
@@ -117,6 +119,7 @@ export const UserProfile = ({ onClose }: { onClose: () => void }) => {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             <NavTab active={activeTab === 'acquisitions'} onClick={() => setActiveTab('acquisitions')} icon={<LayoutGrid size={18} />} label="ACQUISITIONS" />
+            <NavTab active={activeTab === 'messages'} onClick={() => setActiveTab('messages')} icon={<MessageSquare size={18} />} label="MESSAGES" />
             <NavTab active={activeTab === 'details'} onClick={() => setActiveTab('details')} icon={<User size={18} />} label="ACCOUNT INFO" />
             <NavTab active={activeTab === 'membership'} onClick={() => setActiveTab('membership')} icon={<ShieldCheck size={18} />} label="MEMBERSHIP" />
             <NavTab active={activeTab === 'vendor'} onClick={() => setActiveTab('vendor')} icon={<Store size={18} />} label="VENDOR PORTAL" />
@@ -223,6 +226,24 @@ export const UserProfile = ({ onClose }: { onClose: () => void }) => {
                     ))}
                   </div>
                 )}
+              </motion.div>
+            )}
+
+            {activeTab === 'messages' && (
+              <motion.div
+                key="messages"
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                style={{ height: '500px', display: 'flex', flexDirection: 'column' }}
+              >
+                <header style={{ marginBottom: '1.5rem' }}>
+                  <h3 className="luxury-font" style={{ fontSize: '2.2rem' }}>Messages.</h3>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '0.5rem' }}>Your conversations with vendors and concierge.</p>
+                </header>
+                <div style={{ flex: 1, border: '1px solid var(--border-glass)', borderRadius: '1.2rem', overflow: 'hidden' }}>
+                  <MessagingPanel userId={user?.id || ''} role={profile?.role || 'customer'} height="100%" />
+                </div>
               </motion.div>
             )}
 

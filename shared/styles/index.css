@@ -637,6 +637,11 @@ option {
   }
 }
 
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 /* Override Chrome/Edge autofill background */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,

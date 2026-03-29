@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import type { Conversation, Message } from '../../mobile/src/types';
+import type { Conversation, Message } from '../types/chat';
 
 export const chatService = {
   async getConversations(userId: string): Promise<Conversation[]> {
@@ -120,6 +120,27 @@ export const chatService = {
         },
         (payload) => {
           onMessage(payload.new as Message);
+        }
+      )
+      .subscribe();
+  },
+
+  // Subscribe to all new messages where user is buyer or vendor (for unread badge)
+  subscribeToAllMessages(userId: string, onNewMessage: () => void) {
+    return supabase
+      .channel(`chat_all_${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+        },
+        async (payload) => {
+          const msg = payload.new as Message;
+          // Ignore messages sent by the current user
+          if (msg.sender_id === userId) return;
+          onNewMessage();
         }
       )
       .subscribe();

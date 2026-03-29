@@ -4,19 +4,22 @@ import { db, type Car, type SparePart } from '../../shared/lib/db';
 import { useAuth } from '../../shared/lib/AuthContext';
 import { partsService } from '../services/parts.service';
 import { formatPrice } from '../../shared/lib/formatters';
+import { MessagingPanel } from './MessagingPanel';
 import { 
   X, 
   Plus, 
   Search, 
   CarFront,
   CheckCircle2,
-  Clock
+  Clock,
+  MessageSquare
 } from 'lucide-react';
 
 export const VendorDashboard = ({ onClose }: { onClose: () => void }) => {
   const { user, profile } = useAuth();
   const [cars, setCars] = useState<Car[]>([]);
   const [parts, setParts] = useState<SparePart[]>([]);
+  const [activeTab, setActiveTab] = useState<'inventory' | 'messages'>('inventory');
   const [inventoryType, setInventoryType] = useState<'cars' | 'parts'>(
     profile?.vendor_type === 'parts' ? 'parts' : 'cars'
   );
@@ -87,22 +90,39 @@ export const VendorDashboard = ({ onClose }: { onClose: () => void }) => {
           <h2 className="luxury-font" style={{ fontSize: '1.8rem' }}>Vendor Dashboard.</h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{profile?.business_name} Inventory Management</p>
         </div>
-        <div style={{ display: 'flex', gap: '1rem' }}>
-          {profile?.vendor_type === 'both' && (
-            <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', padding: '0.3rem', borderRadius: '0.8rem', marginRight: '1rem' }}>
-              <button 
-                onClick={() => setInventoryType('cars')}
-                style={{ padding: '0.5rem 1rem', borderRadius: '0.6rem', border: 'none', background: inventoryType === 'cars' ? 'var(--accent-gold)' : 'transparent', color: inventoryType === 'cars' ? 'black' : 'white', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 700 }}
-              >VEHICLES</button>
-              <button 
-                onClick={() => setInventoryType('parts')}
-                style={{ padding: '0.5rem 1rem', borderRadius: '0.6rem', border: 'none', background: inventoryType === 'parts' ? 'var(--accent-gold)' : 'transparent', color: inventoryType === 'parts' ? 'black' : 'white', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 700 }}
-              >SPARE PARTS</button>
-            </div>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          {/* Main tab switcher */}
+          <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', padding: '0.3rem', borderRadius: '0.8rem' }}>
+            <button
+              onClick={() => setActiveTab('inventory')}
+              style={{ padding: '0.5rem 1rem', borderRadius: '0.6rem', border: 'none', background: activeTab === 'inventory' ? 'var(--accent-gold)' : 'transparent', color: activeTab === 'inventory' ? 'black' : 'white', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+            ><CarFront size={14} /> INVENTORY</button>
+            <button
+              onClick={() => setActiveTab('messages')}
+              style={{ padding: '0.5rem 1rem', borderRadius: '0.6rem', border: 'none', background: activeTab === 'messages' ? 'var(--accent-gold)' : 'transparent', color: activeTab === 'messages' ? 'black' : 'white', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+            ><MessageSquare size={14} /> MESSAGES</button>
+          </div>
+
+          {activeTab === 'inventory' && (
+            <>
+              {profile?.vendor_type === 'both' && (
+                <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', padding: '0.3rem', borderRadius: '0.8rem' }}>
+                  <button 
+                    onClick={() => setInventoryType('cars')}
+                    style={{ padding: '0.5rem 1rem', borderRadius: '0.6rem', border: 'none', background: inventoryType === 'cars' ? 'rgba(255,255,255,0.15)' : 'transparent', color: 'white', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 700 }}
+                  >VEHICLES</button>
+                  <button 
+                    onClick={() => setInventoryType('parts')}
+                    style={{ padding: '0.5rem 1rem', borderRadius: '0.6rem', border: 'none', background: inventoryType === 'parts' ? 'rgba(255,255,255,0.15)' : 'transparent', color: 'white', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 700 }}
+                  >SPARE PARTS</button>
+                </div>
+              )}
+              <button onClick={() => setShowAddForm(true)} className="btn-gold" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.8rem 1.5rem' }}>
+                <Plus size={18} /> {inventoryType === 'cars' ? 'ADD VEHICLE' : 'ADD PART'}
+              </button>
+            </>
           )}
-          <button onClick={() => setShowAddForm(true)} className="btn-gold" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.8rem 1.5rem' }}>
-            <Plus size={18} /> {inventoryType === 'cars' ? 'ADD VEHICLE' : 'ADD PART'}
-          </button>
+
           <button 
             onClick={onClose}
             style={{ width: '45px', height: '45px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
@@ -112,52 +132,60 @@ export const VendorDashboard = ({ onClose }: { onClose: () => void }) => {
         </div>
       </div>
 
-      {/* Toolbar */}
-      <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid var(--border-glass)', display: 'flex', gap: '1rem', alignItems: 'center' }}>
-        <div style={{ position: 'relative', flex: 1 }}>
-          <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-          <input 
-            type="text" 
-            placeholder="Search inventory by make, model, or VIN..."
-            style={{ width: '100%', padding: '1rem 1rem 1rem 3rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-glass)', borderRadius: '0.8rem', color: 'white', outline: 'none' }}
-          />
+      {/* Inventory Toolbar – only visible in inventory tab */}
+      {activeTab === 'inventory' && (
+        <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid var(--border-glass)', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          <div style={{ position: 'relative', flex: 1 }}>
+            <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+            <input 
+              type="text" 
+              placeholder="Search inventory by make, model, or VIN..."
+              style={{ width: '100%', padding: '1rem 1rem 1rem 3rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-glass)', borderRadius: '0.8rem', color: 'white', outline: 'none' }}
+            />
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(255,255,255,0.03)', padding: '0.3rem', borderRadius: '0.8rem', border: '1px solid var(--border-glass)' }}>
+            {['all', 'approved', 'pending', 'rejected'].map(s => (
+              <button 
+                key={s}
+                onClick={() => setFilter(s)}
+                style={{ padding: '0.6rem 1.2rem', borderRadius: '0.6rem', border: 'none', background: filter === s ? 'var(--accent-gold)' : 'transparent', color: filter === s ? 'black' : 'var(--text-muted)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, textTransform: 'capitalize' }}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(255,255,255,0.03)', padding: '0.3rem', borderRadius: '0.8rem', border: '1px solid var(--border-glass)' }}>
-          {['all', 'approved', 'pending', 'rejected'].map(s => (
-            <button 
-              key={s}
-              onClick={() => setFilter(s)}
-              style={{ padding: '0.6rem 1.2rem', borderRadius: '0.6rem', border: 'none', background: filter === s ? 'var(--accent-gold)' : 'transparent', color: filter === s ? 'black' : 'var(--text-muted)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, textTransform: 'capitalize' }}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-      </div>
+      )}
 
       {/* Content */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '2rem' }}>
-        {loading ? (
-             <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', letterSpacing: '2px', fontSize: '0.8rem' }}>LOADING INVENTORY...</div>
-        ) : cars.length === 0 ? (
-           <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem', opacity: 0.5 }}>
-             <CarFront size={48} />
-             <p>No vehicles in your inventory yet.</p>
-           </div>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
-            {inventoryType === 'cars' ? (
-              cars.map(car => (
-                <CarItem key={car.id} car={car} getStatusColor={getStatusColor} />
-              ))
-            ) : (
-              parts.map(part => (
-                <PartItem key={part.id} part={part} />
-              ))
-            )}
-          </div>
-        )}
-      </div>
+      {activeTab === 'messages' ? (
+        <div style={{ flex: 1, overflow: 'hidden' }}>
+          <MessagingPanel userId={user?.id || ''} role={profile?.role || 'vendor'} height="100%" />
+        </div>
+      ) : (
+        <div style={{ flex: 1, overflowY: 'auto', padding: '2rem' }}>
+          {loading ? (
+               <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', letterSpacing: '2px', fontSize: '0.8rem' }}>LOADING INVENTORY...</div>
+          ) : cars.length === 0 ? (
+             <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem', opacity: 0.5 }}>
+               <CarFront size={48} />
+               <p>No vehicles in your inventory yet.</p>
+             </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+              {inventoryType === 'cars' ? (
+                cars.map(car => (
+                  <CarItem key={car.id} car={car} getStatusColor={getStatusColor} />
+                ))
+              ) : (
+                parts.map(part => (
+                  <PartItem key={part.id} part={part} />
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       <AnimatePresence>
         {showAddForm && (
