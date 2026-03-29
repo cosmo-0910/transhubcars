@@ -252,7 +252,7 @@ function AppContent() {
       </AnimatePresence>
 
       <AnimatePresence>
-        {(showInquiry || showAuth || showProfile) && (
+        {(showInquiry || showAuth || showProfile || selectedVendorId) && (
           <div style={{
             position: 'fixed',
             top: 0,

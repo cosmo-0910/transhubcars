@@ -697,7 +697,7 @@ export const AdminDashboard = () => {
         second_condition: formData.get('second_condition'),
         image_url: primaryUrl || 'https://images.unsplash.com/photo-1542362567-b055034b4c1d?q=80',
         gallery_urls: galleryUrls.filter(url => typeof url === 'string' && url.trim() !== ''),
-        vendor_id: null, // Explicitly null for Transhub Official posts
+        vendor_id: editingCar ? editingCar.vendor_id : null, // Preserve original vendor if editing
         approval_status: 'approved' // Admins are auto-approved
       };
 

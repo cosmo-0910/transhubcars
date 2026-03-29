@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { X, User, Store, ShieldCheck, Package, MessageSquare } from 'lucide-react';
-import { supabase, db, type Car } from '../../shared/lib/db';
-import { useAuth } from '../../shared/lib/AuthContext';
+import { supabase, type Car } from '../../shared/lib/db';
 import { formatPrice } from '../../shared/lib/formatters';
 
 interface Vendor {
@@ -14,6 +13,11 @@ interface Vendor {
   vendor_type: string;
   store_image_url?: string;
   avatar_url?: string;
+  business_details?: {
+    phone?: string;
+    address?: string;
+    description?: string;
+  };
   created_at: string;
 }
 
@@ -21,8 +25,6 @@ export const VendorProfile = ({ vendorId, onClose }: { vendorId: string, onClose
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [cars, setCars] = useState<Car[]>([]);
   const [loading, setLoading] = useState(true);
-  const [canMessage, setCanMessage] = useState(false);
-  const { user } = useAuth();
 
   useEffect(() => {
     const loadVendorData = async () => {
@@ -51,12 +53,6 @@ export const VendorProfile = ({ vendorId, onClose }: { vendorId: string, onClose
         if (carsError) throw carsError;
         setCars(vendorCars || []);
 
-        // Engagement check for messaging
-        if (user) {
-          const hasEngagement = await db.hasEngagementWithVendor(user.id, vendorId);
-          setCanMessage(hasEngagement);
-        }
-
       } catch (err) {
         console.error('Failed to load vendor data:', err);
       } finally {
@@ -70,11 +66,21 @@ export const VendorProfile = ({ vendorId, onClose }: { vendorId: string, onClose
   }, [vendorId]);
 
   const handleCarClick = (car: Car) => {
-    // Revert to original inquiry form behavior from profile as well
-    // Or just let it open the car detail which then has the "INQUIRE" button?
-    // User said: "Inquiry should be made the way it was supposed to be made before"
-    // So if they click a car here, maybe it should just open the car detail (custom event for selectedCar?)
     const event = new CustomEvent('select-car', { detail: { car } });
+    window.dispatchEvent(event);
+    onClose();
+  };
+
+  const handleCall = () => {
+    if (vendor?.business_details?.phone) {
+      window.open(`tel:${vendor.business_details.phone}`);
+    }
+  };
+
+  const handleMessage = () => {
+    const event = new CustomEvent('open-chat', { 
+      detail: { carId: null, vendorId: vendorId } 
+    });
     window.dispatchEvent(event);
     onClose();
   };
@@ -185,26 +191,36 @@ export const VendorProfile = ({ vendorId, onClose }: { vendorId: string, onClose
                     <Store size={18} color="var(--accent-gold)" />
                     <span style={{ fontSize: '0.85rem' }}>{(vendor.vendor_type || 'CAR').toUpperCase()} Specialist</span>
                   </div>
+                  
+                  {vendor.business_details?.phone && (
+                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--accent-gold)', fontWeight: 700 }}>{vendor.business_details.phone}</span>
+                    </div>
+                  )}
                 </div>
 
                 <div style={{ height: '1px', background: 'var(--border-glass)', margin: '2rem 0' }} />
                 
-                {canMessage && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                   {vendor.business_details?.phone && (
+                    <button 
+                      onClick={handleCall}
+                      className="btn-gold"
+                      style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '1rem', background: 'transparent', border: '1px solid var(--accent-gold)', color: 'var(--accent-gold)' }}
+                    >
+                      CALL VENDOR
+                    </button>
+                  )}
+                  
                   <button 
-                    onClick={() => {
-                      const event = new CustomEvent('open-chat', { 
-                        detail: { carId: null, vendorId: vendorId } 
-                      });
-                      window.dispatchEvent(event);
-                      onClose();
-                    }}
+                    onClick={handleMessage}
                     className="btn-gold"
                     style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '1rem' }}
                   >
                     <MessageSquare size={18} />
                     MESSAGE VENDOR
                   </button>
-                )}
+                </div>
               </div>
             </div>
 
