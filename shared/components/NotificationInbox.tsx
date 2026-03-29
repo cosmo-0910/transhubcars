@@ -4,7 +4,7 @@ import { Bell, Info, CheckCircle, AlertTriangle, AlertCircle, Trash2 } from 'luc
 import { notificationService } from '../services/notification.service';
 import { useAuth } from '../lib/AuthContext';
 import { formatDistanceToNow } from 'date-fns';
-import type { Notification } from '../../mobile/src/types';
+import type { Notification } from '../types/notification';
 
 export const NotificationInbox = () => {
   const { user } = useAuth();

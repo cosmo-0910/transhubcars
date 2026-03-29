@@ -9,7 +9,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { chatService } from '../../shared/services/chat.service';
-import type { Conversation, Message } from '../../mobile/src/types';
+import type { Conversation, Message } from '../../shared/types/chat';
 import { useAuth } from '../../shared/lib/AuthContext';
 import { formatDistanceToNow } from 'date-fns';
 
