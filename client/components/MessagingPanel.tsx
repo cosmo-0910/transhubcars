@@ -260,8 +260,14 @@ export const MessagingPanel = ({ userId, role, height = '100%' }: MessagingPanel
                       color: isOwn ? 'black' : 'white',
                       fontSize: '0.88rem',
                       lineHeight: 1.5,
+                      boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
                     }}
                   >
+                    {msg.image_url && (
+                      <div style={{ marginBottom: '0.5rem', borderRadius: '0.5rem', overflow: 'hidden', maxWidth: '300px' }}>
+                        <img src={msg.image_url} alt="Shared" style={{ width: '100%', display: 'block' }} />
+                      </div>
+                    )}
                     {msg.text}
                     <div style={{ fontSize: '0.6rem', opacity: 0.55, marginTop: '0.25rem', textAlign: 'right' }}>
                       {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}
@@ -284,6 +290,59 @@ export const MessagingPanel = ({ userId, role, height = '100%' }: MessagingPanel
                 flexShrink: 0,
               }}
             >
+              <input 
+                type="file" 
+                id="msg-image-upload" 
+                style={{ display: 'none' }} 
+                accept="image/*"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file || !activeConversation) return;
+                  
+                  try {
+                    setLoading(true);
+                    // Upload to storage
+                    const fileExt = file.name.split('.').pop();
+                    const fileName = `${Math.random()}.${fileExt}`;
+                    const filePath = `chat-images/${fileName}`;
+                    
+                    const { error: uploadError } = await chatService.supabase.storage
+                      .from('car-images')
+                      .upload(filePath, file);
+
+                    if (uploadError) throw uploadError;
+
+                    const { data: { publicUrl } } = chatService.supabase.storage
+                      .from('car-images')
+                      .getPublicUrl(filePath);
+
+                    // Send message with image
+                    const sent = await chatService.sendMessage({
+                      conversation_id: activeConversation.id,
+                      sender_id: userId,
+                      text: '',
+                      image_url: publicUrl
+                    });
+
+                    setMessages(prev => [...prev, sent]);
+                  } catch (err) {
+                    console.error('Upload failed:', err);
+                    alert('Failed to send image');
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+              />
+              <label 
+                htmlFor="msg-image-upload"
+                style={{ 
+                  width: '42px', height: '42px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s'
+                }}
+              >
+                <Car size={18} color="rgba(255,255,255,0.6)" />
+              </label>
+              
               <input
                 ref={inputRef}
                 type="text"

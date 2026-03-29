@@ -2,6 +2,7 @@ import { supabase } from '../lib/supabase';
 import type { Conversation, Message } from '../types/chat';
 
 export const chatService = {
+  supabase,
   async getConversations(userId: string): Promise<Conversation[]> {
     const { data, error } = await supabase
       .from('conversations')
@@ -48,7 +49,10 @@ export const chatService = {
     const { data, error } = await supabase
       .from('messages')
       .insert([message])
-      .select()
+      .select(`
+        *,
+        sender:sender_id(id, full_name, avatar_url)
+      `)
       .single();
 
     if (error) throw error;
@@ -56,7 +60,7 @@ export const chatService = {
     await supabase
       .from('conversations')
       .update({ 
-        last_message: message.text,
+        last_message: message.image_url ? 'Sent an image' : message.text,
         updated_at: new Date().toISOString()
       })
       .eq('id', message.conversation_id);
