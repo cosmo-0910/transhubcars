@@ -25,27 +25,39 @@ export async function applyWatermark(file: File, username: string): Promise<Blob
         // Watermark formatting
         const usernameClean = username.toLowerCase().replace(/\s+/g, '');
         const watermarkText = usernameClean === 'admin' ? 'transhub' : `transhub/${usernameClean}`;
-        const fontSize = Math.max(30, Math.floor(canvas.width / 25)); // Slightly larger for center
+        
+        // Dynamic font size starting point
+        let fontSize = Math.max(20, Math.floor(canvas.width / 30)); 
         ctx.font = `bold ${fontSize}px sans-serif`;
+        
+        // Ensure text fits within 75% of canvas width
+        const maxWatermarkWidth = canvas.width * 0.75;
+        let textMetrics = ctx.measureText(watermarkText);
+        
+        while (textMetrics.width > maxWatermarkWidth && fontSize > 12) {
+          fontSize -= 2;
+          ctx.font = `bold ${fontSize}px sans-serif`;
+          textMetrics = ctx.measureText(watermarkText);
+        }
+
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         
         const x = canvas.width / 2;
         const y = canvas.height / 2;
 
-        // Draw background strip for better readability in the center
-        const metrics = ctx.measureText(watermarkText);
-        const bgPadding = fontSize / 2;
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+        // Draw background strip for better readability
+        const bgPadding = fontSize / 1.5;
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)'; // More subtle background
         ctx.fillRect(
-          x - metrics.width / 2 - bgPadding, 
-          y - fontSize / 2 - bgPadding / 2, 
-          metrics.width + bgPadding * 2, 
-          fontSize + bgPadding
+          x - textMetrics.width / 2 - bgPadding, 
+          y - fontSize / 2 - bgPadding / 3, 
+          textMetrics.width + bgPadding * 2, 
+          fontSize + bgPadding / 1.5
         );
 
         // Draw main watermark text
-        ctx.fillStyle = 'rgba(212, 175, 55, 0.6)'; // Transhub Gold, slightly more transparent
+        ctx.fillStyle = 'rgba(212, 175, 55, 0.5)'; // Transhub Gold, subtle transparency
         ctx.fillText(watermarkText, x, y);
 
         // Convert back to blob

@@ -15,12 +15,15 @@ interface FilterState {
   yearRange: [number, number];
   mileageRange: [number, number];
   conditions: string[];
+  makes: string[];
+  models: string[];
   bodyTypes: string[];
   locations: string[];
   transmissions: string[];
   fuels: string[];
   powertrains: string[];
   colors: string[];
+  engineSize: string;
   registeredOnly: boolean;
   exchangeOnly: boolean;
   verifiedOnly: boolean;
@@ -36,6 +39,7 @@ interface SidebarFilterProps {
     conditions: Record<string, number>;
     bodyTypes: Record<string, number>;
     locations: Record<string, number>;
+    makes: Record<string, number>;
   };
 }
 
@@ -261,9 +265,52 @@ export const SidebarFilter = ({ filters, onFilterChange, priceBounds, counts }: 
         </div>
       </FilterSection>
       
-      {/* Technicals */}
+      {/* Technical Details */}
       <FilterSection title="Technical Details" icon={Tag}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* Make Selection */}
+          <div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.8rem' }}>MANUFACTURER</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '200px', overflowY: 'auto' }}>
+              {(counts?.makes ? Object.keys(counts.makes).sort() : ["Toyota", "Honda", "Mercedes-Benz", "Lexus", "BMW", "Range Rover", "Land Rover", "Hyundai", "Kia", "Nissan", "Ford", "Mazda", "Mitsubishi", "Audi", "Porsche", "Bentley", "Volkswagen", "Chevrolet", "Jeep", "Volvo"]).map(make => (
+                <label key={make} style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', cursor: 'pointer', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                  <div style={{ 
+                    width: '18px', height: '18px', borderRadius: '4px', border: '1px solid var(--border-glass)',
+                    background: filters.makes?.includes(make) ? 'var(--accent-gold)' : 'transparent',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                  }}>
+                    {filters.makes?.includes(make) && <Check size={12} color="black" />}
+                  </div>
+                  <input 
+                    type="checkbox" 
+                    style={{ display: 'none' }}
+                    checked={filters.makes?.includes(make)}
+                    onChange={() => handleCheckboxChange('makes' as any, make)}
+                  />
+                  <span style={{ flex: 1 }}>{make}</span>
+                  {counts?.makes && counts.makes[make] && (
+                    <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>{counts.makes[make]}</span>
+                  )}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Engine Size */}
+          <div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.8rem' }}>ENGINE CAPACITY</div>
+            <input 
+              type="text"
+              placeholder="e.g. 4.0L"
+              value={filters.engineSize || ''}
+              onChange={(e) => onFilterChange({ ...filters, engineSize: e.target.value } as any)}
+              style={{ 
+                width: '100%', padding: '0.6rem', background: 'rgba(255,255,255,0.05)', 
+                border: '1px solid var(--border-glass)', borderRadius: '0.4rem', color: 'var(--text-main)', fontSize: '0.85rem' 
+              }}
+            />
+          </div>
+
           {/* Transmission */}
           <div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.8rem' }}>TRANSMISSION</div>
@@ -324,6 +371,28 @@ export const SidebarFilter = ({ filters, onFilterChange, priceBounds, counts }: 
         </div>
       </FilterSection>
 
+      {/* Aesthetic Identity */}
+      <FilterSection title="Aesthetic Identity" icon={Tag}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+          <div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.8rem' }}>EXTERIOR COLOR</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+              {["Black", "White", "Silver", "Gray", "Blue", "Red", "Gold", "Green"].map(c => (
+                <label key={c} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.8rem' }}>
+                  <input 
+                    type="checkbox" 
+                    checked={filters.colors?.includes(c)}
+                    onChange={() => handleCheckboxChange('colors', c)}
+                    style={{ accentColor: 'var(--accent-gold)' }}
+                  />
+                  <span>{c}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+      </FilterSection>
+
       {/* Reset Button */}
       <button 
         onClick={() => onFilterChange({ 
@@ -331,12 +400,15 @@ export const SidebarFilter = ({ filters, onFilterChange, priceBounds, counts }: 
           yearRange: [1900, 2100],
           mileageRange: [0, 1000000],
           conditions: [], 
+          makes: [],
+          models: [],
           bodyTypes: [], 
           locations: [], 
           transmissions: [],
           fuels: [],
           powertrains: [],
           colors: [],
+          engineSize: '',
           registeredOnly: false,
           exchangeOnly: false,
           verifiedOnly: false, 

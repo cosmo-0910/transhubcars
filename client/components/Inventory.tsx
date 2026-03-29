@@ -31,12 +31,15 @@ export const Inventory = ({ onInquiry, initialStatus = 'All', hideFilters = fals
     yearRange: [1900, 2100] as [number, number],
     mileageRange: [0, 1000000] as [number, number],
     conditions: [] as string[],
+    makes: [] as string[],
+    models: [] as string[],
     bodyTypes: [] as string[],
     locations: [] as string[],
     transmissions: [] as string[],
     fuels: [] as string[],
     powertrains: [] as string[],
     colors: [] as string[],
+    engineSize: '',
     registeredOnly: false,
     exchangeOnly: false,
     verifiedOnly: false,
@@ -46,7 +49,8 @@ export const Inventory = ({ onInquiry, initialStatus = 'All', hideFilters = fals
   const [counts, setCounts] = useState({
     conditions: {} as Record<string, number>,
     bodyTypes: {} as Record<string, number>,
-    locations: {} as Record<string, number>
+    locations: {} as Record<string, number>,
+    makes: {} as Record<string, number>
   });
 
   const [showMobileFilters, setShowMobileFilters] = useState(false);
@@ -70,14 +74,16 @@ export const Inventory = ({ onInquiry, initialStatus = 'All', hideFilters = fals
         const newCounts = {
           conditions: {} as Record<string, number>,
           bodyTypes: {} as Record<string, number>,
-          locations: {} as Record<string, number>
+          locations: {} as Record<string, number>,
+          makes: {} as Record<string, number>
         };
         approvedCars.forEach(car => {
           if (car.condition) newCounts.conditions[car.condition] = (newCounts.conditions[car.condition] || 0) + 1;
           if (car.body_type) newCounts.bodyTypes[car.body_type] = (newCounts.bodyTypes[car.body_type] || 0) + 1;
           if (car.state) newCounts.locations[car.state] = (newCounts.locations[car.state] || 0) + 1;
+          if (car.make) newCounts.makes[car.make] = (newCounts.makes[car.make] || 0) + 1;
         });
-        setCounts(newCounts);
+        setCounts(newCounts as any);
 
       } catch (err) {
         console.error('Failed to load inventory:', err);
@@ -95,6 +101,13 @@ export const Inventory = ({ onInquiry, initialStatus = 'All', hideFilters = fals
       const matchesStatus = filterStatus === 'All' || car.status === filterStatus;
       
       // 3. Sidebar Filters
+      const matchesMake = filters.makes.length === 0 || (car.make && filters.makes.includes(car.make));
+      const matchesModel = filters.models.length === 0 || (car.model && filters.models.includes(car.model));
+      const matchesEngine = !filters.engineSize || (car.engine && car.engine.toLowerCase().includes(filters.engineSize.toLowerCase()));
+      const matchesColor = filters.colors.length === 0 || 
+                          (car.exterior_color && filters.colors.some(c => car.exterior_color?.toLowerCase().includes(c.toLowerCase()))) ||
+                          (car.interior_color && filters.colors.some(c => car.interior_color?.toLowerCase().includes(c.toLowerCase())));
+
       const matchesCondition = filters.conditions.length === 0 || (car.condition && filters.conditions.includes(car.condition));
       const matchesBodyType = filters.bodyTypes.length === 0 || (car.body_type && filters.bodyTypes.includes(car.body_type));
       const matchesLocation = filters.locations.length === 0 || (car.state && filters.locations.includes(car.state));
@@ -111,7 +124,8 @@ export const Inventory = ({ onInquiry, initialStatus = 'All', hideFilters = fals
 
       return matchesSearch && matchesStatus && matchesCondition && matchesBodyType && matchesLocation && 
              matchesPrice && matchesYear && matchesMileage && matchesTransmission && matchesFuel && 
-             matchesPowertrain && matchesRegistered && matchesExchange && matchesVerified && matchesDiscount;
+             matchesPowertrain && matchesRegistered && matchesExchange && matchesVerified && matchesDiscount &&
+             matchesMake && matchesModel && matchesEngine && matchesColor;
     });
   }, [cars, searchQuery, filterStatus, filters]);
 
