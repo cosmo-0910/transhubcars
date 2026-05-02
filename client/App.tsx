@@ -88,7 +88,6 @@ function AppContent() {
 
             <section id="inventory" style={{ padding: '4rem 2rem' }}>
               <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-                <h2 className="luxury-font" style={{ fontSize: '2.5rem', marginBottom: '3rem', textAlign: 'center' }}>Available Inventory.</h2>
                 <Inventory 
                   onInquiry={(car) => setSelectedCar(car)} 
                   externalSearchQuery={globalSearchQuery}
