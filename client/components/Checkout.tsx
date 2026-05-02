@@ -20,7 +20,7 @@ export const Checkout = ({ car, onClose }: { car: Car, onClose: () => void }) =>
         user_id: user.id,
         car_id: car.id,
         amount: car.price,
-        payment_ref: 'MOCK_PAYMENT_' + Date.now()
+        payment_ref: crypto.randomUUID()
       });
 
       // Simulate payment processing

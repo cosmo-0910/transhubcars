@@ -55,6 +55,7 @@ export interface Car {
   registered_car?: boolean;
   exchange_possible?: boolean;
   second_condition?: string;
+  created_at?: string;
 }
 
 export interface Inquiry {
