@@ -89,7 +89,7 @@ export const AuthForm = ({ type: initialType, onSuccess }: { type: 'login' | 'si
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <h2 className="luxury-font" style={{ fontSize: '1.8rem', color: 'white', marginBottom: '0.2rem' }}>
+          <h2 className="luxury-font" style={{ fontSize: '1.5rem', color: 'white', marginBottom: '0.05rem' }}>
             {authType === 'login' ? 'Welcome Back 👋' : 'Join the Elite.'}
           </h2>
           <p className="auth-subtitle">
@@ -109,7 +109,7 @@ export const AuthForm = ({ type: initialType, onSuccess }: { type: 'login' | 'si
             >
               <label className="auth-label">Full Name</label>
               <div className="auth-input-wrapper">
-                <User size={16} className="auth-input-icon" />
+                <User size={12} className="auth-input-icon" />
                 <input 
                   type="text" 
                   required 
@@ -126,7 +126,7 @@ export const AuthForm = ({ type: initialType, onSuccess }: { type: 'login' | 'si
         <div className="auth-input-group">
           <label className="auth-label">Email Address</label>
           <div className="auth-input-wrapper">
-            <Mail size={16} className="auth-input-icon" />
+            <Mail size={12} className="auth-input-icon" />
             <input 
               type="email" 
               required 
@@ -137,7 +137,7 @@ export const AuthForm = ({ type: initialType, onSuccess }: { type: 'login' | 'si
             />
             {isEmailValid && (
               <div className="auth-input-right valid">
-                <CheckCircle2 size={16} />
+                <CheckCircle2 size={12} />
               </div>
             )}
           </div>
@@ -146,7 +146,7 @@ export const AuthForm = ({ type: initialType, onSuccess }: { type: 'login' | 'si
         <div className="auth-input-group">
           <label className="auth-label">Password</label>
           <div className="auth-input-wrapper">
-            <Lock size={16} className="auth-input-icon" />
+            <Lock size={12} className="auth-input-icon" />
             <input 
               type={showPassword ? "text" : "password"} 
               required 
@@ -161,7 +161,7 @@ export const AuthForm = ({ type: initialType, onSuccess }: { type: 'login' | 'si
               onClick={() => setShowPassword(!showPassword)}
               style={{ background: 'none', border: 'none' }}
             >
-              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              {showPassword ? <EyeOff size={12} /> : <Eye size={12} />}
             </button>
           </div>
         </div>
@@ -175,7 +175,7 @@ export const AuthForm = ({ type: initialType, onSuccess }: { type: 'login' | 'si
                 onChange={(e) => setRememberMe(e.target.checked)} 
               />
               <div className="checkbox-visual">
-                <Check size={12} />
+                <Check size={8} />
               </div>
               <span>Remember me</span>
             </label>

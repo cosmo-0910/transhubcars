@@ -1,14 +1,15 @@
-import { motion } from 'framer-motion';
-import { ArrowRight, Calendar, ShieldCheck, Truck, Headphones, Award, Clock, Heart, Lock } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowRight, Calendar, ShieldCheck, Truck, Headphones, Award, Clock, Heart, Lock, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 import { db } from '../../shared/lib/db';
 import type { Car } from '../../shared/lib/db';
 import { formatPrice } from '../../shared/lib/formatters';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 export const Hero = ({ onBrowse, onPreorder }: { onBrowse: () => void, onPreorder: () => void }) => {
   const [featuredCars, setFeaturedCars] = useState<Car[]>([]);
   const [scrollIndex, setScrollIndex] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const autoplayRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const loadFeatured = async () => {
@@ -16,7 +17,7 @@ export const Hero = ({ onBrowse, onPreorder }: { onBrowse: () => void, onPreorde
         const cars = await db.getCars({ onlyApproved: true });
         const pinnedCars = cars.filter(c => c.is_pinned);
         let selected = pinnedCars.length >= 3 ? pinnedCars : cars;
-        setFeaturedCars(selected.slice(0, 3));
+        setFeaturedCars(selected.slice(0, 5));
       } catch (err) {
         console.error('Failed to load featured cars:', err);
       }
@@ -24,22 +25,75 @@ export const Hero = ({ onBrowse, onPreorder }: { onBrowse: () => void, onPreorde
     loadFeatured();
   }, []);
 
-  const c1 = featuredCars[0] || ({ make: 'Lexus', model: 'RX 350', year: 2023, transmission: 'Automatic', fuel_type: 'Petrol', price: 28500000, status: 'Readily Available', image_url: 'https://images.unsplash.com/photo-1606611013016-960c18baeaac?q=80&w=800&auto=format&fit=crop' } as Partial<Car>);
-  const c2 = featuredCars[1] || ({ make: 'Mercedes-Benz', model: 'GLE 450', year: 2024, transmission: 'Automatic', fuel_type: 'Petrol', price: 45000000, status: 'Preorder', image_url: 'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?q=80&w=600&auto=format&fit=crop' } as Partial<Car>);
-  const c3 = featuredCars[2] || ({ make: 'Toyota', model: 'Land Cruiser Prado', year: 2023, transmission: 'Automatic', fuel_type: 'Diesel', price: 65000000, status: 'Readily Available', image_url: 'https://images.unsplash.com/photo-1579308365518-e37ad17fc2fc?q=80&w=600&auto=format&fit=crop' } as Partial<Car>);
+  useEffect(() => {
+    if (!isPaused && featuredCars.length > 0) {
+      autoplayRef.current = setInterval(() => {
+        setScrollIndex(prev => (prev + 1) % featuredCars.length);
+      }, 4000); // 4 seconds for a premium feel
+    }
+    return () => {
+      if (autoplayRef.current) clearInterval(autoplayRef.current);
+    };
+  }, [isPaused, featuredCars.length]);
 
-  const renderCard = (car: Partial<Car>, cardClassNum: number, delayOffset: number) => {
+  const c1 = { make: 'Lexus', model: 'RX 350', year: 2023, transmission: 'Automatic', fuel_type: 'Petrol', price: 28500000, status: 'Readily Available', image_url: 'https://images.unsplash.com/photo-1606611013016-960c18baeaac?q=80&w=800&auto=format&fit=crop' } as Partial<Car>;
+  const displayCars = featuredCars.length > 0 ? featuredCars : [c1];
+
+  const renderCard = (car: Partial<Car>, index: number) => {
     const isAvail = car.status === 'Readily Available';
+    const position = (index - scrollIndex + displayCars.length) % displayCars.length;
+    
+    let x = 0;
+    let zIndex = 0;
+    let opacity = 0;
+    let scale = 1;
+    let rotateY = 0;
+
+    if (position === 0) {
+      x = 0;
+      zIndex = 30;
+      opacity = 1;
+      scale = 1;
+      rotateY = 0;
+    } else if (position === 1) {
+      x = 100;
+      zIndex = 20;
+      opacity = 0.4;
+      scale = 0.9;
+      rotateY = -10;
+    } else if (position === displayCars.length - 1 && displayCars.length > 1) {
+      x = -100;
+      zIndex = 20;
+      opacity = 0.4;
+      scale = 0.9;
+      rotateY = 10;
+    } else {
+      x = 200;
+      zIndex = 10;
+      opacity = 0;
+      scale = 0.8;
+      rotateY = -20;
+    }
+
     return (
       <motion.div 
-         key={`card-${cardClassNum}-${car.id || car.model}`}
-         initial={{ opacity: 0, x: 50 }}
-         animate={{ opacity: 1, x: 0 }}
-         whileHover={{ y: -10, scale: 1.02 }}
-         transition={{ duration: 0.8, delay: delayOffset, ease: [0.16, 1, 0.3, 1] }}
-         className={`hero-floating-card card-${cardClassNum}`}>
+         key={`card-${car.id || index}`}
+         layout
+         initial={{ opacity: 0, scale: 0.8 }}
+         animate={{ 
+           x, 
+           zIndex, 
+           opacity, 
+           scale,
+           rotateY
+         }}
+         whileHover={{ scale: position === 0 ? 1.05 : scale, zIndex: position === 0 ? 50 : zIndex }}
+         transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+         className="hero-floating-card stacked-card"
+         style={{ position: 'absolute' }}
+      >
         <div className={`card-badge ${isAvail ? 'green-badge' : 'yellow-badge'}`}><div className="status-dot"/> {isAvail ? 'AVAILABLE' : 'PREORDER'}</div>
-        <button className="heart-icon-btn" aria-label="Favorite"><Heart size={cardClassNum === 1 ? 18 : 16} /></button>
+        <button className="heart-icon-btn" aria-label="Favorite"><Heart size={18} /></button>
         <div className="card-image-wrap">
           <img src={car.image_url} alt={`${car.make} ${car.model}`} className="card-image"/>
         </div>
@@ -56,14 +110,13 @@ export const Hero = ({ onBrowse, onPreorder }: { onBrowse: () => void, onPreorde
   };
 
   return (
-    <section className="hero-container">
+    <section className="hero-container" onMouseEnter={() => setIsPaused(true)} onMouseLeave={() => setIsPaused(false)}>
       {/* Background Elements */}
       <div className="hero-cityscape-bg" />
       <div className="hero-golden-arc hero-golden-arc-left" />
       <div className="hero-golden-arc hero-golden-arc-right" />
 
       <div className="hero-content">
-        {/* Left Side: Typography & Calls to Action */}
         <div className="hero-left-column">
           <div className="hero-badge">
             <div className="hero-badge-dot" />
@@ -92,7 +145,6 @@ export const Hero = ({ onBrowse, onPreorder }: { onBrowse: () => void, onPreorde
             </button>
           </div>
 
-          {/* Trust Indicators */}
           <div className="hero-trust-indicators">
             <div className="trust-item">
               <div className="trust-icon-wrapper"><ShieldCheck size={20} /></div>
@@ -118,41 +170,28 @@ export const Hero = ({ onBrowse, onPreorder }: { onBrowse: () => void, onPreorde
           </div>
         </div>
 
-        <div className="hero-right-column group">
+        <div className="hero-right-column">
           <div className="featured-header">
             <h2>Featured Vehicles</h2>
             <a href="#inventory" onClick={(e) => { e.preventDefault(); onBrowse(); }}>View all <ArrowRight size={14} /></a>
           </div>
-          <motion.div 
-            className="hero-cards-wrapper"
-            drag="x"
-            dragConstraints={{ left: -352 * (featuredCars.length > 0 ? featuredCars.length - 1 : 2), right: 0 }}
-            animate={{ x: -scrollIndex * 352 }}
-            style={{ width: 'max-content' }}
-          >
-            {featuredCars.length > 0 ? (
-              featuredCars.map((c, i) => renderCard(c, i + 1, i * 0.1))
-            ) : (
-              <>
-                {renderCard(c1, 1, 0)}
-                {renderCard(c2, 2, 0.1)}
-                {renderCard(c3, 3, 0.2)}
-              </>
-            )}
-          </motion.div>
           
+          <div className="stacked-carousel-stage">
+            <AnimatePresence initial={false}>
+              {displayCars.map((c, i) => renderCard(c, i))}
+            </AnimatePresence>
+          </div>
+
           <div className="carousel-controls">
             <button 
               className="carousel-btn prev" 
-              onClick={() => setScrollIndex(prev => Math.max(0, prev - 1))}
-              disabled={scrollIndex === 0}
+              onClick={() => setScrollIndex(prev => (prev - 1 + displayCars.length) % displayCars.length)}
             >
               <ChevronLeft size={24} />
             </button>
             <button 
               className="carousel-btn next" 
-              onClick={() => setScrollIndex(prev => Math.min(featuredCars.length > 0 ? featuredCars.length - 1 : 2, prev + 1))}
-              disabled={scrollIndex === (featuredCars.length > 0 ? featuredCars.length - 1 : 2)}
+              onClick={() => setScrollIndex(prev => (prev + 1) % displayCars.length)}
             >
               <ChevronRight size={24} />
             </button>
@@ -160,7 +199,6 @@ export const Hero = ({ onBrowse, onPreorder }: { onBrowse: () => void, onPreorde
         </div>
       </div>
 
-      {/* Footer Feature Bar */}
       <div className="hero-footer-bar">
         <div className="feature-item">
           <Lock size={20} className="feature-icon" />
