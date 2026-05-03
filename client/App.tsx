@@ -160,7 +160,7 @@ function AppContent() {
             zIndex: 2000,
             display: 'flex',
             justifyContent: 'center',
-            alignItems: 'flex-start',
+            alignItems: 'center',
             background: 'rgba(0,0,0,0.85)',
             backdropFilter: 'blur(10px)',
             padding: '2rem 1rem',
@@ -192,7 +192,24 @@ function AppContent() {
 
               <button 
                 onClick={() => { setShowInquiry(null); setShowAuth(null); setShowProfile(false); }}
-                style={{ position: 'absolute', top: '2rem', right: '2rem', background: 'none', border: 'none', color: 'white', cursor: 'pointer', fontSize: '1.5rem' }}
+                style={{ 
+                  position: 'absolute', 
+                  top: '2.5rem', 
+                  right: '2.5rem', 
+                  background: 'rgba(255,255,255,0.05)', 
+                  border: '1px solid rgba(255,255,255,0.1)', 
+                  color: 'white', 
+                  cursor: 'pointer', 
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.2rem',
+                  transition: 'all 0.3s ease'
+                }}
+                className="glass-hover"
               >✕</button>
           </div>
         )}
