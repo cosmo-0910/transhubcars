@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Calendar, ShieldCheck, Truck, Headphones, Heart, Lock, ChevronLeft, ChevronRight, Search, PlusCircle } from 'lucide-react';
+import { ArrowRight, Calendar, ShieldCheck, Truck, Headphones, Heart, Lock, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { db } from '../../shared/lib/db';
 import type { Car } from '../../shared/lib/db';
@@ -92,7 +92,7 @@ export const Hero = ({ onBrowse, onPreorder }: { onBrowse: () => void, onPreorde
          className="hero-floating-card stacked-card"
          style={{ position: 'absolute' }}
       >
-        <div className={`card-badge ${isAvail ? 'green-badge' : 'yellow-badge'}`}><div className="status-dot"/> {isAvail ? 'AVAILABLE' : 'PREORDER'}</div>
+        <div className={`card-badge ${isAvail ? 'green-badge' : 'yellow-badge'} desktop-only`}><div className="status-dot"/> {isAvail ? 'AVAILABLE' : 'PREORDER'}</div>
         <button className="heart-icon-btn" aria-label="Favorite"><Heart size={18} /></button>
         <div className="card-image-wrap">
           <img src={car.image_url} alt={`${car.make} ${car.model}`} className="card-image"/>
@@ -123,7 +123,7 @@ export const Hero = ({ onBrowse, onPreorder }: { onBrowse: () => void, onPreorde
             <span>PREMIUM AUTOMOTIVE MARKETPLACE</span>
           </div>
 
-          <h1 className="hero-heading luxury-font">
+          <h1 className="hero-heading luxury-font mobile-centered">
             Buy or <span className="mobile-only-inline">Sell</span><span className="desktop-only-inline">Preorder</span><br />
             Verified Cars<br />
             <i className="hero-heading-highlight">in Nigeria</i>
@@ -133,45 +133,42 @@ export const Hero = ({ onBrowse, onPreorder }: { onBrowse: () => void, onPreorde
             Access inspected vehicles, secure preorders,<br />
             and fast delivery. No guesswork.
           </p>
-          <p className="hero-subtext mobile-only-block" style={{ fontSize: '0.85rem', marginTop: '1rem', opacity: 0.7 }}>
+          <p className="hero-subtext mobile-only-block mobile-centered" style={{ fontSize: '0.85rem', marginTop: '1rem', opacity: 0.7 }}>
             The most trusted marketplace for<br />
             premium, foreign and Nigerian cars.
           </p>
 
           <div className="hero-mobile-actions mobile-only-block">
             <div className="hero-search-bar">
-              <Search size={18} color="rgba(255,255,255,0.4)" />
               <input type="text" placeholder="Search make, model, year..." />
-              <button className="search-btn"><Search size={18} color="black" /></button>
+              <button className="search-btn"><Search size={22} color="black" /></button>
             </div>
             
-            <div className="hero-quick-links">
-              <button className="quick-link-btn" onClick={onPreorder}>
-                <PlusCircle size={18} color="#c5a059" />
+            <div className="hero-quick-links-row">
+              <button className="btn-mobile-hero-primary" onClick={onPreorder}>
                 <span>Sell a Car</span>
               </button>
-              <button className="quick-link-btn" onClick={onBrowse}>
-                <Search size={18} color="#c5a059" />
+              <button className="btn-mobile-hero-secondary" onClick={onBrowse}>
                 <span>Browse Deals</span>
               </button>
             </div>
 
-            <div className="hero-stats-row">
-              <div className="stat-item">
-                <span className="stat-value">10K+</span>
-                <span className="stat-label">Verified Cars</span>
+            <div className="hero-stats-grid">
+              <div className="stat-box">
+                <span className="stat-val">12K+</span>
+                <span className="stat-lab">Verified Cars</span>
               </div>
-              <div className="stat-item">
-                <span className="stat-value">25K+</span>
-                <span className="stat-label">Happy Customers</span>
+              <div className="stat-box">
+                <span className="stat-val">25K+</span>
+                <span className="stat-lab">Happy Customers</span>
               </div>
-              <div className="stat-item">
-                <span className="stat-value">3.5K+</span>
-                <span className="stat-label">Trusted Dealers</span>
+              <div className="stat-box">
+                <span className="stat-val">3.5K+</span>
+                <span className="stat-lab">Dealers</span>
               </div>
-              <div className="stat-item">
-                <span className="stat-value">24/7</span>
-                <span className="stat-label">Support</span>
+              <div className="stat-box">
+                <span className="stat-val">24/7</span>
+                <span className="stat-lab">Support</span>
               </div>
             </div>
           </div>

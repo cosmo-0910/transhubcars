@@ -81,6 +81,7 @@ function AppContent() {
       setShowInquiry({ type: 'Preorder' });
       return;
     }
+    setShowProfile(false); // Close profile if switching to other tabs
     setCurrentView(view);
     window.scrollTo(0, 0);
   };

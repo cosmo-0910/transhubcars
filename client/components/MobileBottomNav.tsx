@@ -1,8 +1,8 @@
-import { Home, Search, PlusCircle, MessageSquare, User } from 'lucide-react';
+import { Home, PlusCircle, MessageSquare, User, Layers, ShieldCheck, LayoutGrid } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface MobileBottomNavProps {
-  currentView: 'home' | 'inventory' | 'messages' | 'profile' | 'sell';
+  currentView: 'home' | 'inventory' | 'messages' | 'profile' | 'sell' | 'collections' | 'brands' | 'categories';
   onViewChange: (view: any) => void;
   messageCount?: number;
 }
@@ -10,10 +10,12 @@ interface MobileBottomNavProps {
 export const MobileBottomNav = ({ currentView, onViewChange, messageCount = 3 }: MobileBottomNavProps) => {
   const tabs = [
     { id: 'home', label: 'Home', icon: Home },
-    { id: 'inventory', label: 'Search', icon: Search },
-    { id: 'sell', label: 'Sell Car', icon: PlusCircle, isFloating: true },
-    { id: 'messages', label: 'Messages', icon: MessageSquare, badge: messageCount },
-    { id: 'profile', label: 'Profile', icon: User },
+    { id: 'brands', label: 'Brands', icon: ShieldCheck },
+    { id: 'collections', label: 'Collections', icon: Layers },
+    { id: 'sell', label: 'Sell', icon: PlusCircle, isFloating: true },
+    { id: 'categories', label: 'By Body', icon: LayoutGrid },
+    { id: 'messages', label: 'Chat', icon: MessageSquare, badge: messageCount },
+    { id: 'profile', label: 'Me', icon: User },
   ];
 
   return (

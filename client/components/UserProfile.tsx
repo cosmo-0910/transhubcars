@@ -1,669 +1,285 @@
-import { motion, AnimatePresence } from 'framer-motion';
-import { db, type Order } from '../../shared/lib/db';
-import { useState, useEffect, useMemo } from 'react';
+import { motion } from 'framer-motion';
+import { useState } from 'react';
 import { useAuth } from '../../shared/lib/AuthContext';
-import { formatPrice } from '../../shared/lib/formatters';
-import { generateInvoice } from '../utils/invoiceGenerator';
-import { VendorApplication } from './VendorApplication';
 import { MessagingPanel } from './MessagingPanel';
 import {
-  Package,
-  Clock,
   ShieldCheck,
-  X,
   User,
   Mail,
-  Calendar,
   ChevronRight,
-  Store,
-  ExternalLink,
-  CreditCard,
   Settings,
-  LayoutGrid,
   Gem,
-  Building2,
   MessageSquare,
   TrendingUp,
   Car,
-  Hourglass,
-  Box,
-  Headphones
+  Headphones,
+  Bell,
+  MapPin,
+  Phone,
+  Wallet,
+  ShoppingBag,
+  Tag,
+  History,
+  Heart,
+  Lock,
+  Camera,
+  CheckCircle2,
+  LayoutDashboard,
+  CreditCard
 } from 'lucide-react';
 
 /* ─── colours & tokens ────────────────────────────────────── */
 const GOLD = 'var(--accent-gold)';
-const MUTED = 'var(--text-muted)';
-const BORDER = 'var(--border-glass)';
 
 /* ═══════════════════════════════════════════════════════════ */
 export const UserProfile = ({ onClose }: { onClose: () => void }) => {
-  const { user, profile } = useAuth();
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [platformSettings, setPlatformSettings] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<
-    'acquisitions' | 'messages' | 'details' | 'membership' | 'vendor'
-  >('acquisitions');
-  const [showVendorApp, setShowVendorApp] = useState(false);
-  // track unread message count (placeholder – wire up to real data later)
-  const unreadMessages = 2;
+  const { user, profile, signOut } = useAuth();
+  const [activeTab, setActiveTab] = useState<'profile' | 'messages'>('profile');
 
-  useEffect(() => {
-    if (!user) return;
-    const fetchOrders = async () => {
-      try {
-        const data = await db.getOrders();
-        const settings = await db.getPlatformSettings();
-        setOrders(data.filter(o => o.user_id === user.id));
-        setPlatformSettings(settings);
-      } catch (err) {
-        console.error('Failed to fetch orders:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchOrders();
-  }, [user]);
+  const isAdminOrVendor = profile?.role === 'admin' || profile?.role === 'vendor';
 
-  const stats = useMemo(() => ({
-    totalInvestment: orders.reduce((acc, o) => acc + (o.amount || 0), 0),
-    acquisitionCount: orders.length,
-    inProgress: orders.filter(o => o.status === 'Pending' || o.status === 'Processing').length,
-    membershipTier: orders.length > 5 ? 'PLATINUM' : orders.length > 2 ? 'GOLD' : 'SILVER',
-  }), [orders]);
-
-  if (showVendorApp) {
-    return <VendorApplication onClose={() => setShowVendorApp(false)} />;
+  if (activeTab === 'messages') {
+    return (
+      <div className="profile-fullscreen-mobile" style={{ background: '#000', minHeight: '100vh', padding: '2rem 1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem' }}>
+           <button onClick={() => setActiveTab('profile')} style={{ background: 'none', border: 'none', color: '#fff' }}><ChevronRight size={24} style={{ transform: 'rotate(180deg)' }} /></button>
+           <h2 className="luxury-font" style={{ fontSize: '1.5rem' }}>Messages</h2>
+           <div style={{ width: '24px' }} />
+        </div>
+        <MessagingPanel userId={user?.id || ''} role={profile?.role || 'customer'} height="calc(100vh - 150px)" />
+      </div>
+    );
   }
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.97, y: 16 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.97, y: 16 }}
-      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 30 }}
+      className="profile-fullscreen-mobile"
       style={{
         width: '100%',
-        maxWidth: '900px',
-        maxHeight: '92vh',
+        height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        borderRadius: '1.5rem',
-        overflow: 'hidden',
-        background: '#111008',
-        border: `1px solid ${BORDER}`,
-        boxShadow: '0 40px 100px rgba(0,0,0,0.7)',
-        position: 'relative',
+        background: '#000',
+        color: '#fff',
+        overflowY: 'auto',
+        WebkitOverflowScrolling: 'touch'
       }}
     >
-      {/* ── Close ── */}
-      <button
-        onClick={onClose}
-        style={{
-          position: 'absolute', top: '1rem', right: '1rem',
-          background: 'rgba(255,255,255,0.06)', border: 'none',
-          color: 'rgba(255,255,255,0.6)', cursor: 'pointer',
-          zIndex: 100, padding: '6px', borderRadius: '50%',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          transition: 'background 0.2s',
-        }}
-        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.12)')}
-        onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
-        aria-label="Close"
-      >
-        <X size={18} />
-      </button>
-
-      <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', flex: 1, minHeight: 0, overflow: 'hidden' }}>
-        {/* ════════════════ SIDEBAR ════════════════ */}
-        <aside style={{
-          background: 'rgba(255,255,255,0.02)',
-          borderRight: `1px solid ${BORDER}`,
-          display: 'flex', flexDirection: 'column',
-          padding: '2.5rem 1.2rem 1.5rem',
-          gap: '0',
-          overflowY: 'auto',
-        }}>
-          {/* Avatar */}
-          <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-            <div style={{
-              position: 'relative', width: '80px', height: '80px',
-              margin: '0 auto 1rem',
-            }}>
-              {/* ring */}
-              <div style={{
-                position: 'absolute', inset: 0,
-                borderRadius: '50%',
-                border: `2px solid ${GOLD}`,
-                boxShadow: `0 0 18px rgba(197,160,89,0.25)`,
-              }} />
-              <div style={{
-                width: '100%', height: '100%', borderRadius: '50%',
-                background: 'rgba(197,160,89,0.08)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <User size={34} color={GOLD} strokeWidth={1.5} />
-              </div>
-              {/* shield badge */}
-              <div style={{
-                position: 'absolute', bottom: 1, right: 1,
-                background: GOLD, borderRadius: '50%',
-                width: 20, height: 20,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                border: '2px solid #111008',
-              }}>
-                <ShieldCheck size={10} color="#000" strokeWidth={2.5} />
-              </div>
-            </div>
-
-            <div style={{ fontWeight: 700, fontSize: '1rem', color: '#fff', marginBottom: '0.35rem' }}>
-              {profile?.full_name || user?.email?.split('@')[0] || 'admin'}
-            </div>
-            <div style={{
-              display: 'flex', alignItems: 'center',
-              justifyContent: 'center', gap: '0.3rem',
-              color: GOLD, fontSize: '0.6rem', fontWeight: 800,
-              letterSpacing: '2px',
-            }}>
-              <ShieldCheck size={10} />
-              {stats.membershipTier} MEMBER
-            </div>
+      {/* ── Header ── */}
+      <header style={{ 
+        padding: '1.5rem', 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center',
+        position: 'sticky',
+        top: 0,
+        background: 'rgba(0,0,0,0.8)',
+        backdropFilter: 'blur(10px)',
+        zIndex: 10
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: '#fff', width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ChevronRight size={20} style={{ transform: 'rotate(180deg)' }} /></button>
+          <h1 className="luxury-font" style={{ fontSize: '1.8rem', margin: 0 }}>Profile</h1>
+        </div>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          <button style={{ background: 'none', border: 'none', color: '#fff' }}><Settings size={22} /></button>
+          <div style={{ position: 'relative' }}>
+            <Bell size={22} />
+            <span style={{ position: 'absolute', top: -3, right: -3, background: GOLD, color: '#000', fontSize: '0.6rem', fontWeight: 900, padding: '2px 5px', borderRadius: '10px' }}>3</span>
           </div>
+        </div>
+      </header>
 
-          {/* Nav */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: 1 }}>
-            <SidebarTab
-              active={activeTab === 'acquisitions'}
-              onClick={() => setActiveTab('acquisitions')}
-              icon={<LayoutGrid size={16} />}
-              label="ACQUISITIONS"
-            />
-            <SidebarTab
-              active={activeTab === 'messages'}
-              onClick={() => setActiveTab('messages')}
-              icon={<MessageSquare size={16} />}
-              label="MESSAGES"
-              badge={unreadMessages}
-            />
-            <SidebarTab
-              active={activeTab === 'details'}
-              onClick={() => setActiveTab('details')}
-              icon={<User size={16} />}
-              label="ACCOUNT INFO"
-            />
-            <SidebarTab
-              active={activeTab === 'membership'}
-              onClick={() => setActiveTab('membership')}
-              icon={<ShieldCheck size={16} />}
-              label="MEMBERSHIP"
-            />
-            <SidebarTab
-              active={activeTab === 'vendor'}
-              onClick={() => setActiveTab('vendor')}
-              icon={<Store size={16} />}
-              label="VENDOR PORTAL"
-            />
+      <div style={{ padding: '0 1.5rem 8rem 1.5rem' }}>
+        {/* ── User Info Section ── */}
+        <div style={{ display: 'flex', gap: '1.5rem', marginBottom: '2rem', alignItems: 'flex-start' }}>
+           <div style={{ position: 'relative' }}>
+             <div style={{ width: '90px', height: '90px', borderRadius: '50%', overflow: 'hidden', border: `2px solid ${GOLD}` }}>
+               <img src={profile?.avatar_url || "https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&q=80&w=200"} alt="User" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+             </div>
+             <button style={{ position: 'absolute', bottom: 0, right: 0, background: GOLD, border: '2px solid #000', borderRadius: '50%', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+               <Camera size={14} color="#000" />
+             </button>
+           </div>
+           
+           <div style={{ flex: 1, paddingTop: '0.5rem' }}>
+             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+               <h2 style={{ fontSize: '1.6rem', fontWeight: 700, margin: 0 }}>{profile?.full_name || 'David John'}</h2>
+               <CheckCircle2 size={18} color="#4ade80" />
+             </div>
+             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#888', fontSize: '0.8rem', marginTop: '0.3rem' }}>
+               <div style={{ width: '12px', height: '12px', borderRadius: '50%', border: `1px solid ${GOLD}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                 <div style={{ width: '6px', height: '6px', background: GOLD, borderRadius: '50%' }} />
+               </div>
+               <span style={{ color: GOLD, fontWeight: 700 }}>{isAdminOrVendor ? 'Silver Member' : 'Verified User'}</span>
+             </div>
+             <div style={{ marginTop: '0.8rem', display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.85rem', color: '#888' }}>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                 <Mail size={14} /> <span>{user?.email}</span>
+               </div>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                 <Phone size={14} /> <span>{profile?.phone || '+234 812 345 6789'}</span>
+               </div>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                 <MapPin size={14} /> <span>{profile?.state || 'Lagos, Nigeria'}</span>
+               </div>
+             </div>
+           </div>
 
-            {/* Contact Concierge */}
-            <div style={{ margin: '1rem 0 0.5rem' }}>
-              <button
-                onClick={() => {
-                  const event = new CustomEvent('open-chat', { detail: { carId: null, vendorId: null } });
-                  window.dispatchEvent(event);
-                  onClose();
-                }}
-                style={{
-                  width: '100%', padding: '0.85rem 1rem',
-                  borderRadius: '0.7rem',
-                  border: `1px solid ${GOLD}`,
-                  background: 'rgba(197,160,89,0.06)',
-                  color: GOLD,
-                  display: 'flex', alignItems: 'center', gap: '0.7rem',
-                  cursor: 'pointer',
-                  fontWeight: 700, fontSize: '0.65rem', letterSpacing: '1.5px',
-                  transition: 'background 0.2s',
-                }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(197,160,89,0.12)')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'rgba(197,160,89,0.06)')}
-              >
-                <Headphones size={16} />
-                CONTACT CONCIERGE
-              </button>
-            </div>
+           {/* Wallet Balance (Floating) */}
+           {isAdminOrVendor && (
+             <div style={{ 
+               background: 'rgba(212, 175, 55, 0.05)', 
+               border: '1px solid rgba(212, 175, 55, 0.2)', 
+               borderRadius: '1rem', 
+               padding: '1rem',
+               minWidth: '160px',
+               backdropFilter: 'blur(5px)'
+             }}>
+               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                 <span style={{ fontSize: '0.7rem', color: '#888', fontWeight: 600 }}>Wallet Balance</span>
+                 <Wallet size={16} color={GOLD} />
+               </div>
+               <div style={{ fontSize: '1.2rem', fontWeight: 800 }}>₦2,450,000</div>
+               <button style={{ color: GOLD, fontSize: '0.75rem', fontWeight: 700, background: 'none', border: 'none', marginTop: '0.5rem', padding: 0 }}>View Wallet →</button>
+             </div>
+           )}
+        </div>
 
-            <SidebarTab
-              active={false}
-              onClick={() => {}}
-              icon={<Settings size={16} />}
-              label="SETTINGS"
-            />
-          </div>
-        </aside>
+        {/* ── Membership Progress Card ── */}
+        <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '1.2rem', padding: '1.5rem', marginBottom: '2.5rem' }}>
+           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.2rem' }}>
+             <div style={{ width: '48px', height: '48px', background: 'rgba(197,160,89,0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+               <Gem size={24} color={GOLD} />
+             </div>
+             <div style={{ flex: 1 }}>
+               <div style={{ fontSize: '1rem', fontWeight: 700 }}>{isAdminOrVendor ? 'Silver Member' : 'Bronze Member'}</div>
+               <div style={{ fontSize: '0.75rem', color: '#888' }}>Member since {new Date(profile?.created_at || '').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</div>
+             </div>
+             <button style={{ background: 'rgba(212, 175, 55, 0.05)', border: `1px solid ${GOLD}`, color: GOLD, fontSize: '0.7rem', fontWeight: 800, padding: '0.5rem 1rem', borderRadius: '0.5rem' }}>View Benefits</button>
+           </div>
+           
+           <div style={{ position: 'relative', height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '3px' }}>
+             <div style={{ position: 'absolute', top: 0, left: 0, height: '100%', width: '45%', background: GOLD, borderRadius: '3px', boxShadow: `0 0 10px ${GOLD}` }} />
+           </div>
+           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.8rem', fontSize: '0.7rem', color: '#888' }}>
+             <span>{isAdminOrVendor ? 'Next Tier: Gold' : 'Next Tier: Silver'}</span>
+             <span>1,200 / 2,000 pts</span>
+           </div>
+        </div>
 
-        {/* ════════════════ CONTENT ════════════════ */}
-        <main style={{ overflowY: 'auto', padding: '2.5rem 2.2rem' }}>
-          <AnimatePresence mode="wait">
+        {/* ── Overview Section ── */}
+        <div style={{ marginBottom: '2.5rem' }}>
+           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem' }}>
+             <h3 className="luxury-font" style={{ fontSize: '1.2rem' }}>{isAdminOrVendor ? 'Portfolio Overview' : 'My Overview'}</h3>
+             <button style={{ color: GOLD, fontSize: '0.75rem', fontWeight: 700, background: 'none', border: 'none' }}>View All →</button>
+           </div>
+           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.8rem' }}>
+             {isAdminOrVendor ? (
+               <>
+                 <OverviewItem icon={<Car size={20} />} label="Total Cars" value="0" />
+                 <OverviewItem icon={<Wallet size={20} />} label="Total Value" value="₦0" />
+                 <OverviewItem icon={<TrendingUp size={20} />} label="Active" value="0" />
+                 <OverviewItem icon={<Heart size={20} />} label="Saved" value="0" />
+               </>
+             ) : (
+               <>
+                 <OverviewItem icon={<Car size={20} />} label="My Listings" value="2" />
+                 <OverviewItem icon={<Heart size={20} />} label="Saved Cars" value="3" />
+                 <OverviewItem icon={<ShoppingBag size={20} />} label="Purchased" value="1" />
+                 <OverviewItem icon={<Tag size={20} />} label="Offers" value="0" />
+               </>
+             )}
+           </div>
+        </div>
 
-            {/* ── ACQUISITIONS ── */}
-            {activeTab === 'acquisitions' && (
-              <motion.div
-                key="acquisitions"
-                initial={{ opacity: 0, x: 12 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -12 }}
-                transition={{ duration: 0.25 }}
-              >
-                {/* Header row */}
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1.6rem' }}>
-                  <div>
-                    <h2 style={{ fontSize: '1.9rem', fontWeight: 800, color: '#fff', margin: 0, lineHeight: 1.1 }}>
-                      Portfolio{' '}
-                      <span style={{ color: GOLD, fontStyle: 'italic' }}>Ledger.</span>
-                    </h2>
-                    <p style={{ color: MUTED, fontSize: '0.82rem', marginTop: '0.4rem' }}>
-                      Track and manage your curated automotive investments.
-                    </p>
-                  </div>
-                  <button
-                    style={{
-                      padding: '0.55rem 1rem',
-                      border: `1px solid ${GOLD}`,
-                      borderRadius: '0.5rem',
-                      background: 'transparent',
-                      color: GOLD,
-                      fontSize: '0.72rem', fontWeight: 700, letterSpacing: '1px',
-                      cursor: 'pointer',
-                      display: 'flex', alignItems: 'center', gap: '0.4rem',
-                      transition: 'background 0.2s',
-                      whiteSpace: 'nowrap',
-                    }}
-                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(197,160,89,0.1)')}
-                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                  >
-                    View Full Portfolio <ExternalLink size={12} />
-                  </button>
-                </div>
+        {/* ── My Services / Activity Grid ── */}
+        <div style={{ marginBottom: '2.5rem' }}>
+           <h3 className="luxury-font" style={{ fontSize: '1.2rem', marginBottom: '1.2rem' }}>{isAdminOrVendor ? 'My Services' : 'My Activity'}</h3>
+           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+             {isAdminOrVendor && <ActivityItem icon={<LayoutDashboard size={18} />} label="Admin Dashboard" subText="Management portal" onClick={() => window.location.href = '/admin.html'} />}
+             <ActivityItem icon={<Car size={18} />} label="My Listings" subText="Manage your car listings" />
+             <ActivityItem icon={<Heart size={18} />} label="Saved Cars" subText="Cars you've saved" />
+             <ActivityItem icon={<ShoppingBag size={18} />} label="Buying History" subText="Cars you've purchased" />
+             <ActivityItem icon={<Tag size={18} />} label="Offers" subText={isAdminOrVendor ? "Offers on your listings" : "Offers you've made"} />
+             <ActivityItem icon={<MessageSquare size={18} />} label="Messages" subText="Your conversations" badge={3} onClick={() => setActiveTab('messages')} />
+             {!isAdminOrVendor && <ActivityItem icon={<History size={18} />} label="Recently Viewed" subText="Cars you looked at" />}
+           </div>
+        </div>
 
-                {/* 3-col stat cards */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-                  <StatCard
-                    label="TOTAL PORTFOLIO VALUE"
-                    value={stats.totalInvestment ? formatPrice(stats.totalInvestment) : '₦0'}
-                    icon={<TrendingUp size={30} color={GOLD} strokeWidth={1.5} />}
-                    sub={`• 0% vs last month`}
-                  />
-                  <StatCard
-                    label="TOTAL ASSETS"
-                    value={String(stats.acquisitionCount)}
-                    icon={<Car size={30} color={GOLD} strokeWidth={1.5} />}
-                    sub={`• ${stats.acquisitionCount} active`}
-                  />
-                  <StatCard
-                    label="ACQUISITIONS IN PROGRESS"
-                    value={String(stats.inProgress)}
-                    icon={<Hourglass size={30} color={GOLD} strokeWidth={1.5} />}
-                    sub={`• ${stats.inProgress} pending`}
-                  />
-                </div>
+        {/* ── Account List ── */}
+        <div style={{ marginBottom: '2.5rem' }}>
+           <h3 className="luxury-font" style={{ fontSize: '1.2rem', marginBottom: '1.2rem' }}>Account</h3>
+           <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', background: 'rgba(255,255,255,0.05)', borderRadius: '1.2rem', overflow: 'hidden' }}>
+             <AccountLink icon={<User size={18} />} label="Personal Information" subText="Update your personal details" />
+             <AccountLink icon={<CreditCard size={18} />} label="Payment Methods" subText="Manage your payment options" />
+             <AccountLink icon={<ShieldCheck size={18} />} label="Verification" subText="Verify your account" badgeText="Verified" badgeColor="#4ade80" />
+             <AccountLink icon={<Lock size={18} />} label="Security" subText="Password and security settings" />
+           </div>
+        </div>
 
-                {/* Orders list / empty state */}
-                {loading ? (
-                  <div style={{ padding: '4rem', textAlign: 'center', color: MUTED, letterSpacing: '2px', fontSize: '0.7rem' }}>
-                    SYNCHRONIZING SECURE LEDGER...
-                  </div>
-                ) : orders.length === 0 ? (
-                  <EmptyAcquisitions onBrowse={onClose} />
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    {orders.map(order => (
-                      <OrderRow key={order.id} order={order} platformSettings={platformSettings} />
-                    ))}
-                  </div>
-                )}
-              </motion.div>
-            )}
+        {/* ── Logout Button ── */}
+        <button 
+          onClick={signOut}
+          style={{ width: '100%', padding: '1.2rem', borderRadius: '1rem', background: 'rgba(255,0,0,0.05)', border: '1px solid rgba(255,0,0,0.1)', color: '#ff4444', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.8rem', marginBottom: '2rem' }}
+        >
+          <History size={18} style={{ transform: 'rotate(180deg)' }} /> LOGOUT
+        </button>
 
-            {/* ── MESSAGES ── */}
-            {activeTab === 'messages' && (
-              <motion.div
-                key="messages"
-                initial={{ opacity: 0, x: 12 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -12 }}
-                transition={{ duration: 0.25 }}
-                style={{ height: '500px', display: 'flex', flexDirection: 'column' }}
-              >
-                <header style={{ marginBottom: '1.5rem' }}>
-                  <h2 style={{ fontSize: '1.9rem', fontWeight: 800, color: '#fff', margin: 0, lineHeight: 1.1 }}>
-                    Messages<span style={{ color: GOLD, fontStyle: 'italic' }}>.</span>
-                  </h2>
-                  <p style={{ color: MUTED, fontSize: '0.82rem', marginTop: '0.4rem' }}>
-                    Your conversations with vendors and concierge.
-                  </p>
-                </header>
-                <div style={{ flex: 1, border: `1px solid ${BORDER}`, borderRadius: '1rem', overflow: 'hidden' }}>
-                  <MessagingPanel userId={user?.id || ''} role={profile?.role || 'customer'} height="100%" />
-                </div>
-              </motion.div>
-            )}
-
-            {/* ── ACCOUNT INFO ── */}
-            {activeTab === 'details' && (
-              <motion.div
-                key="details"
-                initial={{ opacity: 0, x: 12 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -12 }}
-                transition={{ duration: 0.25 }}
-              >
-                <header style={{ marginBottom: '2.5rem' }}>
-                  <h2 style={{ fontSize: '1.9rem', fontWeight: 800, color: '#fff', margin: 0 }}>
-                    Member <span style={{ color: GOLD, fontStyle: 'italic' }}>Profile.</span>
-                  </h2>
-                  <p style={{ color: MUTED, fontSize: '0.82rem', marginTop: '0.4rem' }}>
-                    Confidential identity and secure contact information.
-                  </p>
-                </header>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.8rem' }}>
-                  <InfoItem icon={<User size={20} />} label="FULL NAME" value={profile?.full_name || 'Not Provided'} />
-                  <InfoItem icon={<Mail size={20} />} label="SECURE EMAIL" value={user?.email || 'Not Provided'} />
-                  <InfoItem
-                    icon={<Calendar size={20} />}
-                    label="MEMBER SINCE"
-                    value={new Date(profile?.created_at || user?.created_at || '').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                  />
-                  <InfoItem icon={<CreditCard size={20} />} label="PREFERRED CURRENCY" value="NGN (₦)" />
-                </div>
-              </motion.div>
-            )}
-
-            {/* ── MEMBERSHIP ── */}
-            {activeTab === 'membership' && (
-              <motion.div
-                key="membership"
-                initial={{ opacity: 0, x: 12 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -12 }}
-                transition={{ duration: 0.25 }}
-              >
-                <header style={{ marginBottom: '2.5rem' }}>
-                  <h2 style={{ fontSize: '1.9rem', fontWeight: 800, color: '#fff', margin: 0 }}>
-                    Member <span style={{ color: GOLD, fontStyle: 'italic' }}>Access.</span>
-                  </h2>
-                  <p style={{ color: MUTED, fontSize: '0.82rem', marginTop: '0.4rem' }}>
-                    Your status within the Transhub ecosystem.
-                  </p>
-                </header>
-                <div style={{
-                  padding: '2rem', borderRadius: '1.2rem',
-                  border: `1px solid ${GOLD}`,
-                  background: 'linear-gradient(135deg, rgba(197,160,89,0.06) 0%, transparent 100%)',
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1.2rem', marginBottom: '1.8rem' }}>
-                    <div style={{ width: '52px', height: '52px', background: GOLD, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Gem size={26} color="#000" />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '0.6rem', color: GOLD, letterSpacing: '3px', fontWeight: 800 }}>CURRENT STANDING</div>
-                      <div style={{ fontSize: '1.6rem', fontWeight: 800 }}>{stats.membershipTier} ACCOUNT</div>
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
-                    <Benefit label="Priority Auction Access" active={true} />
-                    <Benefit label="Complimentary Global Freight" active={stats.membershipTier !== 'SILVER'} />
-                    <Benefit label="Concierge Sourcing" active={stats.membershipTier === 'PLATINUM'} />
-                    <Benefit label="Pre-market Catalog Previews" active={true} />
-                  </div>
-                </div>
-              </motion.div>
-            )}
-
-            {/* ── VENDOR PORTAL ── */}
-            {activeTab === 'vendor' && (
-              <motion.div
-                key="vendor"
-                initial={{ opacity: 0, x: 12 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -12 }}
-                transition={{ duration: 0.25 }}
-              >
-                <header style={{ marginBottom: '2.5rem' }}>
-                  <h2 style={{ fontSize: '1.9rem', fontWeight: 800, color: '#fff', margin: 0 }}>
-                    Vendor <span style={{ color: GOLD, fontStyle: 'italic' }}>Portal.</span>
-                  </h2>
-                  <p style={{ color: MUTED, fontSize: '0.82rem', marginTop: '0.4rem' }}>
-                    Manage your dealership presence and inventory.
-                  </p>
-                </header>
-
-                {(!profile?.vendor_status || profile.vendor_status === 'none' || profile.vendor_status === 'rejected') && (
-                  <div style={{ padding: '3rem', borderRadius: '1.2rem', textAlign: 'center', border: `1px solid ${BORDER}` }}>
-                    <div style={{ width: '72px', height: '72px', margin: '0 auto 1.5rem', background: 'rgba(255,255,255,0.04)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Building2 size={36} color={GOLD} />
-                    </div>
-                    <h4 className="luxury-font" style={{ fontSize: '1.4rem', marginBottom: '0.8rem' }}>Become a Partner</h4>
-                    <p style={{ color: MUTED, marginBottom: '2rem', maxWidth: '360px', margin: '0 auto 2rem' }}>
-                      Join our exclusive network of certified dealers. List your luxury inventory on Transhub.
-                      {profile?.vendor_status === 'rejected' && (
-                        <span style={{ display: 'block', color: '#ef4444', marginTop: '0.8rem' }}>
-                          Your previous application was passed. You may re-apply below.
-                        </span>
-                      )}
-                    </p>
-                    <button onClick={() => setShowVendorApp(true)} className="btn-gold">APPLY FOR PARTNERSHIP</button>
-                  </div>
-                )}
-
-                {profile?.vendor_status === 'pending' && (
-                  <div style={{ padding: '3rem', borderRadius: '1.2rem', textAlign: 'center', border: `1px solid ${BORDER}` }}>
-                    <div style={{ width: '72px', height: '72px', margin: '0 auto 1.5rem', background: 'rgba(234,179,8,0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Clock size={36} color="#eab308" />
-                    </div>
-                    <h4 className="luxury-font" style={{ fontSize: '1.4rem', marginBottom: '0.8rem' }}>Application Under Review</h4>
-                    <p style={{ color: MUTED, maxWidth: '360px', margin: '0 auto' }}>
-                      Your application is currently being reviewed by our team. We'll notify you of the decision.
-                    </p>
-                  </div>
-                )}
-
-                {profile?.vendor_status === 'approved' && (
-                  <div style={{ padding: '3rem', borderRadius: '1.2rem', textAlign: 'center', border: `1px solid ${GOLD}` }}>
-                    <div style={{ width: '72px', height: '72px', margin: '0 auto 1.5rem', background: 'rgba(74,222,128,0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <ShieldCheck size={36} color="#4ade80" />
-                    </div>
-                    <h4 className="luxury-font" style={{ fontSize: '1.4rem', marginBottom: '0.8rem' }}>Verified Partner</h4>
-                    <p style={{ color: MUTED, marginBottom: '2rem' }}>
-                      Welcome back, <strong style={{ color: '#fff' }}>{profile.business_name}</strong>. Access your dashboard to manage inventory.
-                    </p>
-                    <button
-                      onClick={() => window.location.href = '/vendor.html'}
-                      className="btn-gold"
-                      style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 auto' }}
-                    >
-                      <Store size={16} /> OPEN VENDOR PORTAL <ExternalLink size={13} />
-                    </button>
-                  </div>
-                )}
-              </motion.div>
-            )}
-
-          </AnimatePresence>
-        </main>
+        {/* ── Need Help Section ── */}
+        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '1.2rem', padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+           <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(197,160,89,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+             <Headphones size={22} color={GOLD} />
+           </div>
+           <div style={{ flex: 1 }}>
+             <div style={{ fontSize: '1rem', fontWeight: 700 }}>Need Help?</div>
+             <div style={{ fontSize: '0.75rem', color: '#888' }}>Our support team is here to help you</div>
+           </div>
+           <button style={{ background: GOLD, color: '#000', fontWeight: 800, padding: '0.8rem 1.2rem', borderRadius: '0.8rem', fontSize: '0.8rem' }}>Contact Support</button>
+        </div>
       </div>
     </motion.div>
   );
 };
 
-/* ─────────────────────────────────────────────────────────── */
-/* SUB-COMPONENTS                                              */
-/* ─────────────────────────────────────────────────────────── */
+const OverviewItem = ({ icon, label, value }: { icon: React.ReactNode, label: string, value: string }) => (
+  <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '1rem', padding: '1rem 0.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+    <div style={{ color: GOLD }}>{icon}</div>
+    <div style={{ fontSize: '1.2rem', fontWeight: 800 }}>{value}</div>
+    <div style={{ fontSize: '0.65rem', color: '#888', fontWeight: 600 }}>{label}</div>
+  </div>
+);
 
-const GOLD_C = '#c5a059';
-const BORDER_C = 'rgba(255,255,255,0.07)';
-const MUTED_C = 'rgba(255,255,255,0.42)';
-
-const SidebarTab = ({
-  active, onClick, icon, label, badge
-}: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string; badge?: number }) => (
-  <button
+const ActivityItem = ({ icon, label, subText, badge, onClick }: { icon: React.ReactNode, label: string, subText: string, badge?: number, onClick?: () => void }) => (
+  <div 
     onClick={onClick}
-    style={{
-      width: '100%', padding: '0.85rem 1rem',
-      borderRadius: '0.6rem', border: 'none',
-      background: active ? 'rgba(197,160,89,0.12)' : 'transparent',
-      color: active ? GOLD_C : MUTED_C,
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      cursor: 'pointer', transition: 'all 0.2s',
-      fontWeight: 700, fontSize: '0.65rem', letterSpacing: '1.5px',
-    }}
-    onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
-    onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent'; }}
+    style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '1.2rem', padding: '1.2rem', display: 'flex', gap: '1rem', alignItems: 'center', cursor: onClick ? 'pointer' : 'default' }}
   >
-    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-      {icon}
-      <span>{label}</span>
+    <div style={{ color: GOLD }}>{icon}</div>
+    <div style={{ flex: 1 }}>
+      <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>{label}</div>
+      <div style={{ fontSize: '0.7rem', color: '#888' }}>{subText}</div>
     </div>
-    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-      {badge != null && badge > 0 && (
-        <span style={{
-          background: GOLD_C, color: '#000', borderRadius: '999px',
-          fontSize: '0.55rem', fontWeight: 900, padding: '1px 6px', lineHeight: '1.6',
-        }}>{badge}</span>
-      )}
-      {active && <ChevronRight size={13} color={GOLD_C} />}
-    </div>
-  </button>
-);
-
-const StatCard = ({
-  label, value, icon, sub
-}: { label: string; value: string; icon: React.ReactNode; sub: string }) => (
-  <div style={{
-    padding: '1.2rem 1.1rem',
-    background: 'rgba(255,255,255,0.03)',
-    borderRadius: '0.9rem',
-    border: `1px solid ${BORDER_C}`,
-  }}>
-    <div style={{ fontSize: '0.55rem', color: MUTED_C, letterSpacing: '2px', fontWeight: 800, marginBottom: '0.6rem' }}>{label}</div>
-    <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-      <span style={{ fontSize: '1.9rem', fontWeight: 800, color: '#fff', lineHeight: 1 }}>{value}</span>
-      <span style={{ opacity: 0.5 }}>{icon}</span>
-    </div>
-    <div style={{ fontSize: '0.65rem', color: MUTED_C, marginTop: '0.6rem' }}>{sub}</div>
-  </div>
-);
-
-const EmptyAcquisitions = ({ onBrowse }: { onBrowse: () => void }) => (
-  <div style={{
-    padding: '3.5rem 2rem',
-    border: `1px solid ${BORDER_C}`,
-    borderRadius: '1rem',
-    textAlign: 'center',
-  }}>
-    {/* 3-D box placeholder */}
-    <div style={{
-      position: 'relative', width: '72px', height: '72px',
-      margin: '0 auto 1.5rem',
-      background: 'rgba(255,255,255,0.05)',
-      borderRadius: '50%',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-    }}>
-      {/* sparkle dots */}
-      {[[-18, -18], [18, -22], [-22, 10], [22, 12]].map(([tx, ty], i) => (
-        <span key={i} style={{
-          position: 'absolute',
-          top: '50%', left: '50%',
-          transform: `translate(${tx}px, ${ty}px)`,
-          width: 4, height: 4,
-          borderRadius: '50%',
-          background: GOLD_C, opacity: 0.5,
-        }} />
-      ))}
-      <Box size={32} color={GOLD_C} strokeWidth={1.5} />
-    </div>
-    <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff', marginBottom: '0.5rem' }}>No Acquisitions Yet</h3>
-    <p style={{ color: MUTED_C, fontSize: '0.83rem', marginBottom: '1.6rem' }}>
-      Your elite portfolio is currently awaiting its first acquisition.
-    </p>
-    <button
-      onClick={onBrowse}
-      style={{
-        padding: '0.7rem 1.6rem',
-        background: GOLD_C,
-        border: 'none', borderRadius: '0.45rem',
-        color: '#000', fontWeight: 800, fontSize: '0.78rem',
-        letterSpacing: '0.5px', cursor: 'pointer',
-        display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
-        transition: 'opacity 0.2s',
-      }}
-      onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
-      onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
-    >
-      Start an Acquisition <ChevronRight size={15} />
-    </button>
-  </div>
-);
-
-const OrderRow = ({ order, platformSettings }: { order: Order; platformSettings: any[] }) => (
-  <div style={{
-    padding: '1.2rem', background: 'rgba(255,255,255,0.02)',
-    borderRadius: '0.9rem', border: `1px solid ${BORDER_C}`,
-    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    transition: '0.3s',
-  }}>
-    <div style={{ display: 'flex', alignItems: 'center', gap: '1.2rem' }}>
-      <div style={{ width: '44px', height: '44px', background: 'rgba(197,160,89,0.1)', borderRadius: '0.6rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Package size={18} color={GOLD_C} />
-      </div>
-      <div>
-        <div style={{ fontSize: '0.58rem', color: GOLD_C, letterSpacing: '1.5px', fontWeight: 800 }}>{order.status.toUpperCase()}</div>
-        <div style={{ fontSize: '1rem', fontWeight: 600, marginTop: '0.15rem' }}>{order.cars?.make} {order.cars?.model}</div>
-        <div style={{ fontSize: '0.7rem', color: MUTED_C, marginTop: '0.2rem' }}>ID: {order.payment_ref || order.id.slice(0, 8)}</div>
-      </div>
-    </div>
-    <div style={{ textAlign: 'right' }}>
-      <div style={{ fontSize: '1.1rem', fontWeight: 700 }}>{formatPrice(order.amount)}</div>
-      <div style={{ fontSize: '0.65rem', color: MUTED_C, marginTop: '0.3rem', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.3rem' }}>
-        <Clock size={11} /> {new Date(order.created_at).toLocaleDateString()}
-      </div>
-      <button
-        onClick={() => generateInvoice(order, platformSettings, 'RECEIPT')}
-        style={{
-          marginTop: '0.6rem', background: 'transparent',
-          border: `1px solid ${GOLD_C}`, color: GOLD_C,
-          padding: '3px 10px', borderRadius: '0.3rem',
-          fontSize: '0.58rem', fontWeight: 700, cursor: 'pointer',
-          display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
-        }}
-      >
-        <ExternalLink size={9} /> RECEIPT
-      </button>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+      {badge ? <span style={{ background: GOLD, color: '#000', fontSize: '0.65rem', fontWeight: 900, padding: '2px 6px', borderRadius: '10px' }}>{badge}</span> : null}
+      <ChevronRight size={14} color="#555" />
     </div>
   </div>
 );
 
-const InfoItem = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) => (
-  <div style={{ display: 'flex', gap: '1.2rem', alignItems: 'center' }}>
-    <div style={{ width: '42px', height: '42px', background: 'rgba(255,255,255,0.03)', borderRadius: '0.7rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: GOLD_C, flexShrink: 0 }}>
-      {icon}
+const AccountLink = ({ icon, label, subText, badgeText, badgeColor }: { icon: React.ReactNode, label: string, subText: string, badgeText?: string, badgeColor?: string }) => (
+  <div style={{ background: 'rgba(0,0,0,0.3)', padding: '1.2rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+    <div style={{ color: GOLD }}>{icon}</div>
+    <div style={{ flex: 1 }}>
+      <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>{label}</div>
+      <div style={{ fontSize: '0.7rem', color: '#888' }}>{subText}</div>
     </div>
-    <div>
-      <div style={{ fontSize: '0.58rem', color: MUTED_C, letterSpacing: '2px', fontWeight: 700 }}>{label}</div>
-      <div style={{ fontSize: '1rem', fontWeight: 600, marginTop: '0.2rem' }}>{value}</div>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+      {badgeText && <span style={{ color: badgeColor, fontSize: '0.65rem', fontWeight: 700 }}>{badgeText}</span>}
+      <ChevronRight size={16} color="#555" />
     </div>
-  </div>
-);
-
-const Benefit = ({ label, active }: { label: string; active: boolean }) => (
-  <div style={{ display: 'flex', alignItems: 'center', gap: '0.9rem', opacity: active ? 1 : 0.3 }}>
-    <div style={{
-      width: '17px', height: '17px', borderRadius: '50%',
-      background: active ? GOLD_C : 'transparent',
-      border: `1px solid ${GOLD_C}`,
-      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-    }}>
-      {active && <ShieldCheck size={10} color="#000" />}
-    </div>
-    <span style={{ fontSize: '0.88rem', fontWeight: 500 }}>{label}</span>
   </div>
 );

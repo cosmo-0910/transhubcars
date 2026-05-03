@@ -20,7 +20,7 @@ export const VehicleCard = ({ car, onInquiry }: { car: Car, onInquiry: (car: Car
       }}
     >
       {/* Status Badge Over Image */}
-      <div style={{ position: 'absolute', top: '1rem', right: '1rem', zIndex: 5, display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'flex-end' }}>
+      <div className="desktop-only" style={{ position: 'absolute', top: '1rem', right: '1rem', zIndex: 5, display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'flex-end' }}>
         {car.is_pinned && (
           <span className="glass" style={{ 
             fontSize: '0.65rem', 
