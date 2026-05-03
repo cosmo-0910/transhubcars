@@ -4,9 +4,11 @@ import { useState, useEffect } from 'react';
 import { db } from '../../shared/lib/db';
 import type { Car } from '../../shared/lib/db';
 import { formatPrice } from '../../shared/lib/formatters';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 export const Hero = ({ onBrowse, onPreorder }: { onBrowse: () => void, onPreorder: () => void }) => {
   const [featuredCars, setFeaturedCars] = useState<Car[]>([]);
+  const [scrollIndex, setScrollIndex] = useState(0);
 
   useEffect(() => {
     const loadFeatured = async () => {
@@ -31,13 +33,16 @@ export const Hero = ({ onBrowse, onPreorder }: { onBrowse: () => void, onPreorde
     return (
       <motion.div 
          key={`card-${cardClassNum}-${car.id || car.model}`}
-         initial={{ opacity: 0 }}
-         animate={{ opacity: 1 }}
-         transition={{ duration: 1, delay: delayOffset }}
+         initial={{ opacity: 0, x: 50 }}
+         animate={{ opacity: 1, x: 0 }}
+         whileHover={{ y: -10, scale: 1.02 }}
+         transition={{ duration: 0.8, delay: delayOffset, ease: [0.16, 1, 0.3, 1] }}
          className={`hero-floating-card card-${cardClassNum}`}>
         <div className={`card-badge ${isAvail ? 'green-badge' : 'yellow-badge'}`}><div className="status-dot"/> {isAvail ? 'AVAILABLE' : 'PREORDER'}</div>
         <button className="heart-icon-btn" aria-label="Favorite"><Heart size={cardClassNum === 1 ? 18 : 16} /></button>
-        <img src={car.image_url} alt={`${car.make} ${car.model}`} className="card-image"/>
+        <div className="card-image-wrap">
+          <img src={car.image_url} alt={`${car.make} ${car.model}`} className="card-image"/>
+        </div>
         <div className="card-details">
           <h3>{car.make} {car.model}</h3>
           <p>{car.year} • {car.transmission?.split(' ')[0]} • {car.fuel_type}</p>
@@ -113,23 +118,44 @@ export const Hero = ({ onBrowse, onPreorder }: { onBrowse: () => void, onPreorde
           </div>
         </div>
 
-        {/* Right Side: Overlapping 3D Cards */}
-        {/* Right Side: Scrollable Featured Cards */}
-        <div className="hero-right-column">
+        <div className="hero-right-column group">
           <div className="featured-header">
             <h2>Featured Vehicles</h2>
             <a href="#inventory" onClick={(e) => { e.preventDefault(); onBrowse(); }}>View all <ArrowRight size={14} /></a>
           </div>
-          <div className="hero-cards-wrapper">
+          <motion.div 
+            className="hero-cards-wrapper"
+            drag="x"
+            dragConstraints={{ left: -352 * (featuredCars.length > 0 ? featuredCars.length - 1 : 2), right: 0 }}
+            animate={{ x: -scrollIndex * 352 }}
+            style={{ width: 'max-content' }}
+          >
             {featuredCars.length > 0 ? (
-              featuredCars.map((c, i) => renderCard(c, i + 1, i * 0.2))
+              featuredCars.map((c, i) => renderCard(c, i + 1, i * 0.1))
             ) : (
               <>
                 {renderCard(c1, 1, 0)}
-                {renderCard(c2, 2, 0.2)}
-                {renderCard(c3, 3, 0.4)}
+                {renderCard(c2, 2, 0.1)}
+                {renderCard(c3, 3, 0.2)}
               </>
             )}
+          </motion.div>
+          
+          <div className="carousel-controls">
+            <button 
+              className="carousel-btn prev" 
+              onClick={() => setScrollIndex(prev => Math.max(0, prev - 1))}
+              disabled={scrollIndex === 0}
+            >
+              <ChevronLeft size={24} />
+            </button>
+            <button 
+              className="carousel-btn next" 
+              onClick={() => setScrollIndex(prev => Math.min(featuredCars.length > 0 ? featuredCars.length - 1 : 2, prev + 1))}
+              disabled={scrollIndex === (featuredCars.length > 0 ? featuredCars.length - 1 : 2)}
+            >
+              <ChevronRight size={24} />
+            </button>
           </div>
         </div>
       </div>

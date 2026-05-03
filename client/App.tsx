@@ -14,6 +14,7 @@ import { Services } from './components/Services.tsx';
 import { Footer } from './components/Footer.tsx';
 import { HomeSections } from './components/HomeSections.tsx';
 import { MessageVendorModal } from './components/MessageVendorModal.tsx';
+import SEO from './components/SEO.tsx';
 import { InstallPrompt } from '../shared/components/InstallPrompt.tsx';
 import { AuthProvider, useAuth } from '../shared/lib/AuthContext.tsx';
 import { ThemeProvider } from '../shared/context/ThemeContext.tsx';
@@ -71,6 +72,17 @@ function AppContent() {
     <div className="min-h-screen">
       {/* Animated Logo Background (Global) */}
       <LogoBackground />
+      
+      <SEO 
+        title={currentView === 'home' ? 'The Elite Collection' : currentView.charAt(0).toUpperCase() + currentView.slice(1)} 
+        description={
+          currentView === 'preorder' 
+            ? 'Preorder your dream luxury car from our global network of verified vendors.' 
+            : currentView === 'services'
+            ? 'Professional automotive services including maintenance, logistics, and inspections.'
+            : undefined
+        }
+      />
       
       <Navbar 
         onAdminToggle={() => window.location.href = '/admin.html'} 

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://transhub.cars/sitemap.xml
