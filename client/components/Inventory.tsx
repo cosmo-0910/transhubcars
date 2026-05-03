@@ -2,7 +2,6 @@ import { useEffect, useState, useMemo } from 'react';
 import { db, supabase } from '../../shared/lib/db';
 import type { Car } from '../../shared/lib/db';
 import { motion, AnimatePresence } from 'framer-motion';
-import { formatPrice } from '../../shared/lib/formatters';
 import SearchAutocomplete from '../../shared/components/SearchAutocomplete';
 import { FilterDropdown } from './FilterDropdown';
 import { VehicleCard } from './VehicleCard';
