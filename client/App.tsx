@@ -142,7 +142,6 @@ function AppContent() {
                 }
               }} 
               onViewAllBrands={() => setCurrentView('brands')}
-              onExploreCollection={() => setCurrentView('collections')}
             />
           </>
         )}
