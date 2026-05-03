@@ -145,30 +145,6 @@ export const Hero = ({ onBrowse, onPreorder }: { onBrowse: () => void, onPreorde
             </button>
           </div>
 
-          <div className="hero-trust-indicators">
-            <div className="trust-item">
-              <div className="trust-icon-wrapper"><ShieldCheck size={20} /></div>
-              <div className="trust-text">
-                <span className="trust-num">200+</span>
-                <span className="trust-desc">Happy Buyers</span>
-              </div>
-            </div>
-            <div className="trust-item">
-              <div className="trust-icon-wrapper"><Award size={20} /></div>
-              <div className="trust-text">
-                <span className="trust-num">100%</span>
-                <span className="trust-desc">Verified Cars</span>
-              </div>
-            </div>
-            <div className="trust-item">
-              <div className="trust-icon-wrapper"><Clock size={20} /></div>
-              <div className="trust-text">
-                <span className="trust-num">48hr</span>
-                <span className="trust-desc">Inspection Process</span>
-              </div>
-            </div>
-          </div>
-        </div>
 
         <div className="hero-right-column">
           <div className="featured-header">
