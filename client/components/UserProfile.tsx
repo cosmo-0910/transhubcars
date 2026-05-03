@@ -1,4 +1,3 @@
-import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { useAuth } from '../../shared/lib/AuthContext';
 import { MessagingPanel } from './MessagingPanel';
