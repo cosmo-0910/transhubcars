@@ -13,6 +13,7 @@ import { VendorProfile } from './components/VendorProfile.tsx';
 import { Services } from './components/Services.tsx';
 import { Footer } from './components/Footer.tsx';
 import { HomeSections } from './components/HomeSections.tsx';
+import { MessageVendorModal } from './components/MessageVendorModal.tsx';
 import { InstallPrompt } from '../shared/components/InstallPrompt.tsx';
 import { AuthProvider, useAuth } from '../shared/lib/AuthContext.tsx';
 import { ThemeProvider } from '../shared/context/ThemeContext.tsx';
@@ -45,6 +46,7 @@ function AppContent() {
   const [discoveryFilter, setDiscoveryFilter] = useState<{ type: 'body' | 'brand', value: string } | null>(null);
   const [globalSearchQuery, setGlobalSearchQuery] = useState('');
   const [selectedVendorId, setSelectedVendorId] = useState<string | null>(null);
+  const [chatModal, setChatModal] = useState<{ carId?: string | null, vendorId?: string | null } | null>(null);
   const { user, profile, signOut } = useAuth();
   const isAdmin = profile?.role === 'admin';
 
@@ -52,8 +54,17 @@ function AppContent() {
     const handleSelectCar = (e: any) => {
       setSelectedCar(e.detail.car);
     };
+    const handleOpenChat = (e: any) => {
+      setChatModal({ carId: e.detail.carId, vendorId: e.detail.vendorId });
+    };
+
     window.addEventListener('select-car', handleSelectCar);
-    return () => window.removeEventListener('select-car', handleSelectCar);
+    window.addEventListener('open-chat', handleOpenChat);
+
+    return () => {
+      window.removeEventListener('select-car', handleSelectCar);
+      window.removeEventListener('open-chat', handleOpenChat);
+    };
   }, []);
 
   return (
@@ -145,6 +156,16 @@ function AppContent() {
               setSelectedCar(car);
               setDiscoveryFilter(null);
             }}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {chatModal && (
+          <MessageVendorModal 
+            carId={chatModal.carId} 
+            vendorId={chatModal.vendorId} 
+            onClose={() => setChatModal(null)} 
           />
         )}
       </AnimatePresence>

@@ -61,19 +61,11 @@ export const AuthForm = ({ type: initialType, onSuccess }: { type: 'login' | 'si
     }
   };
 
-  const socialLogins = [
-    { icon: <Chrome size={20} className="text-blue-500" />, name: 'Google' },
-    { icon: <AppleIcon size={20} />, name: 'Apple' },
-    { icon: <Smartphone size={20} />, name: 'OTP Login' }
-  ];
-
   return (
     <div className="auth-container">
-      <div className="floating-shimmer" />
-      
       {/* Top Lock Icon */}
       <div className="auth-top-icon">
-        <Lock size={32} color="var(--accent-gold)" />
+        <Lock size={30} color="#c5a059" strokeWidth={1.5} />
       </div>
 
       <div className="auth-header">
@@ -83,33 +75,32 @@ export const AuthForm = ({ type: initialType, onSuccess }: { type: 'login' | 'si
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <h2 className="luxury-font" style={{ fontSize: '2.4rem', marginBottom: '0.8rem', color: 'white' }}>
+          <h2 className="luxury-font" style={{ fontSize: '2.2rem', color: 'white', marginBottom: '0.2rem' }}>
             {authType === 'login' ? 'Welcome Back 👋' : 'Join the Elite.'}
           </h2>
-          <p className="auth-subtitle" style={{ fontSize: '0.9rem' }}>
+          <p className="auth-subtitle">
             {authType === 'login' ? 'Sign in to continue to your Transhub account' : 'Begin your acquisition journey with Transhub.'}
           </p>
         </motion.div>
       </div>
 
-      <form onSubmit={handleAuth} style={{ display: 'flex', flexDirection: 'column' }}>
+      <form onSubmit={handleAuth}>
         <AnimatePresence mode="popLayout">
           {authType === 'signup' && (
             <motion.div 
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="luxury-input-group"
+              className="auth-input-group"
             >
-              <label className="luxury-label">Full Name</label>
-              <div style={{ position: 'relative' }}>
-                <User size={18} style={{ position: 'absolute', left: '1.2rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--accent-gold)', opacity: 0.5 }} />
+              <label className="auth-label">Full Name</label>
+              <div className="auth-input-wrapper">
+                <User size={18} className="auth-input-icon" />
                 <input 
                   type="text" 
                   required 
-                  className="luxury-input" 
+                  className="auth-input" 
                   placeholder="e.g. Alexander Pierce"
-                  style={{ paddingLeft: '3.5rem' }}
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                 />
@@ -118,43 +109,41 @@ export const AuthForm = ({ type: initialType, onSuccess }: { type: 'login' | 'si
           )}
         </AnimatePresence>
 
-        <div className="luxury-input-group">
-          <label className="luxury-label">Email Address</label>
-          <div style={{ position: 'relative' }}>
-            <Mail size={18} style={{ position: 'absolute', left: '1.2rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--accent-gold)', opacity: 0.5 }} />
+        <div className="auth-input-group">
+          <label className="auth-label">Email Address</label>
+          <div className="auth-input-wrapper">
+            <Mail size={18} className="auth-input-icon" />
             <input 
               type="email" 
               required 
-              className="luxury-input" 
+              className="auth-input" 
               placeholder="client@transhub.com"
-              style={{ paddingLeft: '3.5rem', paddingRight: '3.5rem' }}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
             {isEmailValid && (
-              <div className="input-icon-right" style={{ color: '#4ade80' }}>
+              <div className="auth-input-right valid">
                 <CheckCircle2 size={18} />
               </div>
             )}
           </div>
         </div>
 
-        <div className="luxury-input-group">
-          <label className="luxury-label">Password</label>
-          <div style={{ position: 'relative' }}>
-            <Lock size={18} style={{ position: 'absolute', left: '1.2rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--accent-gold)', opacity: 0.5 }} />
+        <div className="auth-input-group">
+          <label className="auth-label">Password</label>
+          <div className="auth-input-wrapper">
+            <Lock size={18} className="auth-input-icon" />
             <input 
               type={showPassword ? "text" : "password"} 
               required 
-              className="luxury-input" 
+              className="auth-input" 
               placeholder="••••••••••••"
-              style={{ paddingLeft: '3.5rem', paddingRight: '3.5rem' }}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
             <button 
               type="button" 
-              className="input-icon-right" 
+              className="auth-input-right" 
               onClick={() => setShowPassword(!showPassword)}
               style={{ background: 'none', border: 'none' }}
             >
@@ -164,25 +153,25 @@ export const AuthForm = ({ type: initialType, onSuccess }: { type: 'login' | 'si
         </div>
 
         {authType === 'login' && (
-          <div className="auth-checkbox-group">
-            <label className="custom-checkbox">
+          <div className="auth-checkbox-row">
+            <label className="auth-checkbox">
               <input 
                 type="checkbox" 
                 checked={rememberMe} 
                 onChange={(e) => setRememberMe(e.target.checked)} 
               />
-              <div className="checkbox-box">
+              <div className="checkbox-visual">
                 <Check size={14} />
               </div>
               <span>Remember me</span>
             </label>
-            <a href="#" className="forgot-link" onClick={(e) => e.preventDefault()}>Forgot Password?</a>
+            <a href="#" className="auth-forgot" onClick={(e) => e.preventDefault()}>Forgot Password?</a>
           </div>
         )}
 
         {authType === 'signup' && (
-          <div className="luxury-input-group">
-            <label className="luxury-label">Vendor Specialization</label>
+          <div className="auth-input-group">
+            <label className="auth-label">Vendor Specialization</label>
             <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
               {(['car', 'parts', 'both'] as const).map((type) => (
                 <button
@@ -214,14 +203,14 @@ export const AuthForm = ({ type: initialType, onSuccess }: { type: 'login' | 'si
             animate={{ opacity: 1, scale: 1 }}
             style={{ 
               padding: '1rem', 
-              borderRadius: '0.75rem', 
+              borderRadius: '10px', 
               background: message.type === 'error' ? 'rgba(255, 50, 50, 0.08)' : 'rgba(50, 255, 50, 0.08)',
               color: message.type === 'error' ? '#ff6b6b' : '#63e6be',
-              fontSize: '0.8rem',
+              fontSize: '0.85rem',
               display: 'flex',
               alignItems: 'center',
               gap: '0.75rem',
-              border: `1px solid ${message.type === 'error' ? 'rgba(255,50,50,0.15)' : 'rgba(50,255,50,0.15)'}`,
+              border: '1px solid rgba(255,255,255,0.05)',
               marginBottom: '1.5rem'
             }}
           >
@@ -233,18 +222,7 @@ export const AuthForm = ({ type: initialType, onSuccess }: { type: 'login' | 'si
         <button 
           type="submit" 
           disabled={loading}
-          className="btn-gold" 
-          style={{ 
-            height: '3.8rem', 
-            borderRadius: '12px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '1rem',
-            fontSize: '1rem',
-            width: '100%',
-            fontWeight: 700
-          }}
+          className="btn-auth-primary"
         >
           {loading ? (
             <Loader2 className="animate-spin" size={20} />
@@ -257,42 +235,40 @@ export const AuthForm = ({ type: initialType, onSuccess }: { type: 'login' | 'si
         </button>
       </form>
 
-      <div className="auth-divider" style={{ margin: '2rem 0', fontSize: '0.7rem', letterSpacing: '2px', color: 'var(--text-muted)' }}>
+      <div className="auth-divider-wrap">
+        <div className="auth-divider-line" />
         OR CONTINUE WITH
+        <div className="auth-divider-line" />
       </div>
 
-      <div className="social-login-grid">
-        {socialLogins.map((social) => (
-          <button key={social.name} className="social-btn">
-            {social.icon}
-            {social.name}
-          </button>
-        ))}
+      <div className="auth-social-row">
+        <button className="social-button-card" type="button">
+          <Chrome size={20} color="#4285F4" />
+        </button>
+        <button className="social-button-card" type="button">
+          <AppleIcon size={20} color="white" />
+        </button>
+        <button className="social-button-card" type="button">
+          <Smartphone size={20} color="#c5a059" />
+          <span>OTP Login</span>
+        </button>
       </div>
 
-      <div style={{ textAlign: 'center' }}>
+      <div className="auth-footer">
         {authType === 'login' ? (
-          <div style={{ fontSize: '0.95rem', color: 'var(--text-muted)' }}>
+          <>
             New here? 
-            <button 
-              onClick={() => { setAuthType('signup'); setMessage(null); }}
-              className="create-account-link"
-              style={{ display: 'inline-flex', marginLeft: '0.5rem', background: 'none', border: 'none', padding: 0 }}
-            >
-              Create account <ArrowRight size={16} />
-            </button>
-          </div>
+            <span className="auth-footer-link" onClick={() => { setAuthType('signup'); setMessage(null); }}>
+              Create account <ArrowRight size={14} />
+            </span>
+          </>
         ) : (
-          <div style={{ fontSize: '0.95rem', color: 'var(--text-muted)' }}>
+          <>
             Already a member? 
-            <button 
-              onClick={() => { setAuthType('login'); setMessage(null); }}
-              className="create-account-link"
-              style={{ display: 'inline-flex', marginLeft: '0.5rem', background: 'none', border: 'none', padding: 0 }}
-            >
-              Sign In <ArrowRight size={16} />
-            </button>
-          </div>
+            <span className="auth-footer-link" onClick={() => { setAuthType('login'); setMessage(null); }}>
+              Sign In <ArrowRight size={14} />
+            </span>
+          </>
         )}
       </div>
     </div>

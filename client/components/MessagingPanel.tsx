@@ -18,9 +18,11 @@ interface MessagingPanelProps {
   userId: string;
   role: string;
   height?: string;
+  carId?: string | null;
+  vendorId?: string | null;
 }
 
-export const MessagingPanel = ({ userId, role, height = '100%' }: MessagingPanelProps) => {
+export const MessagingPanel = ({ userId, role, height = '100%', carId, vendorId }: MessagingPanelProps) => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -31,7 +33,7 @@ export const MessagingPanel = ({ userId, role, height = '100%' }: MessagingPanel
 
   useEffect(() => {
     loadConversations();
-  }, [userId]);
+  }, [userId, carId, vendorId]);
 
   useEffect(() => {
     if (activeConversation) {
@@ -65,6 +67,17 @@ export const MessagingPanel = ({ userId, role, height = '100%' }: MessagingPanel
     try {
       const data = await chatService.getConversations(userId);
       setConversations(data);
+
+      // Auto-select or start conversation if props provided
+      if (carId || vendorId) {
+        const conv = await chatService.startConversation(carId || null, userId, vendorId || null);
+        setActiveConversation(conv);
+        
+        // If it's a new conversation, add to list if not present
+        if (!data.find(c => c.id === conv.id)) {
+          setConversations(prev => [conv, ...prev]);
+        }
+      }
     } catch (err) {
       console.error(err);
     } finally {

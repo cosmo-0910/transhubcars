@@ -46,37 +46,6 @@ export const ChatSystem = () => {
     if (isOpen) setUnreadCount(0);
   }, [isOpen]);
 
-  // Listen for external open-chat events (e.g. from VehicleDetail / VendorProfile)
-  useEffect(() => {
-    const handleOpenChat = async (e: any) => {
-      const { carId, vendorId, autoSendMessage } = e.detail;
-      if (!user) return;
-
-      try {
-        setLoading(true);
-        setIsOpen(true);
-        const conv = await chatService.startConversation(carId, user.id, vendorId);
-        setActiveConversation(conv);
-
-        if (autoSendMessage && carId) {
-          const carContext = conv.car ? `${conv.car.make} ${conv.car.model}` : 'this car';
-          await chatService.sendMessage({
-            conversation_id: conv.id,
-            sender_id: user.id,
-            text: `I am interested in inquiring about the ${carContext}.`,
-          });
-          loadConversations();
-        }
-      } catch (err) {
-        console.error('Failed to open specific chat:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    window.addEventListener('open-chat', handleOpenChat);
-    return () => window.removeEventListener('open-chat', handleOpenChat);
-  }, [user]);
 
   // Load messages + subscribe to real-time updates for the active conversation
   useEffect(() => {

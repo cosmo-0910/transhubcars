@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { MessageSquare } from 'lucide-react';
 import { formatPrice } from '../../shared/lib/formatters';
 import type { Car } from '../../shared/lib/db';
 
@@ -135,13 +136,41 @@ export const VehicleCard = ({ car, onInquiry }: { car: Car, onInquiry: (car: Car
               {formatPrice(car.price)}
             </div>
           </div>
-          <button 
-            className="btn-gold" 
-            style={{ padding: '0.6rem 1rem', fontSize: '0.65rem', fontWeight: 800, borderRadius: '0.4rem' }} 
-            onClick={() => onInquiry(car)}
-          >
-            DETAILS
-          </button>
+          <div style={{ display: 'flex', gap: '0.4rem' }}>
+            <button 
+              className="smooth-transition glass-hover"
+              style={{
+                background: 'rgba(212, 175, 55, 0.1)',
+                border: '1px solid var(--accent-gold)',
+                color: 'var(--accent-gold)',
+                padding: '0.6rem',
+                borderRadius: '0.4rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                window.dispatchEvent(new CustomEvent('open-chat', {
+                  detail: {
+                    carId: car.id,
+                    vendorId: car.vendor_id || null,
+                    autoSendMessage: true
+                  }
+                }));
+              }}
+              title="Message Vendor"
+            >
+              <MessageSquare size={14} />
+            </button>
+            <button 
+              className="btn-gold" 
+              style={{ padding: '0.6rem 1rem', fontSize: '0.65rem', fontWeight: 800, borderRadius: '0.4rem' }} 
+              onClick={() => onInquiry(car)}
+            >
+              DETAILS
+            </button>
+          </div>
         </div>
       </div>
     </motion.div>
