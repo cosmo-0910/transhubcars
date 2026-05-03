@@ -144,7 +144,7 @@ export const Hero = ({ onBrowse, onPreorder }: { onBrowse: () => void, onPreorde
               Preorder a Car
             </button>
           </div>
-
+        </div>{/* end hero-left-column */}
 
         <div className="hero-right-column">
           <div className="featured-header">
@@ -173,7 +173,7 @@ export const Hero = ({ onBrowse, onPreorder }: { onBrowse: () => void, onPreorde
             </button>
           </div>
         </div>
-      </div>
+      </div>{/* end hero-content */}
 
       <div className="hero-footer-bar">
         <div className="feature-item">
