@@ -27,13 +27,11 @@ import {
   Car,
   Hourglass,
   Box,
-  Headphones,
-  ArrowRight
+  Headphones
 } from 'lucide-react';
 
 /* ─── colours & tokens ────────────────────────────────────── */
 const GOLD = 'var(--accent-gold)';
-const GOLD_SOFT = 'var(--accent-gold-soft)';
 const MUTED = 'var(--text-muted)';
 const BORDER = 'var(--border-glass)';
 
@@ -70,7 +68,7 @@ export const UserProfile = ({ onClose }: { onClose: () => void }) => {
   const stats = useMemo(() => ({
     totalInvestment: orders.reduce((acc, o) => acc + (o.amount || 0), 0),
     acquisitionCount: orders.length,
-    inProgress: orders.filter(o => o.status === 'pending' || o.status === 'processing').length,
+    inProgress: orders.filter(o => o.status === 'Pending' || o.status === 'Processing').length,
     membershipTier: orders.length > 5 ? 'PLATINUM' : orders.length > 2 ? 'GOLD' : 'SILVER',
   }), [orders]);
 

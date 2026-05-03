@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Calendar, ShieldCheck, Truck, Headphones, Award, Clock, Heart, Lock, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowRight, Calendar, ShieldCheck, Truck, Headphones, Heart, Lock, ChevronLeft, ChevronRight, Search, PlusCircle } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { db } from '../../shared/lib/db';
 import type { Car } from '../../shared/lib/db';
@@ -118,23 +118,65 @@ export const Hero = ({ onBrowse, onPreorder }: { onBrowse: () => void, onPreorde
 
       <div className="hero-content">
         <div className="hero-left-column">
-          <div className="hero-badge">
+          <div className="hero-badge desktop-only-flex">
             <div className="hero-badge-dot" />
             <span>PREMIUM AUTOMOTIVE MARKETPLACE</span>
           </div>
 
           <h1 className="hero-heading luxury-font">
-            Buy or Preorder<br />
+            Buy or <span className="mobile-only-inline">Sell</span><span className="desktop-only-inline">Preorder</span><br />
             Verified Cars<br />
-            <span className="hero-heading-highlight">in Nigeria</span>
+            <i className="hero-heading-highlight">in Nigeria</i>
           </h1>
 
-          <p className="hero-subtext">
+          <p className="hero-subtext desktop-only">
             Access inspected vehicles, secure preorders,<br />
             and fast delivery. No guesswork.
           </p>
+          <p className="hero-subtext mobile-only-block" style={{ fontSize: '0.85rem', marginTop: '1rem', opacity: 0.7 }}>
+            The most trusted marketplace for<br />
+            premium, foreign and Nigerian cars.
+          </p>
 
-          <div className="hero-buttons">
+          <div className="hero-mobile-actions mobile-only-block">
+            <div className="hero-search-bar">
+              <Search size={18} color="rgba(255,255,255,0.4)" />
+              <input type="text" placeholder="Search make, model, year..." />
+              <button className="search-btn"><Search size={18} color="black" /></button>
+            </div>
+            
+            <div className="hero-quick-links">
+              <button className="quick-link-btn" onClick={onPreorder}>
+                <PlusCircle size={18} color="#c5a059" />
+                <span>Sell a Car</span>
+              </button>
+              <button className="quick-link-btn" onClick={onBrowse}>
+                <Search size={18} color="#c5a059" />
+                <span>Browse Deals</span>
+              </button>
+            </div>
+
+            <div className="hero-stats-row">
+              <div className="stat-item">
+                <span className="stat-value">10K+</span>
+                <span className="stat-label">Verified Cars</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-value">25K+</span>
+                <span className="stat-label">Happy Customers</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-value">3.5K+</span>
+                <span className="stat-label">Trusted Dealers</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-value">24/7</span>
+                <span className="stat-label">Support</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="hero-buttons desktop-only-flex">
             <button className="btn-hero-primary" onClick={onBrowse}>
               <span className="icon-wrapper"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 16H9m10 0h3v-3.15a1 1 0 0 0-.84-.99L16 11l-2.7-3.6a2 2 0 0 0-1.6-.8H9.3a2 2 0 0 0-1.6.8L5 11l-5.16.86a1 1 0 0 0-.84.99V16h3m12 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm-12 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"/></svg></span>
               Browse Inventory <ArrowRight size={18} />

@@ -13,7 +13,11 @@ import { VendorProfile } from './components/VendorProfile.tsx';
 import { Services } from './components/Services.tsx';
 import { Footer } from './components/Footer.tsx';
 import { HomeSections } from './components/HomeSections.tsx';
+import { MobileBottomNav } from './components/MobileBottomNav.tsx';
 import { MessageVendorModal } from './components/MessageVendorModal.tsx';
+import { BrandsPage } from './components/BrandsPage.tsx';
+import { CollectionsPage } from './components/CollectionsPage.tsx';
+import { CategoriesPage } from './components/CategoriesPage.tsx';
 import SEO from './components/SEO.tsx';
 import { InstallPrompt } from '../shared/components/InstallPrompt.tsx';
 import { AuthProvider, useAuth } from '../shared/lib/AuthContext.tsx';
@@ -38,7 +42,7 @@ function LogoBackground() {
 }
 
 function AppContent() {
-  const [currentView, setCurrentView] = useState<'home' | 'preorder' | 'services'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'preorder' | 'services' | 'inventory' | 'collections' | 'brands' | 'categories' | 'messages'>('home');
   const [showInquiry, setShowInquiry] = useState<{ type: 'Inspection' | 'Purchase' | 'Preorder', carName?: string } | null>(null);
   const [selectedCar, setSelectedCar] = useState<Car | null>(null);
   const [showAuth, setShowAuth] = useState<'login' | 'signup' | null>(null);
@@ -68,6 +72,19 @@ function AppContent() {
     };
   }, []);
 
+  const handleMobileNavChange = (view: any) => {
+    if (view === 'profile') {
+      setShowProfile(true);
+      return;
+    }
+    if (view === 'sell') {
+      setShowInquiry({ type: 'Preorder' });
+      return;
+    }
+    setCurrentView(view);
+    window.scrollTo(0, 0);
+  };
+
   return (
     <div className="min-h-screen">
       {/* Animated Logo Background (Global) */}
@@ -92,11 +109,13 @@ function AppContent() {
         user={user}
         onSignOut={signOut}
         currentView={currentView}
-        onViewChange={setCurrentView}
+        onViewChange={(view) => {
+          setCurrentView(view);
+          window.scrollTo(0, 0);
+        }}
         onSearch={(query) => {
           setGlobalSearchQuery(query);
-          if (currentView !== 'home') setCurrentView('home');
-          setTimeout(() => document.getElementById('inventory')?.scrollIntoView({ behavior: 'smooth' }), 100);
+          if (currentView !== 'inventory') setCurrentView('inventory');
         }}
       />
       
@@ -105,11 +124,11 @@ function AppContent() {
           <>
             {/* Elevated Hero Redesign */}
             <Hero 
-              onBrowse={() => document.getElementById('inventory')?.scrollIntoView({ behavior: 'smooth' })} 
+              onBrowse={() => { setCurrentView('inventory'); window.scrollTo(0, 0); }} 
               onPreorder={() => setShowInquiry({ type: 'Preorder' })} 
             />
 
-            <section id="inventory" style={{ padding: '4rem 2rem' }}>
+            <section id="inventory-preview" style={{ padding: '4rem 2rem' }}>
               <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
                 <Inventory 
                   onInquiry={(car) => setSelectedCar(car)} 
@@ -122,13 +141,51 @@ function AppContent() {
             <HomeSections 
               onBrowseCategory={(cat) => {
                 if (cat === 'All') {
-                   document.getElementById('inventory')?.scrollIntoView({ behavior: 'smooth' });
+                   setCurrentView('categories');
                 } else {
                    setDiscoveryFilter({ type: 'body', value: cat });
                 }
               }} 
+              onViewAllBrands={() => setCurrentView('brands')}
+              onExploreCollection={() => setCurrentView('collections')}
             />
           </>
+        )}
+
+        {currentView === 'inventory' && (
+          <section style={{ padding: '8rem 2rem' }}>
+             <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+               <Inventory 
+                 onInquiry={(car) => setSelectedCar(car)} 
+                 externalSearchQuery={globalSearchQuery}
+                 isHomeWidget={false}
+                 title="The Inventory."
+               />
+             </div>
+          </section>
+        )}
+
+        {currentView === 'collections' && (
+          <CollectionsPage onClose={() => setCurrentView('home')} />
+        )}
+
+        {currentView === 'brands' && (
+          <BrandsPage 
+            onClose={() => setCurrentView('home')} 
+            onSelectBrand={(brand) => {
+               setGlobalSearchQuery(brand);
+               setCurrentView('inventory');
+            }}
+          />
+        )}
+
+        {currentView === 'categories' && (
+          <CategoriesPage 
+            onClose={() => setCurrentView('home')} 
+            onSelectCategory={(cat) => {
+               setDiscoveryFilter({ type: 'body', value: cat });
+            }}
+          />
         )}
 
         {currentView === 'preorder' && (
@@ -137,6 +194,17 @@ function AppContent() {
 
         {currentView === 'services' && (
           <Services />
+        )}
+
+        {currentView === 'messages' && (
+          <div style={{ padding: '8rem 2rem', minHeight: '80vh', textAlign: 'center' }}>
+            <h1 className="luxury-font" style={{ fontSize: '2.5rem', marginBottom: '2rem' }}>Messages.</h1>
+            <p style={{ color: 'var(--text-muted)' }}>Real-time coordination for your next acquisition.</p>
+            {/* Messages list component would go here */}
+            <div style={{ marginTop: '4rem' }}>
+              <ChatSystem />
+            </div>
+          </div>
         )}
 
         <Footer />
@@ -224,7 +292,7 @@ function AppContent() {
             )}
 
               <button 
-                onClick={() => { setShowInquiry(null); setShowAuth(null); setShowProfile(false); }}
+                onClick={() => { setShowInquiry(null); setShowAuth(null); setShowProfile(false); setSelectedVendorId(null); }}
                 style={{ 
                   position: 'absolute', 
                   top: '2.5rem', 
@@ -253,6 +321,12 @@ function AppContent() {
 
       {/* Real-time Chat System */}
       <ChatSystem />
+
+      {/* Mobile Bottom Navigation */}
+      <MobileBottomNav 
+        currentView={showProfile ? 'profile' : currentView as any} 
+        onViewChange={handleMobileNavChange}
+      />
     </div>
   );
 }

@@ -12,8 +12,8 @@ interface NavbarProps {
   onProfileClick?: () => void;
   user?: any | null;
   onSignOut?: () => void;
-  currentView: 'home' | 'preorder' | 'services';
-  onViewChange: (view: 'home' | 'preorder' | 'services') => void;
+  currentView: 'home' | 'preorder' | 'services' | 'inventory' | 'collections' | 'brands' | 'categories' | 'messages';
+  onViewChange: (view: 'home' | 'preorder' | 'services' | 'inventory' | 'collections' | 'brands' | 'categories' | 'messages') => void;
   onSearch?: (query: string) => void;
 }
 
@@ -30,8 +30,9 @@ export const Navbar = ({ onAdminToggle, isAdmin, onAuthClick, onProfileClick, us
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const navLinks: { label: string, view: 'home' | 'preorder' | 'services' }[] = [
-    { label: 'INVENTORY', view: 'home' },
+  const navLinks: { label: string, view: 'home' | 'preorder' | 'services' | 'inventory' | 'collections' | 'brands' | 'categories' }[] = [
+    { label: 'HOME', view: 'home' },
+    { label: 'INVENTORY', view: 'inventory' },
     { label: 'PREORDER', view: 'preorder' },
     { label: 'SERVICES', view: 'services' },
   ];
@@ -54,13 +55,17 @@ export const Navbar = ({ onAdminToggle, isAdmin, onAuthClick, onProfileClick, us
           borderBottom: scrolled ? '1px solid rgba(197,160,89,0.1)' : '1px solid rgba(255,255,255,0.05)'
         }}
       >
+        <div className="mobile-only-flex" onClick={() => setIsMobileMenuOpen(true)}>
+          <Menu size={20} color="var(--accent-gold)" />
+        </div>
+
         {/* Brand Area */}
         <div 
-          style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', cursor: 'pointer' }} 
           onClick={() => onViewChange('home')}
+          className="navbar-brand-group"
         >
-          <img src="/logo.png" alt="Transhub Logo" style={{ height: '40px', width: 'auto' }} />
-          <span className="luxury-font" style={{ fontSize: '1.4rem', letterSpacing: '2px', fontWeight: 800 }}>
+          <img src="/logo.png" alt="Transhub Logo" style={{ height: '32px', width: 'auto' }} />
+          <span className="luxury-font brand-text" style={{ fontSize: '1.4rem', letterSpacing: '2px', fontWeight: 800 }}>
             TRANSHUB<span style={{ color: 'var(--accent-gold)' }}>.</span>
           </span>
         </div>
@@ -70,12 +75,7 @@ export const Navbar = ({ onAdminToggle, isAdmin, onAuthClick, onProfileClick, us
           {navLinks.map(link => (
             <button 
               key={link.label} 
-              onClick={() => {
-                onViewChange(link.view);
-                if (link.view === 'home') {
-                    setTimeout(() => document.getElementById('inventory')?.scrollIntoView({ behavior: 'smooth' }), 100);
-                }
-              }} 
+              onClick={() => onViewChange(link.view)} 
               className={`nav-link ${currentView === link.view ? 'active' : ''}`}
               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
             >
@@ -85,8 +85,8 @@ export const Navbar = ({ onAdminToggle, isAdmin, onAuthClick, onProfileClick, us
         </div>
 
         {/* Functional Icons & Auth */}
-        <div style={{ display: 'flex', gap: '1.8rem', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
+        <div className="navbar-actions-group" style={{ display: 'flex', gap: '1.8rem', alignItems: 'center' }}>
+          <div className="desktop-flex" style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
             <AnimatePresence>
               {isSearchOpen ? (
                 <motion.div
@@ -100,8 +100,6 @@ export const Navbar = ({ onAdminToggle, isAdmin, onAuthClick, onProfileClick, us
                     onSearch={(query) => {
                       if (query) {
                         if (onSearch) onSearch(query);
-                        // window.location.hash = '#inventory'; 
-                        // Scroll is handled by App.tsx or onViewChange if needed
                       }
                     }}
                     autoFocus
@@ -118,7 +116,7 @@ export const Navbar = ({ onAdminToggle, isAdmin, onAuthClick, onProfileClick, us
             />
           </div>
 
-          <ThemeToggle />
+          <div className="desktop-flex"><ThemeToggle /></div>
           
           {user && <NotificationInbox />}
           
@@ -168,15 +166,6 @@ export const Navbar = ({ onAdminToggle, isAdmin, onAuthClick, onProfileClick, us
               </button>
             )}
           </div>
-          
-          {/* Mobile Menu Toggle */}
-          <div 
-            onClick={() => setIsMobileMenuOpen(true)}
-            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-            className="mobile-only-flex"
-          >
-            <Menu size={24} color="var(--accent-gold)" />
-          </div>
         </div>
       </nav>
 
@@ -207,9 +196,6 @@ export const Navbar = ({ onAdminToggle, isAdmin, onAuthClick, onProfileClick, us
                 onClick={() => {
                   onViewChange(link.view);
                   setIsMobileMenuOpen(false);
-                  if (link.view === 'home') {
-                      setTimeout(() => document.getElementById('inventory')?.scrollIntoView({ behavior: 'smooth' }), 100);
-                  }
                 }}
               >
                 {link.label}

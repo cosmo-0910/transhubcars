@@ -397,6 +397,27 @@ export const db = {
     return data || [];
   },
 
+  getPaginatedCars: async (options?: { onlyApproved?: boolean, page?: number, pageSize?: number }): Promise<Car[]> => {
+    let query = supabase
+      .from('cars')
+      .select('*, profiles(business_name)');
+    
+    if (options?.onlyApproved) {
+      query = query.eq('approval_status', 'approved');
+    }
+
+    if (options?.page !== undefined && options?.pageSize !== undefined) {
+      const from = options.page * options.pageSize;
+      const to = from + options.pageSize - 1;
+      query = query.range(from, to);
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data || [];
+  },
+
   getVendorCars: async (vendorId: string): Promise<Car[]> => {
     const { data, error } = await supabase
       .from('cars')

@@ -4,7 +4,11 @@ import { db } from '../../shared/lib/db';
 import type { Car } from '../../shared/lib/db';
 import { VehicleCard } from './VehicleCard';
 
-export const HomeSections = ({ onBrowseCategory }: { onBrowseCategory: (cat: string) => void }) => {
+export const HomeSections = ({ onBrowseCategory, onViewAllBrands, onExploreCollection }: { 
+  onBrowseCategory: (cat: string) => void,
+  onViewAllBrands: () => void,
+  onExploreCollection: () => void
+}) => {
   const [luxuryCars, setLuxuryCars] = useState<Car[]>([]);
   const [recentCars, setRecentCars] = useState<Car[]>([]);
 
@@ -37,7 +41,11 @@ export const HomeSections = ({ onBrowseCategory }: { onBrowseCategory: (cat: str
               <span style={{ color: 'var(--accent-gold)', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '2px' }}>LIMITED COLLECTION</span>
               <h2 className="luxury-font" style={{ fontSize: '3rem', marginTop: '0.5rem' }}>Elite Collection</h2>
               <p style={{ color: 'var(--text-muted)', marginTop: '1rem', maxWidth: '400px' }}>Exceptional machines for exceptional people. Limited units available.</p>
-              <button className="btn-hero-secondary" style={{ marginTop: '2rem', borderRadius: '30px', padding: '0.8rem 2rem' }}>
+              <button 
+                onClick={onExploreCollection}
+                className="btn-hero-secondary" 
+                style={{ marginTop: '2rem', borderRadius: '30px', padding: '0.8rem 2rem' }}
+              >
                 Explore Collection <ArrowRight size={16} />
               </button>
             </div>
@@ -88,7 +96,10 @@ export const HomeSections = ({ onBrowseCategory }: { onBrowseCategory: (cat: str
          <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3rem' }}>
                <h2 className="luxury-font" style={{ fontSize: '1.5rem' }}>Popular Brands</h2>
-               <button style={{ background: 'none', border: 'none', color: 'var(--accent-gold)', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+               <button 
+                onClick={onViewAllBrands}
+                style={{ background: 'none', border: 'none', color: 'var(--accent-gold)', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+               >
                  View All Brands <ArrowRight size={14} />
                </button>
             </div>

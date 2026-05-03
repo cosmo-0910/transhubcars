@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { db, supabase } from '../../shared/lib/db';
+import { db } from '../../shared/lib/db';
 import type { Car } from '../../shared/lib/db';
 import { motion, AnimatePresence } from 'framer-motion';
 import SearchAutocomplete from '../../shared/components/SearchAutocomplete';
@@ -12,7 +12,7 @@ import { VehicleCard } from './VehicleCard';
 // SVG icons moved to Footer.tsx
 
 import { SidebarFilter } from './SidebarFilter';
-import { Filter, X } from 'lucide-react'; // Import icons
+import { Filter, X, ChevronRight } from 'lucide-react'; // Import icons
 
 export const Inventory = ({ onInquiry, initialStatus = 'All', hideFilters = false, isHomeWidget = false, title = 'The Collection.', externalSearchQuery }: { 
   onInquiry: (car: Car) => void,
@@ -23,13 +23,16 @@ export const Inventory = ({ onInquiry, initialStatus = 'All', hideFilters = fals
   externalSearchQuery?: string
 }) => {
   const [cars, setCars] = useState<Car[]>([]);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState(externalSearchQuery || '');
   const [filterStatus, setFilterStatus] = useState<'All' | 'Readily Available' | 'Preorder'>(initialStatus);
   const [activePillTab, setActivePillTab] = useState('All Vehicles');
   
   // Advanced Filters
   const [filters, setFilters] = useState({
-    priceRange: [0, 1000000000] as [number, number],
+    priceRange: [0, 2000000000] as [number, number],
     yearRange: [1900, 2100] as [number, number],
     mileageRange: [0, 1000000] as [number, number],
     conditions: [] as string[],
@@ -56,7 +59,7 @@ export const Inventory = ({ onInquiry, initialStatus = 'All', hideFilters = fals
   });
 
   const [showMobileFilters, setShowMobileFilters] = useState(false);
-  const [dynamicPriceBounds, setDynamicPriceBounds] = useState<[number, number]>([0, 100000000]);
+  const [dynamicPriceBounds, setDynamicPriceBounds] = useState<[number, number]>([0, 1000000000]);
 
   // Sync external search query
   useEffect(() => {
@@ -65,29 +68,40 @@ export const Inventory = ({ onInquiry, initialStatus = 'All', hideFilters = fals
     }
   }, [externalSearchQuery]);
 
-  useEffect(() => {
-    const loadCars = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        const data = await db.getRecommendedCars(user?.id);
-        const approvedCars = data.filter(c => c.approval_status === 'approved');
-        setCars(approvedCars);
-        
-        if (approvedCars.length > 0) {
-          const minPrice = Math.min(...approvedCars.map(c => c.price));
-          const maxPrice = Math.max(...approvedCars.map(c => c.price));
-          setDynamicPriceBounds([minPrice, maxPrice]);
-          setFilters(prev => ({ ...prev, priceRange: [minPrice, maxPrice] }));
-        }
-        
-        // Calculate initial counts
+  const loadCars = async (reset = false) => {
+    if (isLoading) return;
+    setIsLoading(true);
+    try {
+      const currentPage = reset ? 0 : page;
+      const pageSize = isHomeWidget ? 8 : 12;
+      
+      const data = await db.getPaginatedCars({ 
+        onlyApproved: true, 
+        page: currentPage, 
+        pageSize 
+      });
+
+      if (reset) {
+        setCars(data);
+        setPage(1);
+      } else {
+        setCars(prev => [...prev, ...data]);
+        setPage(prev => prev + 1);
+      }
+      
+      setHasMore(data.length === pageSize);
+
+      if (reset && data.length > 0) {
+        // We only do this once conceptually, but to keep it simple:
+        // Calculate initial counts for filters (this might need a separate non-paginated call for accuracy)
+        const allCarsForCounts = await db.getCars({ onlyApproved: true });
         const newCounts = {
           conditions: {} as Record<string, number>,
           bodyTypes: {} as Record<string, number>,
           locations: {} as Record<string, number>,
           makes: {} as Record<string, number>
         };
-        approvedCars.forEach(car => {
+        allCarsForCounts.forEach(car => {
           if (car.condition) newCounts.conditions[car.condition] = (newCounts.conditions[car.condition] || 0) + 1;
           if (car.body_type) newCounts.bodyTypes[car.body_type] = (newCounts.bodyTypes[car.body_type] || 0) + 1;
           if (car.state) newCounts.locations[car.state] = (newCounts.locations[car.state] || 0) + 1;
@@ -95,11 +109,22 @@ export const Inventory = ({ onInquiry, initialStatus = 'All', hideFilters = fals
         });
         setCounts(newCounts as any);
 
-      } catch (err) {
-        console.error('Failed to load inventory:', err);
+        if (data.length > 0) {
+          const minPrice = Math.min(...data.map(c => c.price));
+          const maxPrice = Math.max(...data.map(c => c.price));
+          setDynamicPriceBounds([minPrice, maxPrice]);
+          setFilters(prev => ({ ...prev, priceRange: [minPrice, maxPrice] }));
+        }
       }
-    };
-    loadCars();
+    } catch (err) {
+      console.error('Failed to load inventory:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadCars(true);
   }, []);
 
   const filteredCars = useMemo(() => {
@@ -202,33 +227,42 @@ export const Inventory = ({ onInquiry, initialStatus = 'All', hideFilters = fals
             </div>
             
             {!hideFilters && (
-              <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', flexWrap: 'wrap', width: 'auto', maxWidth: '100%', justifyContent: 'flex-start' }}>
-                 <SearchAutocomplete 
-                   placeholder="SEARCH BY MODEL..." 
-                   onSearch={setSearchQuery}
-                   style={{ width: '240px', maxWidth: '100%' }}
-                 />
-                 
-                 <FilterDropdown 
-                   value={filterStatus}
-                   onChange={(val) => setFilterStatus(val as any)}
-                   options={[
-                     { label: 'ALL ACQUISITIONS', value: 'All' },
-                     { label: 'READILY AVAILABLE', value: 'Readily Available' },
-                     { label: 'PREORDER', value: 'Preorder' }
-                   ]}
-                 />
-                 
-                 {/* Mobile Filter Button */}
-                 <button 
-                   className="mobile-only btn-gold"
-                   style={{ padding: '0.6rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem' }}
-                   onClick={() => setShowMobileFilters(true)}
-                 >
-                   <Filter size={16} />
-                   FILTERS
-                 </button>
-              </div>
+              <>
+                <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', flexWrap: 'wrap', width: 'auto', maxWidth: '100%', justifyContent: 'flex-start' }} className="desktop-only-flex">
+                   <SearchAutocomplete 
+                     placeholder="SEARCH BY MODEL..." 
+                     onSearch={setSearchQuery}
+                     style={{ width: '240px', maxWidth: '100%' }}
+                   />
+                   
+                   <FilterDropdown 
+                     value={filterStatus}
+                     onChange={(val) => setFilterStatus(val as any)}
+                     options={[
+                       { label: 'ALL ACQUISITIONS', value: 'All' },
+                       { label: 'READILY AVAILABLE', value: 'Readily Available' },
+                       { label: 'PREORDER', value: 'Preorder' }
+                     ]}
+                   />
+                </div>
+
+                {/* Mobile Premium Filter Tabs */}
+                <div className="mobile-only-block" style={{ width: '100%', marginTop: '1.5rem' }}>
+                  <div className="inventory-mobile-tabs">
+                    <button className="inventory-tab-pill" onClick={() => setShowMobileFilters(true)}>
+                      <Filter size={14} />
+                      <span>All Categories</span>
+                    </button>
+                    <button className="inventory-tab-pill" onClick={() => setShowMobileFilters(true)}>
+                      <span>All Brands</span>
+                    </button>
+                    <button className="inventory-tab-pill" onClick={() => setShowMobileFilters(true)}>
+                      <span>Sort</span>
+                      <ChevronRight size={14} style={{ transform: 'rotate(90deg)' }} />
+                    </button>
+                  </div>
+                </div>
+              </>
             )}
           </div>
 
@@ -259,15 +293,56 @@ export const Inventory = ({ onInquiry, initialStatus = 'All', hideFilters = fals
           </div>
         )}
 
-        {/* Grid */}
-        <motion.div layout className="inventory-grid">
-          <AnimatePresence mode="popLayout">
-            {filteredCars.map((car) => (
-              <VehicleCard key={car.id} car={car} onInquiry={onInquiry} />
-          ))}
-          </AnimatePresence>
-        </motion.div>
+        {/* Grid Area */}
+        <div>
+          <motion.div layout className="inventory-grid">
+            <AnimatePresence mode="popLayout">
+              {filteredCars.map((car, index) => (
+                <div key={car.id} style={{ display: 'contents' }}>
+                  <VehicleCard car={car} onInquiry={onInquiry} />
+                  
+                  {/* Doom Scroll Breaks: Every 8 items, show a promotional break for full page inventory */}
+                  {!isHomeWidget && (index + 1) % 8 === 0 && (
+                    <div className="doom-scroll-break glass" style={{ gridColumn: '1 / -1', padding: '3rem', borderRadius: '1.5rem', margin: '2rem 0', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(90deg, rgba(197,160,89,0.1), rgba(0,0,0,0.2))', border: '1px solid rgba(197,160,89,0.2)' }}>
+                      <div style={{ textAlign: 'center' }}>
+                        <span style={{ color: 'var(--accent-gold)', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '4px' }}>DISCOVER THE EXTRAORDINARY</span>
+                        <h3 className="luxury-font" style={{ fontSize: '1.5rem', marginTop: '0.5rem' }}>Looking for something specific?</h3>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.5rem' }}>Our curators can source any masterpiece globally.</p>
+                        <button className="btn-gold" style={{ marginTop: '1.5rem', padding: '0.6rem 2rem' }}>Request Sourcing</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </AnimatePresence>
+          </motion.div>
+
+          {/* Infinite Scroll Trigger */}
+          {hasMore && !isHomeWidget && (
+            <div 
+              ref={(el) => {
+                if (el) {
+                  const observer = new IntersectionObserver((entries) => {
+                    if (entries[0].isIntersecting && !isLoading) {
+                      loadCars();
+                    }
+                  }, { threshold: 1.0 });
+                  observer.observe(el);
+                }
+              }} 
+              style={{ height: '100px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '2rem 0' }}
+            >
+              {isLoading && (
+                <div className="loading-spinner-small" style={{ width: '30px', height: '30px', border: '3px solid rgba(255,255,255,0.1)', borderTopColor: 'var(--accent-gold)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
+
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+      `}</style>
 
       {/* Mobile Filter Drawer */}
       <AnimatePresence>
