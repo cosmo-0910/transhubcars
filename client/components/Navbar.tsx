@@ -12,8 +12,8 @@ interface NavbarProps {
   onProfileClick?: () => void;
   user?: any | null;
   onSignOut?: () => void;
-  currentView: 'home' | 'preorder' | 'services' | 'inventory' | 'collections' | 'brands' | 'categories' | 'messages';
-  onViewChange: (view: 'home' | 'preorder' | 'services' | 'inventory' | 'collections' | 'brands' | 'categories' | 'messages') => void;
+  currentView: 'home' | 'preorder' | 'services' | 'inventory' | 'collections' | 'brands' | 'categories' | 'messages' | 'profile';
+  onViewChange: (view: 'home' | 'preorder' | 'services' | 'inventory' | 'collections' | 'brands' | 'categories' | 'messages' | 'profile') => void;
   onSearch?: (query: string) => void;
 }
 
@@ -30,11 +30,13 @@ export const Navbar = ({ onAdminToggle, isAdmin, onAuthClick, onProfileClick, us
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const navLinks: { label: string, view: 'home' | 'preorder' | 'services' | 'inventory' | 'collections' | 'brands' | 'categories' }[] = [
+  const navLinks: { label: string, view: 'home' | 'preorder' | 'services' | 'inventory' | 'collections' | 'brands' | 'categories' | 'messages' | 'profile' }[] = [
     { label: 'HOME', view: 'home' },
     { label: 'INVENTORY', view: 'inventory' },
     { label: 'PREORDER', view: 'preorder' },
     { label: 'SERVICES', view: 'services' },
+    { label: 'MESSAGES', view: 'messages' },
+    { label: 'PROFILE', view: 'profile' },
   ];
 
   return (

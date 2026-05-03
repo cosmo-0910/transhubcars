@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { useAuth } from '../../shared/lib/AuthContext';
 import { MessagingPanel } from './MessagingPanel';
+import { AuthForm } from './AuthForms';
 import {
   ShieldCheck,
   User,
@@ -36,6 +37,20 @@ export const UserProfile = ({ onClose }: { onClose: () => void }) => {
   const { user, profile, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState<'profile' | 'messages'>('profile');
 
+  // Handle Authentication Inline
+  if (!user) {
+    return (
+      <div className="profile-fullscreen-mobile" style={{ background: '#000', minHeight: '100vh', padding: '2rem 1rem', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+          <User size={64} color="var(--accent-gold)" style={{ margin: '0 auto 1.5rem' }} />
+          <h2 className="luxury-font" style={{ fontSize: '1.8rem', color: '#fff', marginBottom: '1rem' }}>SIGN IN TO VIEW PROFILE</h2>
+          <p style={{ color: '#888', maxWidth: '300px', margin: '0 auto' }}>Manage your listings, view your portfolio, and track your acquisitions.</p>
+        </div>
+        <AuthForm type="login" onSuccess={() => window.location.reload()} />
+      </div>
+    );
+  }
+
   const isAdminOrVendor = profile?.role === 'admin' || profile?.role === 'vendor';
 
   if (activeTab === 'messages') {
@@ -52,14 +67,11 @@ export const UserProfile = ({ onClose }: { onClose: () => void }) => {
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 30 }}
+    <div
       className="profile-fullscreen-mobile"
       style={{
         width: '100%',
-        height: '100%',
+        minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
         background: '#000',
@@ -241,7 +253,7 @@ export const UserProfile = ({ onClose }: { onClose: () => void }) => {
            <button style={{ background: GOLD, color: '#000', fontWeight: 800, padding: '0.8rem 1.2rem', borderRadius: '0.8rem', fontSize: '0.8rem' }}>Contact Support</button>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 };
 

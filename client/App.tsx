@@ -42,12 +42,11 @@ function LogoBackground() {
 }
 
 function AppContent() {
-  const [currentView, setCurrentView] = useState<'home' | 'preorder' | 'services' | 'inventory' | 'collections' | 'brands' | 'categories' | 'messages'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'preorder' | 'services' | 'inventory' | 'collections' | 'brands' | 'categories' | 'messages' | 'profile'>('home');
   const [showInquiry, setShowInquiry] = useState<{ type: 'Inspection' | 'Purchase' | 'Preorder', carName?: string } | null>(null);
   const [selectedCar, setSelectedCar] = useState<Car | null>(null);
   const [showAuth, setShowAuth] = useState<'login' | 'signup' | null>(null);
 
-  const [showProfile, setShowProfile] = useState(false);
   const [discoveryFilter, setDiscoveryFilter] = useState<{ type: 'body' | 'brand', value: string } | null>(null);
   const [globalSearchQuery, setGlobalSearchQuery] = useState('');
   const [selectedVendorId, setSelectedVendorId] = useState<string | null>(null);
@@ -73,15 +72,10 @@ function AppContent() {
   }, []);
 
   const handleMobileNavChange = (view: any) => {
-    if (view === 'profile') {
-      setShowProfile(true);
-      return;
-    }
     if (view === 'sell') {
       setShowInquiry({ type: 'Preorder' });
       return;
     }
-    setShowProfile(false); // Close profile if switching to other tabs
     setCurrentView(view);
     window.scrollTo(0, 0);
   };
@@ -106,7 +100,7 @@ function AppContent() {
         onAdminToggle={() => window.location.href = '/admin.html'} 
         isAdmin={isAdmin} 
         onAuthClick={() => setShowAuth('login')}
-        onProfileClick={() => setShowProfile(true)}
+        onProfileClick={() => setCurrentView('profile')}
         user={user}
         onSignOut={signOut}
         currentView={currentView}
@@ -208,6 +202,10 @@ function AppContent() {
           </div>
         )}
 
+        {currentView === 'profile' && (
+           <UserProfile onClose={() => setCurrentView('home')} />
+        )}
+
         <Footer />
       </main>
 
@@ -252,7 +250,7 @@ function AppContent() {
       </AnimatePresence>
 
       <AnimatePresence>
-        {(showInquiry || showAuth || showProfile || selectedVendorId) && (
+        {(showInquiry || showAuth || selectedVendorId) && (
           <div style={{
             position: 'fixed',
             top: 0,
@@ -282,9 +280,6 @@ function AppContent() {
                 onSuccess={() => setShowAuth(null)} 
               />
             )}
-            {showProfile && (
-              <UserProfile onClose={() => setShowProfile(false)} />
-            )}
             {selectedVendorId && (
               <VendorProfile 
                 vendorId={selectedVendorId} 
@@ -293,7 +288,7 @@ function AppContent() {
             )}
 
               <button 
-                onClick={() => { setShowInquiry(null); setShowAuth(null); setShowProfile(false); setSelectedVendorId(null); }}
+                onClick={() => { setShowInquiry(null); setShowAuth(null); setSelectedVendorId(null); }}
                 style={{ 
                   position: 'absolute', 
                   top: '2.5rem', 
@@ -325,7 +320,7 @@ function AppContent() {
 
       {/* Mobile Bottom Navigation */}
       <MobileBottomNav 
-        currentView={showProfile ? 'profile' : currentView as any} 
+        currentView={currentView as any} 
         onViewChange={handleMobileNavChange}
       />
     </div>

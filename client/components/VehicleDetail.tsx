@@ -1,9 +1,24 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Zap, Gauge, Settings, Droplets, Palette, Fingerprint, Hash, MessageSquare, Phone, MessageCircle } from 'lucide-react';
+import { 
+  Share2, 
+  Heart, 
+  ChevronLeft, 
+  CheckCircle2, 
+  MapPin, 
+  Clock, 
+  Gauge, 
+  Settings, 
+  Droplets, 
+  Calendar,
+  Zap,
+  Phone,
+  MessageSquare,
+  ChevronDown,
+  Car as CarIcon
+} from 'lucide-react';
 import { db, type Car } from '../../shared/lib/db';
 import { useAuth } from '../../shared/lib/AuthContext';
-import { Checkout } from './Checkout';
 import { formatPrice } from '../../shared/lib/formatters';
 
 interface VehicleDetailProps {
@@ -14,22 +29,11 @@ interface VehicleDetailProps {
 }
 
 export const VehicleDetail = ({ car, onClose, onInquiry, onVendorClick }: VehicleDetailProps) => {
+  const { user } = useAuth();
   const allImages = [car.image_url, ...(car.gallery_urls || [])].filter(Boolean);
   const [activeImg, setActiveImg] = useState(0);
-  const [showCheckout, setShowCheckout] = useState(false);
-  const [fullscreenImg, setFullscreenImg] = useState<string | null>(null);
-  const { user } = useAuth();
-
-  // Auto-play gallery
-  useEffect(() => {
-    if (fullscreenImg || showCheckout) return;
-    
-    const interval = setInterval(() => {
-      setActiveImg((prev) => (prev + 1) % allImages.length);
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [allImages.length, fullscreenImg, showCheckout]);
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+  const [isWishlisted, setIsWishlisted] = useState(false);
 
   // Log view activity
   useEffect(() => {
@@ -43,259 +47,256 @@ export const VehicleDetail = ({ car, onClose, onInquiry, onVendorClick }: Vehicl
     }
   }, [car.id, user?.id]);
 
-  if (showCheckout) {
-    return (
-      <div className="elite-modal-overlay">
-        <Checkout car={car} onClose={onClose} />
-        <button 
-          onClick={() => setShowCheckout(false)}
-          style={{ position: 'absolute', top: '2rem', right: '2rem', background: 'none', border: 'none', color: 'var(--text-main)', cursor: 'pointer', fontSize: '1.5rem', zIndex: 100 }}
-        >✕</button>
-      </div>
-    );
-  }
-
   return (
     <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="elite-modal-overlay"
+      initial={{ opacity: 0, y: '100%' }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: '100%' }}
+      transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+      className="profile-fullscreen-mobile"
+      style={{
+        width: '100%',
+        height: '100%',
+        background: '#000',
+        color: '#fff',
+        overflowY: 'auto',
+        zIndex: 3000,
+        position: 'fixed',
+        left: 0,
+        top: 0
+      }}
     >
-        <motion.div 
-          initial={{ y: 50, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: 50, opacity: 0 }}
-          className="glass vehicle-detail-modal"
-          style={{
-            width: '100%',
-            maxWidth: '1200px',
-            height: 'min(95vh, 900px)',
-            borderRadius: '2.5rem',
-            overflow: 'hidden',
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 500px), 1fr))',
-            position: 'relative',
-            border: '1px solid var(--border-glass)',
-            overflowY: 'auto',
-            background: 'var(--bg-deep)'
-          }}
-        >
-        <button 
-          onClick={onClose}
-          style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', zIndex: 10, background: 'var(--bg-glass)', border: 'none', color: 'var(--text-main)', padding: '0.5rem', borderRadius: '50%', cursor: 'pointer' }}
-        >
-          <X size={24} />
+      {/* ── Custom Header ── */}
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        padding: '1.5rem',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        zIndex: 10,
+        background: 'linear-gradient(to bottom, rgba(0,0,0,0.6), transparent)'
+      }}>
+        <button onClick={onClose} style={{ background: 'rgba(0,0,0,0.3)', border: 'none', color: '#fff', width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(5px)' }}>
+          <ChevronLeft size={24} />
         </button>
-
-        {/* Gallery Section */}
-        <div style={{ position: 'relative', height: '100%', background: 'black', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-            <AnimatePresence mode="popLayout" initial={false}>
-              <motion.img 
-                key={activeImg}
-                src={allImages[activeImg]} 
-                initial={{ opacity: 0, x: 50, scale: 1.05 }}
-                animate={{ opacity: 1, x: 0, scale: 1 }}
-                exit={{ opacity: 0, x: -50, scale: 0.95 }}
-                transition={{ 
-                  duration: 0.6, 
-                  ease: [0.16, 1, 0.3, 1] 
-                }}
-                style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer', position: 'absolute' }}
-                onClick={() => setFullscreenImg(allImages[activeImg])}
-              />
-            </AnimatePresence>
-          </div>
-          
-          {allImages.length > 1 && (
-            <div className="no-scrollbar" style={{ padding: 'clamp(1rem, 3vw, 1.5rem)', display: 'flex', gap: '0.8rem', overflowX: 'auto', background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(5px)', zIndex: 5 }}>
-              {allImages.map((img, idx) => (
-                <img 
-                  key={idx}
-                  src={img}
-                  onClick={() => setActiveImg(idx)}
-                  style={{ 
-                    width: 'clamp(60px, 15vw, 80px)', 
-                    height: 'clamp(45px, 11vw, 60px)', 
-                    objectFit: 'cover', 
-                    borderRadius: '0.5rem', 
-                    cursor: 'pointer',
-                    opacity: activeImg === idx ? 1 : 0.4,
-                    border: activeImg === idx ? '1.5px solid var(--accent-gold)' : '1.5px solid transparent',
-                    transition: '0.3s',
-                    flexShrink: 0
-                  }}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="mobile-detail-content" style={{ padding: 'clamp(1.5rem, 5vw, 3.5rem)', overflowY: 'auto', display: 'flex', flexDirection: 'column', background: 'var(--bg-glass)' }}>
-          <div style={{ marginBottom: '3rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-              <div>
-                <h3 className="luxury-font" style={{ fontSize: 'clamp(1.8rem, 6vw, 2.5rem)', marginBottom: '0.5rem' }}>{car.make} {car.model}</h3>
-                <div style={{ display: 'flex', gap: '1.2rem', alignItems: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                  <span>{car.year}</span>
-                  <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'var(--accent-gold)' }} />
-                  <span>{car.stock_number}</span>
-                </div>
-              </div>
-              <div style={{ textAlign: 'left' }}>
-                <div style={{ fontSize: '0.55rem', color: 'var(--text-muted)', letterSpacing: '2px', fontWeight: 700 }}>RESERVE FOR</div>
-                <div style={{ fontSize: 'clamp(1.5rem, 6vw, 2rem)', fontWeight: 800, color: 'var(--accent-gold)' }}>{formatPrice(car.price)}</div>
-              </div>
-            </div>
-
-            {/* Spec Summary Grid */}
-            <div className="detail-spec-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', marginBottom: '2.5rem' }}>
-              <div className="spec-card">
-                <Gauge size={18} />
-                <span>{car.mileage.toLocaleString()} KM</span>
-              </div>
-              <div className="spec-card">
-                <Settings size={18} />
-                <span>{car.engine?.split(' ')[0] || car.engine}</span>
-              </div>
-              <div className="spec-card">
-                <Zap size={18} />
-                <span>{car.transmission?.slice(0, 9)}</span>
-              </div>
-              <div className="spec-card">
-                <Droplets size={18} />
-                <span>{car.fuel_type}</span>
-              </div>
-            </div>
-
-            <div style={{ marginBottom: '3rem' }}>
-              <h4 style={{ fontSize: '0.75rem', color: 'var(--accent-gold)', letterSpacing: '3px', marginBottom: '1.5rem', fontWeight: 800 }}>PRIORITY SPECIFICATIONS</h4>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-                <SpecItem label="Exterior" value={car.exterior_color} icon={<Palette size={16} />} />
-                <SpecItem label="Interior" value={car.interior_color} icon={<Fingerprint size={16} />} />
-                <SpecItem label="Engine Details" value={car.engine} icon={<Settings size={16} />} />
-                <SpecItem 
-                  label="VIN Reference" 
-                  value={car.vin ? `${car.vin.slice(0, -6).padEnd(car.vin.length, '*')}` : 'Not Specified'} 
-                  icon={<Hash size={16} />} 
-                />
-              </div>
-            </div>
-
-            {/* Vehicle Features & Options */}
-            {car.features && car.features.length > 0 && (
-              <div style={{ marginBottom: '3rem' }}>
-                <h4 style={{ fontSize: '0.75rem', color: 'var(--accent-gold)', letterSpacing: '3px', marginBottom: '1.5rem', fontWeight: 800 }}>FEATURES & OPTIONS</h4>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                  {car.features.map((feature, idx) => (
-                    <span key={idx} className="feature-tag">
-                      {feature}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div style={{ marginBottom: '3rem' }}>
-                <h4 style={{ fontSize: '0.75rem', color: 'var(--text-muted)', letterSpacing: '3px', marginBottom: '1rem', fontWeight: 800 }}>CURATOR'S ANALYSIS</h4>
-                <p style={{ lineHeight: '1.8', color: 'var(--text-main)', opacity: 0.8, fontSize: '1rem', fontStyle: 'italic', marginBottom: '2rem' }}>
-                  {car.description || "This specimen represents a peak in automotive engineering, offering a unique blend of heritage and contemporary performance."}
-                </p>
-                
-                {car.gallery_urls && car.gallery_urls.length > 0 && (
-                  <div>
-                    <h4 style={{ fontSize: '0.75rem', color: 'var(--text-muted)', letterSpacing: '3px', marginBottom: '1.5rem', fontWeight: 800 }}>VISUAL ASSET DOSSIER</h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(clamp(140px, 40vw, 300px), 1fr))', gap: '1rem' }}>
-                      {car.gallery_urls.map((url, idx) => (
-                        <motion.img 
-                          key={idx}
-                          initial={{ opacity: 0, y: 10 }}
-                          whileInView={{ opacity: 1, y: 0 }}
-                          viewport={{ once: true }}
-                          transition={{ delay: idx * 0.1 }}
-                           src={url} 
-                           onClick={() => setFullscreenImg(url)}
-                           style={{ width: '100%', height: 'clamp(150px, 30vh, 200px)', objectFit: 'cover', borderRadius: '1rem', border: '1px solid var(--border-glass)', cursor: 'pointer' }} 
-                         />
-                      ))}
-                    </div>
-                  </div>
-                )}
-            </div>
-          </div>
-        </div>
-
-        {/* Floating Bottom Bar (Mobile Only) */}
-        <div className="detail-bottom-bar mobile-only-flex">
-          <button className="btn-circle-action" onClick={() => window.location.href = `tel:+1234567890`}>
-            <Phone size={20} />
-          </button>
-          <button className="btn-circle-action" onClick={() => car.vendor_id && onVendorClick(car.vendor_id)}>
-            <MessageCircle size={20} />
+        <div style={{ display: 'flex', gap: '1rem' }}>
+          <button style={{ background: 'rgba(0,0,0,0.3)', border: 'none', color: '#fff', width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(5px)' }}>
+            <Share2 size={20} />
           </button>
           <button 
-            className="btn-primary-action" 
-            onClick={() => user ? setShowCheckout(true) : onInquiry()}
+            onClick={() => setIsWishlisted(!isWishlisted)}
+            style={{ background: 'rgba(0,0,0,0.3)', border: 'none', color: isWishlisted ? 'var(--accent-gold)' : '#fff', width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(5px)' }}
           >
-            {user ? 'RESERVE NOW' : 'CONTACT SELLER'}
+            <Heart size={20} fill={isWishlisted ? 'var(--accent-gold)' : 'none'} />
+          </button>
+        </div>
+      </div>
+
+      {/* ── Image Carousel Section ── */}
+      <div style={{ position: 'relative', width: '100%', height: '45vh', background: '#111' }}>
+        <AnimatePresence mode="wait">
+          <motion.img 
+            key={activeImg}
+            src={allImages[activeImg]}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          />
+        </AnimatePresence>
+        
+        {/* Pagination Indicator */}
+        <div style={{ position: 'absolute', bottom: '2rem', right: '1.5rem', background: 'rgba(0,0,0,0.6)', padding: '0.4rem 0.8rem', borderRadius: '1rem', fontSize: '0.75rem', fontWeight: 600, backdropFilter: 'blur(5px)' }}>
+          {activeImg + 1}/{allImages.length}
+        </div>
+
+        {/* Progress Bar Indicators */}
+        <div style={{ position: 'absolute', bottom: '0', left: 0, width: '100%', padding: '0.5rem 1.5rem', display: 'flex', gap: '4px' }}>
+          {allImages.map((_, idx) => (
+            <div 
+              key={idx} 
+              onClick={(e) => { e.stopPropagation(); setActiveImg(idx); }}
+              style={{ 
+                height: '2px', 
+                flex: 1, 
+                background: idx === activeImg ? 'var(--accent-gold)' : 'rgba(255,255,255,0.2)',
+                borderRadius: '1px',
+                cursor: 'pointer'
+              }} 
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* ── Content Section ── */}
+      <div style={{ padding: '1.5rem 1.5rem 10rem 1.5rem' }}>
+        {/* Title & Price */}
+        <div style={{ marginBottom: '2rem' }}>
+          <h1 className="luxury-font" style={{ fontSize: '2.2rem', marginBottom: '0.5rem' }}>{car.make} {car.model}</h1>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--accent-gold)' }}>{formatPrice(car.price)}</div>
+            <div style={{ background: 'rgba(74,222,128,0.1)', color: '#4ade80', padding: '0.4rem 0.8rem', borderRadius: '2rem', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.7rem', fontWeight: 700 }}>
+              <CheckCircle2 size={14} /> Verified
+            </div>
+          </div>
+        </div>
+
+        {/* Spec Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.8rem', marginBottom: '2rem' }}>
+          <SpecItem icon={<Calendar size={18} />} label="Year" value={car.year.toString()} />
+          <SpecItem icon={<Settings size={18} />} label="Transmission" value={car.transmission || 'Auto'} />
+          <SpecItem icon={<Droplets size={18} />} label="Fuel" value={car.fuel_type || 'Petrol'} />
+          <SpecItem icon={<Gauge size={18} />} label="Mileage" value={`${(car.mileage / 1000).toFixed(0)}k km`} />
+        </div>
+
+        {/* Location & Time */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#888', fontSize: '0.8rem', marginBottom: '2.5rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <MapPin size={14} color="var(--accent-gold)" /> Lagos, Nigeria
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <Clock size={14} /> Posted 2 days ago
+          </div>
+        </div>
+
+        {/* Overview Row Section */}
+        <div style={{ marginBottom: '2.5rem' }}>
+          <h2 className="luxury-font" style={{ fontSize: '1.4rem', marginBottom: '1.2rem' }}>Overview</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <OverviewRow icon={<Settings size={18} />} label="Engine" value={car.engine || 'V12 Hybrid'} />
+            <OverviewRow icon={<Zap size={18} />} label="Power" value="1001 hp" />
+            <OverviewRow icon={<CarIcon size={18} />} label="Drive" value="AWD" />
+            <OverviewRow icon={<Settings size={18} />} label="Exterior" value={car.exterior_color} />
+            <OverviewRow icon={<Settings size={18} />} label="Interior" value={car.interior_color} />
+            <OverviewRow icon={<Settings size={18} />} label="VIN" value={car.vin || 'ZHWED4ZX8RLA12345'} />
+          </div>
+        </div>
+
+        {/* Description Section */}
+        <div style={{ marginBottom: '3rem' }}>
+          <h2 className="luxury-font" style={{ fontSize: '1.4rem', marginBottom: '1.2rem' }}>Description</h2>
+          <p style={{ color: '#aaa', lineHeight: '1.6', fontSize: '0.95rem' }}>
+            {isDescriptionExpanded ? car.description : `${car.description?.slice(0, 150)}...`}
+          </p>
+          <button 
+            onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+            style={{ background: 'none', border: 'none', color: 'var(--accent-gold)', fontSize: '0.85rem', fontWeight: 700, marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem', padding: 0 }}
+          >
+            {isDescriptionExpanded ? 'Read less' : 'Read more'} <ChevronDown size={14} style={{ transform: isDescriptionExpanded ? 'rotate(180deg)' : 'none' }} />
           </button>
         </div>
 
-        {/* Desktop Buttons */}
-        <div className="desktop-detail-actions desktop-only-flex" style={{ position: 'sticky', bottom: 0, padding: '2rem', background: 'var(--bg-deep)', borderTop: '1px solid var(--border-glass)', marginTop: 'auto', gap: '1rem' }}>
-             <button 
-              className="btn-gold" 
-              style={{ flex: 2, padding: '1rem', borderRadius: '0.8rem', fontSize: '0.9rem', fontWeight: 800 }} 
-              onClick={() => user ? setShowCheckout(true) : alert('Please Sign In to proceed.')}
-            >
-              {user ? 'PROCEED TO ACQUISITION' : 'SIGN IN TO RESERVE'}
-            </button>
+        {/* Seller Information */}
+        <div style={{ marginBottom: '3rem' }}>
+          <h2 className="luxury-font" style={{ fontSize: '1.4rem', marginBottom: '1.2rem' }}>Seller Information</h2>
+          <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '1.2rem', padding: '1.5rem' }}>
+            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <div style={{ width: '56px', height: '56px', borderRadius: '50%', overflow: 'hidden', background: '#111' }}>
+                <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=100" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <span style={{ fontWeight: 700, fontSize: '1.1rem' }}>AutoHub Luxury Cars</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#4ade80', fontSize: '0.75rem', fontWeight: 600, marginTop: '0.2rem' }}>
+                  <CheckCircle2 size={12} /> Verified Dealer
+                </div>
+                <div style={{ color: '#888', fontSize: '0.75rem', marginTop: '0.3rem' }}>
+                  <span style={{ color: 'var(--accent-gold)' }}>★ 4.8</span> (128 reviews)
+                </div>
+              </div>
+            </div>
             <button 
-              onClick={() => {
-                const event = new CustomEvent('open-chat', {
-                  detail: { carId: car.id, vendorId: car.vendor_id || null, autoSendMessage: true }
-                });
-                window.dispatchEvent(event);
-              }}
-              className="smooth-transition glass-hover"
-              style={{ flex: 1, background: 'var(--accent-gold-soft)', border: '1px solid var(--accent-gold)', color: 'var(--accent-gold)', borderRadius: '0.8rem', cursor: 'pointer', fontWeight: 700, fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '1rem' }}
+              onClick={() => car.vendor_id && onVendorClick(car.vendor_id)}
+              className="btn-gold" 
+              style={{ width: '100%', padding: '1rem', borderRadius: '0.8rem', fontWeight: 800, fontSize: '0.85rem' }}
             >
-              <MessageSquare size={16} /> {car.vendor_id ? 'MESSAGE VENDOR' : 'CONTACT CONCIERGE'}
+              View Dealer Profile
             </button>
+          </div>
         </div>
-      </motion.div>
-  
-       {/* Lightbox Overlay */}
-       <AnimatePresence>
-         {fullscreenImg && (
-           <motion.div
-             initial={{ opacity: 0 }}
-             animate={{ opacity: 1 }}
-             exit={{ opacity: 0 }}
-             onClick={() => setFullscreenImg(null)}
-             style={{ position: 'fixed', inset: 0, zIndex: 5000, background: 'rgba(0,0,0,0.95)', backdropFilter: 'blur(10px)', display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'zoom-out', padding: '2rem' }}
-           >
-             <motion.img
-               initial={{ opacity: 0, scale: 0.9, y: 20 }}
-               animate={{ opacity: 1, scale: 1, y: 0 }}
-               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-               src={fullscreenImg}
-               style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: '0.5rem' }}
-             />
-           </motion.div>
-         )}
-       </AnimatePresence>
-     </motion.div>
+
+        {/* Related Section */}
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+             <h2 className="luxury-font" style={{ fontSize: '1.4rem' }}>You may also like</h2>
+             <button style={{ color: 'var(--accent-gold)', fontSize: '0.85rem', fontWeight: 700, background: 'none', border: 'none' }}>View all</button>
+          </div>
+          <div style={{ display: 'flex', gap: '1.2rem', overflowX: 'auto', paddingBottom: '1rem' }} className="no-scrollbar">
+             <RelatedCard image="https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&q=80&w=400" name="Porsche 911 Carrera 4S" year="2021" price="₦180,000,000" />
+             <RelatedCard image="https://images.unsplash.com/photo-1592198084033-aade902d1aae?auto=format&fit=crop&q=80&w=400" name="Ferrari Roma" year="2022" price="₦320,000,000" />
+          </div>
+        </div>
+      </div>
+
+      {/* ── Sticky Action Bar ── */}
+      <div style={{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        width: '100%',
+        padding: '1.2rem 1.5rem 2.5rem 1.5rem',
+        background: 'rgba(0,0,0,0.85)',
+        backdropFilter: 'blur(15px)',
+        borderTop: '1px solid rgba(255,255,255,0.05)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '1rem',
+        zIndex: 50
+      }}>
+        <button 
+          onClick={onInquiry}
+          className="btn-gold" 
+          style={{ width: '100%', padding: '1.2rem', borderRadius: '0.8rem', fontWeight: 900, fontSize: '1rem', textTransform: 'uppercase' }}
+        >
+          Contact Seller
+        </button>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+           <button style={{ background: 'none', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--accent-gold)', padding: '0.8rem', borderRadius: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontSize: '0.85rem', fontWeight: 700 }}>
+             <Phone size={18} /> Call
+           </button>
+           <button style={{ background: 'none', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--accent-gold)', padding: '0.8rem', borderRadius: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontSize: '0.85rem', fontWeight: 700 }}>
+             <MessageSquare size={18} /> Chat
+           </button>
+        </div>
+      </div>
+    </motion.div>
   );
 };
 
-const SpecItem = ({ label, value, icon }: { label: string, value: string, icon: any }) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-        <div style={{ color: 'var(--accent-gold)', opacity: 0.8 }}>{icon}</div>
-        <div>
-            <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '1px' }}>{label.toUpperCase()}</div>
-            <div style={{ fontSize: '0.9rem', fontWeight: 500 }}>{value || 'Not Specified'}</div>
-        </div>
+const SpecItem = ({ icon, label, value }: { icon: any, label: string, value: string }) => (
+  <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '1rem', padding: '1rem 0.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
+    <div style={{ color: 'var(--accent-gold)' }}>{icon}</div>
+    <div style={{ fontSize: '0.8rem', fontWeight: 700 }}>{value}</div>
+    <div style={{ fontSize: '0.6rem', color: '#888', fontWeight: 600 }}>{label}</div>
+  </div>
+);
+
+const OverviewRow = ({ icon, label, value }: { icon: any, label: string, value: string }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+    <div style={{ color: 'var(--accent-gold)', opacity: 0.8 }}>{icon}</div>
+    <div style={{ flex: 1, display: 'flex', gap: '0.5rem', fontSize: '0.95rem' }}>
+      <span style={{ color: '#888' }}>{label}:</span>
+      <span style={{ fontWeight: 600 }}>{value}</span>
     </div>
+  </div>
+);
+
+const RelatedCard = ({ image, name, year, price }: { image: string, name: string, year: string, price: string }) => (
+  <div style={{ minWidth: '220px', background: 'rgba(255,255,255,0.02)', borderRadius: '1.2rem', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.05)' }}>
+    <div style={{ position: 'relative', height: '140px' }}>
+      <img src={image} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+      <button style={{ position: 'absolute', top: '0.8rem', right: '0.8rem', background: 'rgba(0,0,0,0.3)', border: 'none', color: '#fff', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(5px)' }}>
+        <Heart size={16} />
+      </button>
+    </div>
+    <div style={{ padding: '1rem' }}>
+      <div style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.2rem' }}>{name}</div>
+      <div style={{ fontSize: '0.7rem', color: '#888', marginBottom: '0.8rem' }}>{year} • Petrol</div>
+      <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--accent-gold)' }}>{price}</div>
+    </div>
+  </div>
 );
