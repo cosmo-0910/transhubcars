@@ -2,7 +2,7 @@ import { Home, PlusCircle, MessageSquare, User, Search } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface MobileBottomNavProps {
-  currentView: 'home' | 'inventory' | 'messages' | 'profile' | 'sell';
+  currentView: 'home' | 'inventory' | 'messages' | 'profile' | 'sell' | 'vendor';
   onViewChange: (view: any) => void;
   messageCount?: number;
 }
@@ -11,7 +11,7 @@ export const MobileBottomNav = ({ currentView, onViewChange, messageCount = 3 }:
   const tabs = [
     { id: 'home', label: 'Home', icon: Home },
     { id: 'inventory', label: 'Search', icon: Search },
-    { id: 'sell', label: 'Sell', icon: PlusCircle, isFloating: true },
+    { id: 'sell', label: 'Source', icon: PlusCircle, isFloating: true },
     { id: 'messages', label: 'Chat', icon: MessageSquare, badge: messageCount },
     { id: 'profile', label: 'Me', icon: User },
   ];

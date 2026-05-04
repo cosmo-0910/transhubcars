@@ -10,6 +10,7 @@ import { AuthForm } from './components/AuthForms.tsx';
 import { UserProfile } from './components/UserProfile.tsx';
 import { Preorder } from './components/Preorder.tsx';
 import { VendorProfile } from './components/VendorProfile.tsx';
+import { MessagingPanel } from './components/MessagingPanel.tsx';
 import { Services } from './components/Services.tsx';
 import { Footer } from './components/Footer.tsx';
 import { HomeSections } from './components/HomeSections.tsx';
@@ -42,14 +43,14 @@ function LogoBackground() {
 }
 
 function AppContent() {
-  const [currentView, setCurrentView] = useState<'home' | 'preorder' | 'services' | 'inventory' | 'collections' | 'brands' | 'categories' | 'messages' | 'profile'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'preorder' | 'services' | 'inventory' | 'collections' | 'brands' | 'categories' | 'messages' | 'profile' | 'vendor'>('home');
   const [showInquiry, setShowInquiry] = useState<{ type: 'Inspection' | 'Purchase' | 'Preorder', carName?: string } | null>(null);
   const [selectedCar, setSelectedCar] = useState<Car | null>(null);
   const [showAuth, setShowAuth] = useState<'login' | 'signup' | null>(null);
+  const [selectedVendorId, setSelectedVendorId] = useState<string | null>(null);
 
   const [discoveryFilter, setDiscoveryFilter] = useState<{ type: 'body' | 'brand', value: string } | null>(null);
   const [globalSearchQuery, setGlobalSearchQuery] = useState('');
-  const [selectedVendorId, setSelectedVendorId] = useState<string | null>(null);
   const [chatModal, setChatModal] = useState<{ carId?: string | null, vendorId?: string | null } | null>(null);
   const { user, profile, signOut } = useAuth();
   const isAdmin = profile?.role === 'admin';
@@ -59,7 +60,14 @@ function AppContent() {
       setSelectedCar(e.detail.car);
     };
     const handleOpenChat = (e: any) => {
-      setChatModal({ carId: e.detail.carId, vendorId: e.detail.vendorId });
+      if (window.innerWidth < 768) {
+         setCurrentView('messages');
+         // We can't easily pass state to the view via enum alone without some sophisticated routing,
+         // but we can use the chatModal state or just trigger the startConversation in MessagingPanel.
+         setChatModal({ carId: e.detail.carId, vendorId: e.detail.vendorId });
+      } else {
+         setChatModal({ carId: e.detail.carId, vendorId: e.detail.vendorId });
+      }
     };
 
     window.addEventListener('select-car', handleSelectCar);
@@ -191,14 +199,30 @@ function AppContent() {
         )}
 
         {currentView === 'messages' && (
-          <div style={{ padding: '8rem 2rem', minHeight: '80vh', textAlign: 'center' }}>
-            <h1 className="luxury-font" style={{ fontSize: '2.5rem', marginBottom: '2rem' }}>Messages.</h1>
-            <p style={{ color: 'var(--text-muted)' }}>Real-time coordination for your next acquisition.</p>
-            {/* Messages list component would go here */}
-            <div style={{ marginTop: '4rem' }}>
-              <ChatSystem />
-            </div>
+          <div style={{ paddingTop: '5rem', height: '100vh', background: '#000' }}>
+            {user ? (
+               <MessagingPanel 
+                 userId={user.id} 
+                 role={profile?.role || 'customer'} 
+                 height="calc(100vh - 5rem)"
+                 carId={chatModal?.carId}
+                 vendorId={chatModal?.vendorId}
+               />
+            ) : (
+               <div style={{ padding: '8rem 2rem', textAlign: 'center' }}>
+                 <h1 className="luxury-font" style={{ fontSize: '2.5rem', marginBottom: '2rem' }}>Messages.</h1>
+                 <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>Sign in to view your conversations.</p>
+                 <button onClick={() => setShowAuth('login')} className="btn-gold" style={{ padding: '1rem 2rem' }}>Sign In</button>
+               </div>
+            )}
           </div>
+        )}
+
+        {currentView === 'vendor' && selectedVendorId && (
+          <VendorProfile 
+            vendorId={selectedVendorId} 
+            onClose={() => setCurrentView('home')} 
+          />
         )}
 
         {currentView === 'profile' && (
@@ -219,6 +243,7 @@ function AppContent() {
             }}
             onVendorClick={(vendorId) => {
               setSelectedVendorId(vendorId);
+              setCurrentView('vendor');
               setSelectedCar(null);
             }}
           />
@@ -277,12 +302,6 @@ function AppContent() {
               <AuthForm 
                 type={showAuth} 
                 onSuccess={() => setShowAuth(null)} 
-              />
-            )}
-            {selectedVendorId && (
-              <VendorProfile 
-                vendorId={selectedVendorId} 
-                onClose={() => setSelectedVendorId(null)} 
               />
             )}
 

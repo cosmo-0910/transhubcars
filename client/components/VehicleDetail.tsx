@@ -35,7 +35,9 @@ export const VehicleDetail = ({ car, onClose, onInquiry, onVendorClick }: Vehicl
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [isWishlisted, setIsWishlisted] = useState(false);
 
-  // Log view activity
+  const [relatedCars, setRelatedCars] = useState<Car[]>([]);
+
+  // Log view activity and load recommendations
   useEffect(() => {
     if (car?.id) {
       db.logActivity(user?.id, 'view_car', { 
@@ -44,8 +46,22 @@ export const VehicleDetail = ({ car, onClose, onInquiry, onVendorClick }: Vehicl
         brand: car.make,
         model: car.model
       });
+
+      // Load recommendations: Same category, excluding current car, limit 5
+      const loadRecommendations = async () => {
+        try {
+          const allCars = await db.getCars({ onlyApproved: true });
+          const matches = allCars
+            .filter(c => c.id !== car.id && c.body_type === car.body_type)
+            .slice(0, 5);
+          setRelatedCars(matches);
+        } catch (err) {
+          console.error('Failed to load recommendations:', err);
+        }
+      };
+      loadRecommendations();
     }
-  }, [car.id, user?.id]);
+  }, [car.id, user?.id, car.body_type]);
 
   return (
     <motion.div 
@@ -195,11 +211,11 @@ export const VehicleDetail = ({ car, onClose, onInquiry, onVendorClick }: Vehicl
           <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '1.2rem', padding: '1.5rem' }}>
             <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1.5rem' }}>
               <div style={{ width: '56px', height: '56px', borderRadius: '50%', overflow: 'hidden', background: '#111' }}>
-                <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=100" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <img src={car.profiles?.avatar_url || 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=100'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <span style={{ fontWeight: 700, fontSize: '1.1rem' }}>AutoHub Luxury Cars</span>
+                  <span style={{ fontWeight: 700, fontSize: '1.1rem' }}>{car.profiles?.business_name || car.profiles?.full_name || 'AutoHub Luxury Cars'}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#4ade80', fontSize: '0.75rem', fontWeight: 600, marginTop: '0.2rem' }}>
                   <CheckCircle2 size={12} /> Verified Dealer
@@ -226,8 +242,22 @@ export const VehicleDetail = ({ car, onClose, onInquiry, onVendorClick }: Vehicl
              <button style={{ color: 'var(--accent-gold)', fontSize: '0.85rem', fontWeight: 700, background: 'none', border: 'none' }}>View all</button>
           </div>
           <div style={{ display: 'flex', gap: '1.2rem', overflowX: 'auto', paddingBottom: '1rem' }} className="no-scrollbar">
-             <RelatedCard image="https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&q=80&w=400" name="Porsche 911 Carrera 4S" year="2021" price="₦180,000,000" />
-             <RelatedCard image="https://images.unsplash.com/photo-1592198084033-aade902d1aae?auto=format&fit=crop&q=80&w=400" name="Ferrari Roma" year="2022" price="₦320,000,000" />
+             {relatedCars.length === 0 ? (
+               <p style={{ color: '#666', fontSize: '0.85rem', padding: '1rem' }}>No similar vehicles found at this moment.</p>
+             ) : (
+               relatedCars.map(rc => (
+                 <RelatedCard 
+                    key={rc.id}
+                    image={rc.image_url} 
+                    name={`${rc.make} ${rc.model}`} 
+                    year={rc.year.toString()} 
+                    price={formatPrice(rc.price)} 
+                    onClick={() => {
+                       window.dispatchEvent(new CustomEvent('select-car', { detail: { car: rc } }));
+                    }}
+                 />
+               ))
+             )}
           </div>
         </div>
       </div>
@@ -285,8 +315,11 @@ const OverviewRow = ({ icon, label, value }: { icon: any, label: string, value: 
   </div>
 );
 
-const RelatedCard = ({ image, name, year, price }: { image: string, name: string, year: string, price: string }) => (
-  <div style={{ minWidth: '220px', background: 'rgba(255,255,255,0.02)', borderRadius: '1.2rem', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.05)' }}>
+const RelatedCard = ({ image, name, year, price, onClick }: { image: string, name: string, year: string, price: string, onClick?: () => void }) => (
+  <div 
+    onClick={onClick}
+    style={{ minWidth: '220px', background: 'rgba(255,255,255,0.02)', borderRadius: '1.2rem', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.05)', cursor: onClick ? 'pointer' : 'default' }}
+  >
     <div style={{ position: 'relative', height: '140px' }}>
       <img src={image} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
       <button style={{ position: 'absolute', top: '0.8rem', right: '0.8rem', background: 'rgba(0,0,0,0.3)', border: 'none', color: '#fff', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(5px)' }}>
