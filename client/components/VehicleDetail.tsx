@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { 
   Share2, 
   Heart, 
   ChevronLeft, 
   CheckCircle2, 
   MapPin, 
-  Clock, 
   Gauge, 
   Settings, 
   Droplets, 
@@ -34,10 +33,8 @@ export const VehicleDetail = ({ car, onClose, onInquiry, onVendorClick }: Vehicl
   const [activeImg, setActiveImg] = useState(0);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [isWishlisted, setIsWishlisted] = useState(false);
-
   const [relatedCars, setRelatedCars] = useState<Car[]>([]);
 
-  // Log view activity and load recommendations
   useEffect(() => {
     if (car?.id) {
       db.logActivity(user?.id, 'view_car', { 
@@ -47,7 +44,6 @@ export const VehicleDetail = ({ car, onClose, onInquiry, onVendorClick }: Vehicl
         model: car.model
       });
 
-      // Load recommendations: Same category, excluding current car, limit 5
       const loadRecommendations = async () => {
         try {
           const allCars = await db.getCars({ onlyApproved: true });
@@ -65,271 +61,225 @@ export const VehicleDetail = ({ car, onClose, onInquiry, onVendorClick }: Vehicl
 
   return (
     <motion.div 
-      initial={{ opacity: 0, y: '100%' }}
+      initial={{ opacity: 0, y: 100 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: '100%' }}
-      transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+      exit={{ opacity: 0, y: 100 }}
       className="profile-fullscreen-mobile"
       style={{
         width: '100%',
-        height: '100%',
+        height: '100vh',
         background: '#000',
         color: '#fff',
-        overflowY: 'auto',
-        zIndex: 3000,
         position: 'fixed',
+        top: 0,
         left: 0,
-        top: 0
+        zIndex: 5000,
+        overflowY: 'auto'
       }}
     >
-      {/* ── Custom Header ── */}
+      {/* Header Actions */}
       <div style={{
         position: 'absolute',
         top: 0,
         left: 0,
         width: '100%',
-        padding: '1.5rem',
+        padding: '1.2rem',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        zIndex: 10,
-        background: 'linear-gradient(to bottom, rgba(0,0,0,0.6), transparent)'
+        zIndex: 50
       }}>
-        <button onClick={onClose} style={{ background: 'rgba(0,0,0,0.3)', border: 'none', color: '#fff', width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(5px)' }}>
+        <button onClick={onClose} style={{ background: 'rgba(0,0,0,0.4)', border: 'none', color: '#fff', padding: '0.6rem', borderRadius: '50%', display: 'flex' }}>
           <ChevronLeft size={24} />
         </button>
-        <div style={{ display: 'flex', gap: '1rem' }}>
-          <button style={{ background: 'rgba(0,0,0,0.3)', border: 'none', color: '#fff', width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(5px)' }}>
+        <div style={{ display: 'flex', gap: '0.8rem' }}>
+          <button style={{ background: 'rgba(0,0,0,0.4)', border: 'none', color: '#fff', padding: '0.6rem', borderRadius: '50%', display: 'flex' }}>
             <Share2 size={20} />
           </button>
           <button 
             onClick={() => setIsWishlisted(!isWishlisted)}
-            style={{ background: 'rgba(0,0,0,0.3)', border: 'none', color: isWishlisted ? 'var(--accent-gold)' : '#fff', width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(5px)' }}
+            style={{ background: 'rgba(0,0,0,0.4)', border: 'none', color: isWishlisted ? 'var(--accent-gold)' : '#fff', padding: '0.6rem', borderRadius: '50%', display: 'flex' }}
           >
             <Heart size={20} fill={isWishlisted ? 'var(--accent-gold)' : 'none'} />
           </button>
         </div>
       </div>
 
-      {/* ── Image Carousel Section ── */}
-      <div style={{ position: 'relative', width: '100%', height: '45vh', background: '#111' }}>
-        <AnimatePresence mode="wait">
-          <motion.img 
-            key={activeImg}
-            src={allImages[activeImg]}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-          />
-        </AnimatePresence>
-        
-        {/* Pagination Indicator */}
-        <div style={{ position: 'absolute', bottom: '2rem', right: '1.5rem', background: 'rgba(0,0,0,0.6)', padding: '0.4rem 0.8rem', borderRadius: '1rem', fontSize: '0.75rem', fontWeight: 600, backdropFilter: 'blur(5px)' }}>
+      {/* Image Section */}
+      <div style={{ position: 'relative', height: '40vh', width: '100%', background: '#111' }}>
+        <img 
+          src={allImages[activeImg]} 
+          alt="" 
+          onClick={() => setActiveImg((prev) => (prev + 1) % allImages.length)}
+          style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' }} 
+        />
+        <div style={{ position: 'absolute', bottom: '1.2rem', right: '1.2rem', background: 'rgba(0,0,0,0.6)', padding: '0.3rem 0.7rem', borderRadius: '0.5rem', fontSize: '0.7rem', fontWeight: 700 }}>
           {activeImg + 1}/{allImages.length}
         </div>
-
-        {/* Progress Bar Indicators */}
-        <div style={{ position: 'absolute', bottom: '0', left: 0, width: '100%', padding: '0.5rem 1.5rem', display: 'flex', gap: '4px' }}>
-          {allImages.map((_, idx) => (
-            <div 
-              key={idx} 
-              onClick={(e) => { e.stopPropagation(); setActiveImg(idx); }}
-              style={{ 
-                height: '2px', 
-                flex: 1, 
-                background: idx === activeImg ? 'var(--accent-gold)' : 'rgba(255,255,255,0.2)',
-                borderRadius: '1px',
-                cursor: 'pointer'
-              }} 
-            />
+        
+        {/* Gallery Thumbnails Overlay (Simplified) */}
+        <div style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '3px', display: 'flex', gap: '2px' }}>
+          {allImages.map((_, i) => (
+            <div key={i} style={{ flex: 1, background: i === activeImg ? 'var(--accent-gold)' : 'rgba(255,255,255,0.2)' }} />
           ))}
         </div>
       </div>
 
-      {/* ── Content Section ── */}
-      <div style={{ padding: '1.5rem 1.5rem 10rem 1.5rem' }}>
-        {/* Title & Price */}
+      <div style={{ padding: '1.5rem', paddingBottom: '140px' }}>
+        {/* Primary Info */}
         <div style={{ marginBottom: '2rem' }}>
-          <h1 className="luxury-font" style={{ fontSize: '2.2rem', marginBottom: '0.5rem' }}>{car.make} {car.model}</h1>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+            <h1 style={{ fontSize: '1.6rem', fontWeight: 800, margin: 0 }}>{car.make} {car.model}</h1>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
             <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--accent-gold)' }}>{formatPrice(car.price)}</div>
-            <div style={{ background: 'rgba(74,222,128,0.1)', color: '#4ade80', padding: '0.4rem 0.8rem', borderRadius: '2rem', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.7rem', fontWeight: 700 }}>
-              <CheckCircle2 size={14} /> Verified
+            <div style={{ color: '#4ade80', fontSize: '0.7rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.3rem', background: 'rgba(74,222,128,0.1)', padding: '0.3rem 0.7rem', borderRadius: '0.5rem' }}>
+              <CheckCircle2 size={12} /> Verified
             </div>
           </div>
         </div>
 
-        {/* Spec Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.8rem', marginBottom: '2rem' }}>
-          <SpecItem icon={<Calendar size={18} />} label="Year" value={car.year.toString()} />
-          <SpecItem icon={<Settings size={18} />} label="Transmission" value={car.transmission || 'Auto'} />
-          <SpecItem icon={<Droplets size={18} />} label="Fuel" value={car.fuel_type || 'Petrol'} />
-          <SpecItem icon={<Gauge size={18} />} label="Mileage" value={`${(car.mileage / 1000).toFixed(0)}k km`} />
+        {/* Spec Grid - High Density */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem', marginBottom: '2.5rem' }}>
+          <SpecSquare icon={<Calendar size={18} />} label="Year" value={car.year.toString()} />
+          <SpecSquare icon={<Settings size={18} />} label="Automatic" value="Transmission" />
+          <SpecSquare icon={<Droplets size={18} />} label="Fuel" value="Petrol" />
+          <SpecSquare icon={<Gauge size={18} />} label="200 km" value="Mileage" />
         </div>
 
-        {/* Location & Time */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#888', fontSize: '0.8rem', marginBottom: '2.5rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '1rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '1.2rem', marginBottom: '2rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'rgba(255,255,255,0.6)', fontSize: '0.8rem' }}>
             <MapPin size={14} color="var(--accent-gold)" /> Lagos, Nigeria
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <Clock size={14} /> Posted 2 days ago
-          </div>
+          <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.75rem' }}>Posted 2 days ago</div>
         </div>
 
-        {/* Overview Row Section */}
+        {/* Overview */}
         <div style={{ marginBottom: '2.5rem' }}>
-          <h2 className="luxury-font" style={{ fontSize: '1.4rem', marginBottom: '1.2rem' }}>Overview</h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <OverviewRow icon={<Settings size={18} />} label="Engine" value={car.engine || 'V12 Hybrid'} />
-            <OverviewRow icon={<Zap size={18} />} label="Power" value="1001 hp" />
-            <OverviewRow icon={<CarIcon size={18} />} label="Drive" value="AWD" />
-            <OverviewRow icon={<Settings size={18} />} label="Exterior" value={car.exterior_color} />
-            <OverviewRow icon={<Settings size={18} />} label="Interior" value={car.interior_color} />
-            <OverviewRow icon={<Settings size={18} />} label="VIN" value={car.vin || 'ZHWED4ZX8RLA12345'} />
+          <h2 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '1.2rem' }}>Overview</h2>
+          <div style={{ display: 'grid', gap: '1.2rem' }}>
+            <OverviewItem icon={<Settings size={18} />} label="Engine" value="6.5L V12 Hybrid" />
+            <OverviewItem icon={<Zap size={18} />} label="Power" value="1001 hp" />
+            <OverviewItem icon={<CarIcon size={18} />} label="Drive" value="AWD" />
+            <OverviewItem icon={<Settings size={18} />} label="Exterior" value="Arancio Orange" />
+            <OverviewItem icon={<Settings size={18} />} label="Interior" value="Nero Ade" />
+            <OverviewItem icon={<Settings size={18} />} label="VIN" value="ZHWED4ZX8RLA12345" />
           </div>
         </div>
 
-        {/* Description Section */}
+        {/* Description */}
         <div style={{ marginBottom: '3rem' }}>
-          <h2 className="luxury-font" style={{ fontSize: '1.4rem', marginBottom: '1.2rem' }}>Description</h2>
-          <p style={{ color: '#aaa', lineHeight: '1.6', fontSize: '0.95rem' }}>
+          <h2 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '0.8rem' }}>Description</h2>
+          <p style={{ fontSize: '0.88rem', color: 'rgba(255,255,255,0.6)', lineHeight: 1.6, margin: 0 }}>
             {isDescriptionExpanded ? car.description : `${car.description?.slice(0, 150)}...`}
           </p>
           <button 
             onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
-            style={{ background: 'none', border: 'none', color: 'var(--accent-gold)', fontSize: '0.85rem', fontWeight: 700, marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem', padding: 0 }}
+            style={{ background: 'none', border: 'none', color: 'var(--accent-gold)', fontSize: '0.85rem', fontWeight: 700, marginTop: '0.75rem', padding: 0, display: 'flex', alignItems: 'center', gap: '0.3rem' }}
           >
-            {isDescriptionExpanded ? 'Read less' : 'Read more'} <ChevronDown size={14} style={{ transform: isDescriptionExpanded ? 'rotate(180deg)' : 'none' }} />
+            {isDescriptionExpanded ? 'Read less' : 'Read more'} <ChevronDown size={16} />
           </button>
         </div>
 
-        {/* Seller Information */}
+        {/* Seller Info */}
         <div style={{ marginBottom: '3rem' }}>
-          <h2 className="luxury-font" style={{ fontSize: '1.4rem', marginBottom: '1.2rem' }}>Seller Information</h2>
-          <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '1.2rem', padding: '1.5rem' }}>
-            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <div style={{ width: '56px', height: '56px', borderRadius: '50%', overflow: 'hidden', background: '#111' }}>
-                <img src={car.profiles?.avatar_url || 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=100'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <h2 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '1.2rem' }}>Seller Information</h2>
+          <div style={{ background: '#111', padding: '1.2rem', borderRadius: '1rem', border: '1px solid rgba(255,255,255,0.05)' }}>
+            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1.2rem' }}>
+              <div style={{ width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden', background: '#222' }}>
+                <img src={car.profiles?.avatar_url || '/logo.png'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <span style={{ fontWeight: 700, fontSize: '1.1rem' }}>{car.profiles?.business_name || car.profiles?.full_name || 'AutoHub Luxury Cars'}</span>
+              <div>
+                <div style={{ fontSize: '1rem', fontWeight: 700 }}>{car.profiles?.business_name || 'AutoHub Luxury Cars'}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: '#4ade80', fontSize: '0.7rem', fontWeight: 600, marginTop: '0.1rem' }}>
+                  <CheckCircle2 size={10} /> Verified Dealer
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#4ade80', fontSize: '0.75rem', fontWeight: 600, marginTop: '0.2rem' }}>
-                  <CheckCircle2 size={12} /> Verified Dealer
-                </div>
-                <div style={{ color: '#888', fontSize: '0.75rem', marginTop: '0.3rem' }}>
-                  <span style={{ color: 'var(--accent-gold)' }}>★ 4.8</span> (128 reviews)
+                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem', marginTop: '0.2rem' }}>
+                   <span style={{ color: 'var(--accent-gold)' }}>★ 4.8</span> (128 reviews)
                 </div>
               </div>
             </div>
             <button 
-              onClick={() => car.vendor_id && onVendorClick(car.vendor_id)}
+              onClick={() => {
+                console.log('View Dealer Profile clicked. Vendor ID:', car.vendor_id);
+                if (car.vendor_id) onVendorClick(car.vendor_id);
+                else alert('Vendor information not available for this vehicle.');
+              }}
               className="btn-gold" 
-              style={{ width: '100%', padding: '1rem', borderRadius: '0.8rem', fontWeight: 800, fontSize: '0.85rem' }}
+              style={{ width: '100%', padding: '0.8rem', borderRadius: '0.5rem', fontWeight: 800, fontSize: '0.85rem', background: 'transparent', border: '1px solid var(--accent-gold)', color: 'var(--accent-gold)' }}
             >
               View Dealer Profile
             </button>
           </div>
         </div>
 
-        {/* Related Section */}
-        <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-             <h2 className="luxury-font" style={{ fontSize: '1.4rem' }}>You may also like</h2>
-             <button style={{ color: 'var(--accent-gold)', fontSize: '0.85rem', fontWeight: 700, background: 'none', border: 'none' }}>View all</button>
-          </div>
-          <div style={{ display: 'flex', gap: '1.2rem', overflowX: 'auto', paddingBottom: '1rem' }} className="no-scrollbar">
-             {relatedCars.length === 0 ? (
-               <p style={{ color: '#666', fontSize: '0.85rem', padding: '1rem' }}>No similar vehicles found at this moment.</p>
-             ) : (
-               relatedCars.map(rc => (
-                 <RelatedCard 
-                    key={rc.id}
-                    image={rc.image_url} 
-                    name={`${rc.make} ${rc.model}`} 
-                    year={rc.year.toString()} 
-                    price={formatPrice(rc.price)} 
-                    onClick={() => {
-                       window.dispatchEvent(new CustomEvent('select-car', { detail: { car: rc } }));
-                    }}
-                 />
-               ))
-             )}
-          </div>
+        {/* Recommendations */}
+        <div style={{ marginBottom: '2rem' }}>
+           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem' }}>
+              <h2 style={{ fontSize: '1.2rem', fontWeight: 800 }}>You may also like</h2>
+              <span style={{ color: 'var(--accent-gold)', fontSize: '0.8rem', fontWeight: 700 }}>View all</span>
+           </div>
+           <div style={{ display: 'flex', gap: '1rem', overflowX: 'auto', paddingBottom: '0.5rem' }} className="no-scrollbar">
+              {relatedCars.map(rc => (
+                <div key={rc.id} style={{ minWidth: '220px', background: '#111', borderRadius: '1rem', overflow: 'hidden' }}>
+                   <div style={{ height: '130px', position: 'relative' }}>
+                      <img src={rc.image_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <button style={{ position: 'absolute', top: '0.5rem', left: '0.5rem', background: 'rgba(0,0,0,0.4)', border: 'none', color: '#fff', padding: '0.4rem', borderRadius: '50%', display: 'flex' }}>
+                         <Heart size={14} />
+                      </button>
+                   </div>
+                   <div style={{ padding: '0.8rem' }}>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.2rem' }}>{rc.make} {rc.model}</div>
+                      <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', marginBottom: '0.6rem' }}>2021 • Petrol</div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--accent-gold)' }}>{formatPrice(rc.price)}</div>
+                   </div>
+                </div>
+              ))}
+           </div>
         </div>
       </div>
 
-      {/* ── Sticky Action Bar ── */}
-      <div style={{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        width: '100%',
-        padding: '1.2rem 1.5rem 2.5rem 1.5rem',
-        background: 'rgba(0,0,0,0.85)',
-        backdropFilter: 'blur(15px)',
-        borderTop: '1px solid rgba(255,255,255,0.05)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '1rem',
-        zIndex: 50
+      {/* Sticky Bottom Bar */}
+      <div style={{ 
+        position: 'fixed', bottom: 0, left: 0, right: 0, 
+        padding: '1.2rem 1.5rem', background: 'rgba(0,0,0,0.8)', 
+        backdropFilter: 'blur(10px)', borderTop: '1px solid rgba(255,255,255,0.05)',
+        zIndex: 100
       }}>
         <button 
           onClick={onInquiry}
           className="btn-gold" 
-          style={{ width: '100%', padding: '1.2rem', borderRadius: '0.8rem', fontWeight: 900, fontSize: '1rem', textTransform: 'uppercase' }}
+          style={{ width: '100%', padding: '1rem', borderRadius: '0.6rem', fontWeight: 800, fontSize: '0.95rem', marginBottom: '0.8rem' }}
         >
           Contact Seller
         </button>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-           <button style={{ background: 'none', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--accent-gold)', padding: '0.8rem', borderRadius: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontSize: '0.85rem', fontWeight: 700 }}>
-             <Phone size={18} /> Call
-           </button>
-           <button style={{ background: 'none', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--accent-gold)', padding: '0.8rem', borderRadius: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontSize: '0.85rem', fontWeight: 700 }}>
-             <MessageSquare size={18} /> Chat
-           </button>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
+          <button style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '0.6rem', padding: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontSize: '0.85rem', fontWeight: 700 }}>
+             <Phone size={18} color="var(--accent-gold)" /> Call
+          </button>
+          <button style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '0.6rem', padding: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontSize: '0.85rem', fontWeight: 700 }}>
+             <MessageSquare size={18} color="var(--accent-gold)" /> Chat
+          </button>
         </div>
       </div>
     </motion.div>
   );
 };
 
-const SpecItem = ({ icon, label, value }: { icon: any, label: string, value: string }) => (
-  <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '1rem', padding: '1rem 0.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
-    <div style={{ color: 'var(--accent-gold)' }}>{icon}</div>
-    <div style={{ fontSize: '0.8rem', fontWeight: 700 }}>{value}</div>
-    <div style={{ fontSize: '0.6rem', color: '#888', fontWeight: 600 }}>{label}</div>
+const SpecSquare = ({ icon, label, value }: { icon: any, label: string, value: string }) => (
+  <div style={{ background: '#111', padding: '0.8rem 0.4rem', borderRadius: '0.8rem', border: '1px solid rgba(255,255,255,0.03)', textAlign: 'center' }}>
+     <div style={{ color: 'var(--accent-gold)', marginBottom: '0.3rem', display: 'flex', justifyContent: 'center' }}>{icon}</div>
+     <div style={{ fontSize: '0.8rem', fontWeight: 700 }}>{label}</div>
+     <div style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.1rem' }}>{value}</div>
   </div>
 );
 
-const OverviewRow = ({ icon, label, value }: { icon: any, label: string, value: string }) => (
+const OverviewItem = ({ icon, label, value }: { icon: any, label: string, value: string }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-    <div style={{ color: 'var(--accent-gold)', opacity: 0.8 }}>{icon}</div>
-    <div style={{ flex: 1, display: 'flex', gap: '0.5rem', fontSize: '0.95rem' }}>
-      <span style={{ color: '#888' }}>{label}:</span>
-      <span style={{ fontWeight: 600 }}>{value}</span>
-    </div>
-  </div>
-);
-
-const RelatedCard = ({ image, name, year, price, onClick }: { image: string, name: string, year: string, price: string, onClick?: () => void }) => (
-  <div 
-    onClick={onClick}
-    style={{ minWidth: '220px', background: 'rgba(255,255,255,0.02)', borderRadius: '1.2rem', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.05)', cursor: onClick ? 'pointer' : 'default' }}
-  >
-    <div style={{ position: 'relative', height: '140px' }}>
-      <img src={image} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-      <button style={{ position: 'absolute', top: '0.8rem', right: '0.8rem', background: 'rgba(0,0,0,0.3)', border: 'none', color: '#fff', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(5px)' }}>
-        <Heart size={16} />
-      </button>
-    </div>
-    <div style={{ padding: '1rem' }}>
-      <div style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.2rem' }}>{name}</div>
-      <div style={{ fontSize: '0.7rem', color: '#888', marginBottom: '0.8rem' }}>{year} • Petrol</div>
-      <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--accent-gold)' }}>{price}</div>
+    <div style={{ color: 'var(--accent-gold)' }}>{icon}</div>
+    <div style={{ flex: 1, display: 'flex', gap: '0.5rem', fontSize: '0.85rem' }}>
+       <span style={{ color: 'rgba(255,255,255,0.4)' }}>{label}:</span>
+       <span style={{ fontWeight: 600 }}>{value}</span>
     </div>
   </div>
 );

@@ -907,5 +907,70 @@ export const db = {
       .eq('id', carId);
     
     if (error) throw error;
+  },
+
+  toggleFeatureCar: async (carId: string, isFeatured: boolean) => {
+    const { error } = await supabase
+      .from('cars')
+      .update({ 
+        is_pinned: isFeatured, 
+        pinned_at: isFeatured ? new Date().toISOString() : null 
+      })
+      .eq('id', carId);
+    
+    if (error) throw error;
+  },
+
+  getGlobalStats: async () => {
+    const [carsCount, usersCount, vendorsCount] = await Promise.all([
+      supabase.from('cars').select('id', { count: 'exact', head: true }).eq('approval_status', 'approved'),
+      supabase.from('profiles').select('id', { count: 'exact', head: true }),
+      supabase.from('profiles').select('id', { count: 'exact', head: true }).neq('vendor_status', 'none')
+    ]);
+
+    return {
+      carsCount: carsCount.count || 0,
+      usersCount: usersCount.count || 0,
+      vendorsCount: vendorsCount.count || 0
+    };
+  },
+
+  getUnreadCounts: async (userId: string) => {
+    try {
+      // 1. Get Conversation IDs the user is involved in
+      const { data: convIds } = await supabase
+        .from('conversations')
+        .select('id')
+        .or(`buyer_id.eq.${userId},vendor_id.eq.${userId}`);
+      
+      const ids = convIds?.map(c => c.id) || [];
+      
+      // 2. Count unread messages in those conversations where the user is NOT the sender
+      let msgCount = 0;
+      if (ids.length > 0) {
+        const { count } = await supabase
+          .from('messages')
+          .select('id', { count: 'exact', head: true })
+          .in('conversation_id', ids)
+          .eq('is_read', false)
+          .neq('sender_id', userId);
+        msgCount = count || 0;
+      }
+
+      // 3. Count unread notifications
+      const { count: notifCount } = await supabase
+        .from('notifications')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('is_read', false);
+
+      return {
+        unreadMessages: msgCount,
+        unreadNotifications: notifCount || 0
+      };
+    } catch (err) {
+      console.error('Failed to fetch unread counts:', err);
+      return { unreadMessages: 0, unreadNotifications: 0 };
+    }
   }
 };

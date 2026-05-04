@@ -1,3 +1,5 @@
+@import url('./messaging-list.css');
+
 :root {
   --accent-gold: #c5a059;
   --accent-gold-soft: rgba(197, 160, 89, 0.1);
@@ -118,66 +120,7 @@ body {
   position: relative;
 }
 
-body::before, .logo-grid-bg::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  background-image: none; /* Removed static background */
-  pointer-events: none;
-  z-index: -2;
-  transition: opacity 0.3s ease;
-}
-
-.logo-column-container {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  justify-content: space-around;
-  pointer-events: none;
-  z-index: -2;
-  overflow: hidden;
-  opacity: var(--logo-grid-opacity);
-}
-
-.logo-column {
-  width: 80px;
-  height: 100%;
-  background-image: url("/logo.png");
-  background-repeat: repeat-y;
-  background-size: 60px;
-  background-position: center;
-  filter: grayscale(1) brightness(1.2);
-}
-
-.light-theme .logo-column {
-  filter: grayscale(1) contrast(0.5) brightness(0.9);
-}
-
-.logo-move-up {
-  animation: logoMoveUp 60s linear infinite;
-}
-
-.logo-move-down {
-  animation: logoMoveDown 60s linear infinite;
-}
-
-@keyframes logoMoveUp {
-  from {
-    background-position-y: 0;
-  }
-  to {
-    background-position-y: -1000px;
-  }
-}
-
-@keyframes logoMoveDown {
-  from {
-    background-position-y: 0;
-  }
-  to {
-    background-position-y: 1000px;
-  }
-}
+/* Logo Background Removed */
 
 .logo-grid-bg {
   position: relative;
@@ -206,8 +149,6 @@ body::before, .logo-grid-bg::before {
 
 .glass {
   background: var(--bg-glass);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border-glass);
 }
 

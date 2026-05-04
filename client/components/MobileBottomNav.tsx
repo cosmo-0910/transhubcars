@@ -7,7 +7,7 @@ interface MobileBottomNavProps {
   messageCount?: number;
 }
 
-export const MobileBottomNav = ({ currentView, onViewChange, messageCount = 3 }: MobileBottomNavProps) => {
+export const MobileBottomNav = ({ currentView, onViewChange, messageCount }: MobileBottomNavProps) => {
   const tabs = [
     { id: 'home', label: 'Home', icon: Home },
     { id: 'inventory', label: 'Search', icon: Search },
@@ -15,6 +15,7 @@ export const MobileBottomNav = ({ currentView, onViewChange, messageCount = 3 }:
     { id: 'messages', label: 'Chat', icon: MessageSquare, badge: messageCount },
     { id: 'profile', label: 'Me', icon: User },
   ];
+
 
   return (
     <div className="mobile-bottom-nav">

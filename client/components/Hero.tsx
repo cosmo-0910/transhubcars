@@ -9,17 +9,22 @@ export const Hero = ({ onBrowse, onPreorder }: { onBrowse: () => void, onPreorde
   const [featuredCars, setFeaturedCars] = useState<Car[]>([]);
   const [scrollIndex, setScrollIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [globalStats, setGlobalStats] = useState({ carsCount: 0, usersCount: 0, vendorsCount: 0 });
   const autoplayRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const loadFeatured = async () => {
       try {
-        const cars = await db.getCars({ onlyApproved: true });
+        const [cars, stats] = await Promise.all([
+          db.getCars({ onlyApproved: true }),
+          db.getGlobalStats()
+        ]);
+        setGlobalStats(stats);
         const pinnedCars = cars.filter(c => c.is_pinned);
         let selected = pinnedCars.length >= 3 ? pinnedCars : cars;
         setFeaturedCars(selected.slice(0, 5));
       } catch (err) {
-        console.error('Failed to load featured cars:', err);
+        console.error('Failed to load Hero data:', err);
       }
     };
     loadFeatured();
@@ -36,8 +41,7 @@ export const Hero = ({ onBrowse, onPreorder }: { onBrowse: () => void, onPreorde
     };
   }, [isPaused, featuredCars.length]);
 
-  const c1 = { make: 'Lexus', model: 'RX 350', year: 2023, transmission: 'Automatic', fuel_type: 'Petrol', price: 28500000, status: 'Readily Available', image_url: 'https://images.unsplash.com/photo-1606611013016-960c18baeaac?q=80&w=800&auto=format&fit=crop' } as Partial<Car>;
-  const displayCars = featuredCars.length > 0 ? featuredCars : [c1];
+  const displayCars = featuredCars;
 
   const renderCard = (car: Partial<Car>, index: number) => {
     const isAvail = car.status === 'Readily Available';
@@ -155,15 +159,15 @@ export const Hero = ({ onBrowse, onPreorder }: { onBrowse: () => void, onPreorde
 
             <div className="hero-stats-grid">
               <div className="stat-box">
-                <span className="stat-val">12K+</span>
+                <span className="stat-val">{globalStats.carsCount > 0 ? `${(globalStats.carsCount / 1000).toFixed(1)}K+` : '12K+'}</span>
                 <span className="stat-lab">Verified Cars</span>
               </div>
               <div className="stat-box">
-                <span className="stat-val">25K+</span>
+                <span className="stat-val">{globalStats.usersCount > 0 ? `${(globalStats.usersCount / 1000).toFixed(1)}K+` : '25K+'}</span>
                 <span className="stat-lab">Happy Customers</span>
               </div>
               <div className="stat-box">
-                <span className="stat-val">3.5K+</span>
+                <span className="stat-val">{globalStats.vendorsCount > 0 ? `${(globalStats.vendorsCount / 1000).toFixed(1)}K+` : '3.5K+'}</span>
                 <span className="stat-lab">Dealers</span>
               </div>
               <div className="stat-box">

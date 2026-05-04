@@ -499,12 +499,12 @@ export const AdminDashboard = () => {
     });
   };
 
-  const handlePinCar = async (id: string, currentStatus: boolean | undefined) => {
+  const handleFeatureCar = async (id: string, currentStatus: boolean | undefined) => {
     try {
-      await db.togglePinCar(id, !currentStatus);
-      await db.logAction(currentStatus ? 'Unpin Vehicle' : 'Pin Vehicle', 'car', id);
+      await db.toggleFeatureCar(id, !currentStatus);
+      await db.logAction(currentStatus ? 'Unfeature Vehicle' : 'Feature Vehicle', 'car', id);
       loadAllData();
-      showAlert({ title: 'Success', message: `Vehicle ${currentStatus ? 'unpinned' : 'pinned'} successfully.` });
+      showAlert({ title: 'Success', message: `Vehicle ${currentStatus ? 'removed from featured' : 'added to featured'} successfully.` });
     } catch (err: any) {
       showAlert({ title: 'Error', message: err.message, buttons: [{ text: 'OK', style: 'destructive' }] });
     }
@@ -1147,7 +1147,7 @@ export const AdminDashboard = () => {
                         cars={filteredData}
                         onEdit={(car) => { setEditingCar(car); setShowAddCarForm(true); }}
                         onDelete={handleDeleteCar}
-                        onPin={handlePinCar}
+                        onFeature={handleFeatureCar}
                         onPreview={setPreviewCar}
                         onApproval={handleCarApproval}
                       />

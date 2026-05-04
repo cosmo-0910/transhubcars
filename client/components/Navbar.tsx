@@ -33,7 +33,7 @@ export const Navbar = ({ onAdminToggle, isAdmin, onAuthClick, onProfileClick, us
   const navLinks: { label: string, view: 'home' | 'preorder' | 'services' | 'inventory' | 'collections' | 'brands' | 'categories' | 'messages' | 'profile' | 'vendor' }[] = [
     { label: 'HOME', view: 'home' },
     { label: 'INVENTORY', view: 'inventory' },
-    { label: 'PREORDER', view: 'preorder' },
+    { label: 'SOURCE', view: 'preorder' },
     { label: 'SERVICES', view: 'services' },
     { label: 'MESSAGES', view: 'messages' },
     { label: 'PROFILE', view: 'profile' },
@@ -42,7 +42,7 @@ export const Navbar = ({ onAdminToggle, isAdmin, onAuthClick, onProfileClick, us
   return (
     <>
       <nav 
-        className={`glass smooth-transition ${scrolled ? 'navbar-scrolled' : ''}`} 
+        className={`glass smooth-transition navbar-main ${scrolled ? 'navbar-scrolled' : ''}`} 
         style={{
           position: 'fixed',
           top: 0,
@@ -54,12 +54,14 @@ export const Navbar = ({ onAdminToggle, isAdmin, onAuthClick, onProfileClick, us
           alignItems: 'center',
           background: 'transparent',
           border: 'none',
-          borderBottom: scrolled ? '1px solid rgba(197,160,89,0.1)' : '1px solid rgba(255,255,255,0.05)'
+          borderBottom: scrolled ? '1px solid rgba(197,160,89,0.1)' : '1px solid rgba(255,255,255,0.05)',
+          transform: (scrolled && window.innerWidth < 768) ? 'translateY(-100%)' : 'translateY(0)' // Hide on mobile scroll
         }}
       >
         <div className="mobile-only-flex" onClick={() => setIsMobileMenuOpen(true)}>
           <Menu size={20} color="var(--accent-gold)" />
         </div>
+
 
         {/* Brand Area */}
         <div 

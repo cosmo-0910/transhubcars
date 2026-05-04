@@ -1,0 +1,12 @@
+.messaging-list-pane {
+  max-width: 340px;
+  min-width: 260px;
+  border-right: 1px solid var(--border-glass);
+}
+@media (max-width: 768px) {
+  .messaging-list-pane {
+    max-width: 100%;
+    min-width: 100%;
+    border-right: none;
+  }
+}

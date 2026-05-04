@@ -13,6 +13,7 @@ export interface ConversationCar {
   model: string;
   year: number;
   image_url?: string;
+  price?: string;
 }
 
 export interface Conversation {

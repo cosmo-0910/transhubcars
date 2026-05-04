@@ -6,7 +6,8 @@ import { useAuth } from '../lib/AuthContext';
 import { formatDistanceToNow } from 'date-fns';
 import type { Conversation, Message } from '../types/chat';
 
-export const ChatSystem = () => {
+export const ChatSystem = ({ isHidden }: { isHidden?: boolean }) => {
+
   const { user, profile } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -137,7 +138,7 @@ export const ChatSystem = () => {
     return conv.buyer?.full_name || 'Customer';
   };
 
-  if (!user) return null;
+  if (!user || isHidden) return null;
 
   return (
     <div style={{ position: 'fixed', bottom: '2rem', right: '2rem', zIndex: 5000 }}>

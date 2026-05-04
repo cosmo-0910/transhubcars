@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { supabase } from '../../shared/lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, Lock, User, ArrowRight, Loader2, AlertCircle, CheckCircle2, Eye, EyeOff, Smartphone, Check } from 'lucide-react';
@@ -19,11 +19,12 @@ const AppleIcon = () => (
 );
 
 export const AuthForm = ({ type: initialType, onSuccess }: { type: 'login' | 'signup', onSuccess?: () => void }) => {
-  const [authType, setAuthType] = useState<'login' | 'signup'>(initialType);
+  const [authType, setAuthType] = useState<'login' | 'signup' | 'forgot-password' | 'update-password'>(initialType);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [vendorType, setVendorType] = useState<'car' | 'parts' | 'both'>('car');
+
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
@@ -33,6 +34,49 @@ export const AuthForm = ({ type: initialType, onSuccess }: { type: 'login' | 'si
     return email.length > 3 && email.includes('@') && email.includes('.');
   }, [email]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('type') === 'recovery') {
+      setAuthType('update-password');
+    }
+  }, []);
+
+  const handleSocialLogin = async (provider: 'google' | 'apple') => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`
+        }
+      });
+      if (error) throw error;
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message });
+    }
+  };
+
+  const handleOTP = async () => {
+    if (!isEmailValid) {
+      setMessage({ type: 'error', text: 'Please enter a valid email first.' });
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`
+        }
+      });
+      if (error) throw error;
+      setMessage({ type: 'success', text: 'One-time login link sent to your email.' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -40,30 +84,36 @@ export const AuthForm = ({ type: initialType, onSuccess }: { type: 'login' | 'si
 
     try {
       if (authType === 'signup') {
-        const { data: { user: newUser }, error: signUpError } = await supabase.auth.signUp({
+        const { error: signUpError } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            data: { full_name: fullName }
+            data: { 
+              full_name: fullName
+            },
+
+            emailRedirectTo: `${window.location.origin}/auth/callback`
           }
         });
         
         if (signUpError) throw signUpError;
         
-        if (newUser) {
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .upsert({ 
-              id: newUser.id, 
-              full_name: fullName,
-              role: email.toLowerCase() === 'admin@transhub.com' ? 'admin' : 'customer',
-              vendor_type: vendorType
-            });
-          
-          if (profileError) console.error('Error creating profile:', profileError);
-        }
-
-        setMessage({ type: 'success', text: 'Verification link sent to your email.' });
+        setMessage({ 
+          type: 'success', 
+          text: 'Verification link sent! Please check your email to secure your account.' 
+        });
+      } else if (authType === 'forgot-password') {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
+        });
+        if (error) throw error;
+        setMessage({ type: 'success', text: 'Password reset link sent to your email.' });
+      } else if (authType === 'update-password') {
+        if (password !== confirmPassword) throw new Error("Passwords do not match");
+        const { error } = await supabase.auth.updateUser({ password });
+        if (error) throw error;
+        setMessage({ type: 'success', text: 'Password updated successfully. You can now sign in.' });
+        setTimeout(() => setAuthType('login'), 2000);
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
@@ -73,6 +123,26 @@ export const AuthForm = ({ type: initialType, onSuccess }: { type: 'login' | 'si
       setMessage({ type: 'error', text: err.message });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const getTitle = () => {
+    switch (authType) {
+      case 'login': return 'Welcome Back 👋';
+      case 'signup': return 'Join the Elite.';
+      case 'forgot-password': return 'Restore Access.';
+      case 'update-password': return 'Secure Your Account.';
+      default: return '';
+    }
+  };
+
+  const getSubtitle = () => {
+    switch (authType) {
+      case 'login': return 'Sign in to continue to your Transhub account';
+      case 'signup': return 'Begin your acquisition journey with Transhub.';
+      case 'forgot-password': return 'Enter your email to receive a reset link.';
+      case 'update-password': return 'Enter your new secure password.';
+      default: return '';
     }
   };
 
@@ -90,10 +160,10 @@ export const AuthForm = ({ type: initialType, onSuccess }: { type: 'login' | 'si
           transition={{ duration: 0.5 }}
         >
           <h2 className="luxury-font" style={{ fontSize: '1.5rem', color: 'white', marginBottom: '0.05rem' }}>
-            {authType === 'login' ? 'Welcome Back 👋' : 'Join the Elite.'}
+            {getTitle()}
           </h2>
           <p className="auth-subtitle">
-            {authType === 'login' ? 'Sign in to continue to your Transhub account' : 'Begin your acquisition journey with Transhub.'}
+            {getSubtitle()}
           </p>
         </motion.div>
       </div>
@@ -123,48 +193,69 @@ export const AuthForm = ({ type: initialType, onSuccess }: { type: 'login' | 'si
           )}
         </AnimatePresence>
 
-        <div className="auth-input-group">
-          <label className="auth-label">Email Address</label>
-          <div className="auth-input-wrapper">
-            <Mail size={12} className="auth-input-icon" />
-            <input 
-              type="email" 
-              required 
-              className="auth-input" 
-              placeholder="client@transhub.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            {isEmailValid && (
-              <div className="auth-input-right valid">
-                <CheckCircle2 size={12} />
-              </div>
-            )}
+        {(authType === 'login' || authType === 'signup' || authType === 'forgot-password') && (
+          <div className="auth-input-group">
+            <label className="auth-label">Email Address</label>
+            <div className="auth-input-wrapper">
+              <Mail size={12} className="auth-input-icon" />
+              <input 
+                type="email" 
+                required 
+                className="auth-input" 
+                placeholder="client@transhub.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              {isEmailValid && (
+                <div className="auth-input-right valid">
+                  <CheckCircle2 size={12} />
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
-        <div className="auth-input-group">
-          <label className="auth-label">Password</label>
-          <div className="auth-input-wrapper">
-            <Lock size={12} className="auth-input-icon" />
-            <input 
-              type={showPassword ? "text" : "password"} 
-              required 
-              className="auth-input" 
-              placeholder="••••••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            <button 
-              type="button" 
-              className="auth-input-right" 
-              onClick={() => setShowPassword(!showPassword)}
-              style={{ background: 'none', border: 'none' }}
-            >
-              {showPassword ? <EyeOff size={12} /> : <Eye size={12} />}
-            </button>
+        {(authType === 'login' || authType === 'signup' || authType === 'update-password') && (
+          <div className="auth-input-group">
+            <label className="auth-label">{authType === 'update-password' ? 'New Password' : 'Password'}</label>
+            <div className="auth-input-wrapper">
+              <Lock size={12} className="auth-input-icon" />
+              <input 
+                type={showPassword ? "text" : "password"} 
+                required 
+                className="auth-input" 
+                placeholder="••••••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <button 
+                type="button" 
+                className="auth-input-right" 
+                onClick={() => setShowPassword(!showPassword)}
+                style={{ background: 'none', border: 'none' }}
+              >
+                {showPassword ? <EyeOff size={12} /> : <Eye size={12} />}
+              </button>
+            </div>
           </div>
-        </div>
+        )}
+
+        {authType === 'update-password' && (
+          <div className="auth-input-group">
+            <label className="auth-label">Confirm New Password</label>
+            <div className="auth-input-wrapper">
+              <Lock size={12} className="auth-input-icon" />
+              <input 
+                type={showPassword ? "text" : "password"} 
+                required 
+                className="auth-input" 
+                placeholder="••••••••••••"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
+            </div>
+          </div>
+        )}
 
         {authType === 'login' && (
           <div className="auth-checkbox-row">
@@ -179,37 +270,12 @@ export const AuthForm = ({ type: initialType, onSuccess }: { type: 'login' | 'si
               </div>
               <span>Remember me</span>
             </label>
-            <a href="#" className="auth-forgot" onClick={(e) => e.preventDefault()}>Forgot Password?</a>
+            <a href="#" className="auth-forgot" onClick={(e) => { e.preventDefault(); setAuthType('forgot-password'); setMessage(null); }}>Forgot Password?</a>
           </div>
         )}
 
-        {authType === 'signup' && (
-          <div className="auth-input-group">
-            <label className="auth-label">Vendor Specialization</label>
-            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.4rem' }}>
-              {(['car', 'parts', 'both'] as const).map((type) => (
-                <button
-                  key={type}
-                  type="button"
-                  onClick={() => setVendorType(type)}
-                  className={`glass ${vendorType === type ? 'active-gold' : ''}`}
-                  style={{ 
-                    flex: 1, 
-                    padding: '0.7rem', 
-                    borderRadius: '8px', 
-                    fontSize: '0.65rem', 
-                    fontWeight: 700,
-                    border: vendorType === type ? '1px solid var(--accent-gold)' : '1px solid var(--border-glass)',
-                    background: vendorType === type ? 'rgba(191, 149, 63, 0.1)' : 'transparent',
-                    color: vendorType === type ? 'var(--accent-gold)' : 'var(--text-muted)'
-                  }}
-                >
-                  {type.toUpperCase()}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Vendor Specialization removed from signup as per request - now an application process */}
+
 
         {message && (
           <motion.div 
@@ -242,7 +308,10 @@ export const AuthForm = ({ type: initialType, onSuccess }: { type: 'login' | 'si
             <Loader2 className="animate-spin" size={18} />
           ) : (
             <>
-              {authType === 'login' ? 'Sign In' : 'Create Account'}
+              {authType === 'login' ? 'Sign In' : 
+               authType === 'signup' ? 'Create Account' : 
+               authType === 'forgot-password' ? 'Send Reset Link' : 
+               'Update Password'}
               <ArrowRight size={18} />
             </>
           )}
@@ -256,29 +325,30 @@ export const AuthForm = ({ type: initialType, onSuccess }: { type: 'login' | 'si
       </div>
 
       <div className="auth-social-row">
-        <button className="social-button-card" type="button">
+        <button className="social-button-card" type="button" onClick={() => handleSocialLogin('google')}>
           <GoogleIcon />
         </button>
-        <button className="social-button-card" type="button">
+        <button className="social-button-card" type="button" onClick={() => handleSocialLogin('apple')}>
           <AppleIcon />
         </button>
-        <button className="social-button-card" type="button">
+        <button className="social-button-card" type="button" onClick={handleOTP}>
           <Smartphone size={18} color="#c5a059" />
           <span>OTP Login</span>
         </button>
       </div>
 
       <div className="auth-footer">
-        {authType === 'login' ? (
+        {authType === 'login' && (
           <>
             New here? 
             <span className="auth-footer-link" onClick={() => { setAuthType('signup'); setMessage(null); }}>
               Create account <ArrowRight size={12} />
             </span>
           </>
-        ) : (
+        )}
+        {(authType === 'signup' || authType === 'forgot-password' || authType === 'update-password') && (
           <>
-            Already a member? 
+            Back to 
             <span className="auth-footer-link" onClick={() => { setAuthType('login'); setMessage(null); }}>
               Sign In <ArrowRight size={12} />
             </span>

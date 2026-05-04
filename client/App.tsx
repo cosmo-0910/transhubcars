@@ -19,7 +19,9 @@ import { MessageVendorModal } from './components/MessageVendorModal.tsx';
 import { BrandsPage } from './components/BrandsPage.tsx';
 import { CollectionsPage } from './components/CollectionsPage.tsx';
 import { CategoriesPage } from './components/CategoriesPage.tsx';
+import { VendorApplication } from './components/VendorApplication.tsx';
 import SEO from './components/SEO.tsx';
+
 import { InstallPrompt } from '../shared/components/InstallPrompt.tsx';
 import { AuthProvider, useAuth } from '../shared/lib/AuthContext.tsx';
 import { ThemeProvider } from '../shared/context/ThemeContext.tsx';
@@ -27,20 +29,6 @@ import { AlertProvider } from '../shared/context/AlertContext.tsx';
 import { MaintenanceGuard } from '../shared/components/MaintenanceGuard.tsx';
 import { ChatSystem } from '../shared/components/ChatSystem.tsx';
 import type { Car } from '../shared/lib/db.ts';
-
-function LogoBackground() {
-  const columns = Array.from({ length: 20 });
-  return (
-    <div className="logo-column-container">
-      {columns.map((_, i) => (
-        <div 
-          key={i} 
-          className={`logo-column ${i % 2 === 0 ? 'logo-move-up' : 'logo-move-down'}`} 
-        />
-      ))}
-    </div>
-  );
-}
 
 function AppContent() {
   const [currentView, setCurrentView] = useState<'home' | 'preorder' | 'services' | 'inventory' | 'collections' | 'brands' | 'categories' | 'messages' | 'profile' | 'vendor'>('home');
@@ -52,6 +40,8 @@ function AppContent() {
   const [discoveryFilter, setDiscoveryFilter] = useState<{ type: 'body' | 'brand', value: string } | null>(null);
   const [globalSearchQuery, setGlobalSearchQuery] = useState('');
   const [chatModal, setChatModal] = useState<{ carId?: string | null, vendorId?: string | null } | null>(null);
+  const [showVendorApp, setShowVendorApp] = useState(false);
+
   const { user, profile, signOut } = useAuth();
   const isAdmin = profile?.role === 'admin';
 
@@ -89,9 +79,7 @@ function AppContent() {
   };
 
   return (
-    <div className="min-h-screen">
-      {/* Animated Logo Background (Global) */}
-      <LogoBackground />
+    <div className="min-h-screen" style={{ background: '#000' }}>
       
       <SEO 
         title={currentView === 'home' ? 'The Elite Collection' : currentView.charAt(0).toUpperCase() + currentView.slice(1)} 
@@ -104,25 +92,27 @@ function AppContent() {
         }
       />
       
-      <Navbar 
-        onAdminToggle={() => window.location.href = '/admin.html'} 
-        isAdmin={isAdmin} 
-        onAuthClick={() => setShowAuth('login')}
-        onProfileClick={() => setCurrentView('profile')}
-        user={user}
-        onSignOut={signOut}
-        currentView={currentView}
-        onViewChange={(view) => {
-          setCurrentView(view);
-          window.scrollTo(0, 0);
-        }}
-        onSearch={(query) => {
-          setGlobalSearchQuery(query);
-          if (currentView !== 'inventory') setCurrentView('inventory');
-        }}
-      />
+      {currentView !== 'vendor' && (
+        <Navbar 
+          onAdminToggle={() => window.location.href = '/admin.html'} 
+          isAdmin={isAdmin} 
+          onAuthClick={() => setShowAuth('login')}
+          onProfileClick={() => setCurrentView('profile')}
+          user={user}
+          onSignOut={signOut}
+          currentView={currentView}
+          onViewChange={(view) => {
+            setCurrentView(view);
+            window.scrollTo(0, 0);
+          }}
+          onSearch={(query) => {
+            setGlobalSearchQuery(query);
+            if (currentView !== 'inventory') setCurrentView('inventory');
+          }}
+        />
+      )}
       
-      <main>
+      <main style={{ paddingTop: currentView === 'vendor' ? 0 : '0' }}>
         {currentView === 'home' && (
           <>
             {/* Elevated Hero Redesign */}
@@ -226,7 +216,10 @@ function AppContent() {
         )}
 
         {currentView === 'profile' && (
-           <UserProfile onClose={() => setCurrentView('home')} />
+           <UserProfile 
+            onClose={() => setCurrentView('home')} 
+            onApplyVendor={() => setShowVendorApp(true)}
+           />
         )}
 
         <Footer />
@@ -242,6 +235,7 @@ function AppContent() {
               setSelectedCar(null);
             }}
             onVendorClick={(vendorId) => {
+              console.log('Navigating to vendor:', vendorId);
               setSelectedVendorId(vendorId);
               setCurrentView('vendor');
               setSelectedCar(null);
@@ -330,17 +324,28 @@ function AppContent() {
         )}
       </AnimatePresence>
 
+      <AnimatePresence mode="wait">
+        {showVendorApp && (
+          <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', zIndex: 6000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
+            <VendorApplication onClose={() => setShowVendorApp(false)} />
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* PWA Install Prompt */}
       <InstallPrompt />
 
       {/* Real-time Chat System */}
-      <ChatSystem />
+      <ChatSystem isHidden={!!showInquiry || !!selectedCar || !!showVendorApp || currentView === 'profile' || currentView === 'messages'} />
+
+
 
       {/* Mobile Bottom Navigation */}
       <MobileBottomNav 
         currentView={currentView as any} 
         onViewChange={handleMobileNavChange}
       />
+
     </div>
   );
 }

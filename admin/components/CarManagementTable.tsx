@@ -1,5 +1,5 @@
 import { 
-  Edit, Trash2, Eye, Pin, CheckCircle2, X 
+  Edit, Trash2, Eye, Sparkles, CheckCircle2, X 
 } from 'lucide-react';
 import { StatusBadge } from './StatusBadge';
 import { formatPrice } from '../../shared/lib/formatters';
@@ -9,7 +9,7 @@ interface CarManagementTableProps {
   cars: Car[];
   onEdit: (car: Car) => void;
   onDelete: (id: string) => void;
-  onPin: (id: string, currentStatus: boolean | undefined) => void;
+  onFeature: (id: string, currentStatus: boolean | undefined) => void;
   onPreview: (car: Car) => void;
   onApproval: (id: string, status: 'approved' | 'rejected') => void;
 }
@@ -18,7 +18,7 @@ export const CarManagementTable = ({
   cars,
   onEdit,
   onDelete,
-  onPin,
+  onFeature,
   onPreview,
   onApproval
 }: CarManagementTableProps) => {
@@ -77,8 +77,8 @@ export const CarManagementTable = ({
                     </>
                   )}
                   <button onClick={() => onPreview(item)} style={{ color: 'var(--accent-gold)', background: 'none', border: 'none' }} title="Preview"><Eye size={18} /></button>
-                  <button onClick={() => onPin(item.id, item.is_pinned)} style={{ color: item.is_pinned ? 'var(--accent-gold)' : 'var(--text-muted)', background: 'none', border: 'none' }} title={item.is_pinned ? "Unpin" : "Pin"}>
-                    <Pin size={18} fill={item.is_pinned ? 'currentColor' : 'none'} />
+                  <button onClick={() => onFeature(item.id, item.is_pinned)} style={{ color: item.is_pinned ? 'var(--accent-gold)' : 'var(--text-muted)', background: 'none', border: 'none' }} title={item.is_pinned ? "Unfeature" : "Feature"}>
+                    <Sparkles size={18} fill={item.is_pinned ? 'currentColor' : 'none'} />
                   </button>
                   <button onClick={() => onEdit(item)} style={{ color: 'white', background: 'none', border: 'none' }}><Edit size={16} /></button>
                   <button onClick={() => onDelete(item.id)} style={{ color: '#ef4444', background: 'none', border: 'none' }}><Trash2 size={16} /></button>
