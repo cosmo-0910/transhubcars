@@ -71,28 +71,17 @@ export const VendorDashboard = ({ onClose }: { onClose: () => void }) => {
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      className="luxury-form-card"
-      style={{
-        width: '100%',
-        maxWidth: '1200px',
-        height: '90vh',
-        padding: '0',
-        borderRadius: '2rem',
-        position: 'relative',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden'
-      }}
+      className="luxury-form-card vendor-dashboard-card"
     >
       {/* Header */}
-      <div style={{ padding: '2rem', borderBottom: '1px solid var(--border-glass)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(0,0,0,0.4)' }}>
+      <div className="vendor-header">
         <div>
           <h2 className="luxury-font" style={{ fontSize: '1.8rem' }}>Vendor Dashboard.</h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{profile?.business_name} Inventory Management</p>
         </div>
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+        <div className="vendor-header-actions">
           {/* Main tab switcher */}
-          <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', padding: '0.3rem', borderRadius: '0.8rem' }}>
+          <div className="vendor-tabs-wrapper" style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', padding: '0.3rem', borderRadius: '0.8rem' }}>
             <button
               onClick={() => setActiveTab('inventory')}
               style={{ padding: '0.5rem 1rem', borderRadius: '0.6rem', border: 'none', background: activeTab === 'inventory' ? 'var(--accent-gold)' : 'transparent', color: activeTab === 'inventory' ? 'black' : 'white', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.4rem' }}
@@ -125,7 +114,8 @@ export const VendorDashboard = ({ onClose }: { onClose: () => void }) => {
 
           <button 
             onClick={onClose}
-            style={{ width: '45px', height: '45px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            className="vendor-close-btn"
+            style={{ width: '45px', height: '45px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}
           >
             <X size={20} />
           </button>
@@ -134,7 +124,7 @@ export const VendorDashboard = ({ onClose }: { onClose: () => void }) => {
 
       {/* Inventory Toolbar – only visible in inventory tab */}
       {activeTab === 'inventory' && (
-        <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid var(--border-glass)', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+        <div className="vendor-toolbar">
           <div style={{ position: 'relative', flex: 1 }}>
             <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input 
@@ -143,7 +133,7 @@ export const VendorDashboard = ({ onClose }: { onClose: () => void }) => {
               style={{ width: '100%', padding: '1rem 1rem 1rem 3rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-glass)', borderRadius: '0.8rem', color: 'white', outline: 'none' }}
             />
           </div>
-          <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(255,255,255,0.03)', padding: '0.3rem', borderRadius: '0.8rem', border: '1px solid var(--border-glass)' }}>
+          <div className="vendor-filter-group" style={{ display: 'flex', gap: '0.5rem', background: 'rgba(255,255,255,0.03)', padding: '0.3rem', borderRadius: '0.8rem', border: '1px solid var(--border-glass)' }}>
             {['all', 'approved', 'pending', 'rejected'].map(s => (
               <button 
                 key={s}
@@ -163,7 +153,7 @@ export const VendorDashboard = ({ onClose }: { onClose: () => void }) => {
           <MessagingPanel userId={user?.id || ''} role={profile?.role || 'vendor'} height="100%" />
         </div>
       ) : (
-        <div style={{ flex: 1, overflowY: 'auto', padding: '2rem' }}>
+        <div className="vendor-content-area">
           {loading ? (
                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', letterSpacing: '2px', fontSize: '0.8rem' }}>LOADING INVENTORY...</div>
           ) : cars.length === 0 ? (
@@ -172,7 +162,7 @@ export const VendorDashboard = ({ onClose }: { onClose: () => void }) => {
                <p>No vehicles in your inventory yet.</p>
              </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+            <div className="vendor-grid">
               {inventoryType === 'cars' ? (
                 cars.map(car => (
                   <CarItem key={car.id} car={car} getStatusColor={getStatusColor} />
