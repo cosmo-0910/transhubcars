@@ -1009,7 +1009,7 @@ export const AdminDashboard = () => {
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
         
         {/* Top Header */}
-        <header style={{ padding: '1.5rem 2rem', borderBottom: '1px solid var(--border-glass)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.2)' }}>
+        <header className="dashboard-main-header" style={{ padding: '1.5rem 2rem', borderBottom: '1px solid var(--border-glass)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.2)' }}>
           <div>
             <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               Admin Portal <ChevronRight size={14} /> {activeSection.charAt(0).toUpperCase() + activeSection.slice(1)}
@@ -1093,7 +1093,7 @@ export const AdminDashboard = () => {
               {/* --- MANAGEMENT VIEWS --- */}
               {['vendors', 'users', 'inventory', 'orders', 'inquiries', 'preorders', 'parts-requests', 'parts-catalog'].includes(activeSection) && (
                 <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                  <div className="admin-section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                     <h2 className="luxury-font" style={{ fontSize: '2rem', margin: 0, textTransform: 'capitalize' }}>
                       {activeSection === 'vendors' ? 'Vendor Management' : 
                        activeSection === 'inventory' ? 'Inventory Control' : 
@@ -1103,9 +1103,9 @@ export const AdminDashboard = () => {
                        activeSection === 'parts-catalog' ? 'Parts Catalog' :
                        `${activeSection} Management`}
                     </h2>
-                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    <div className="admin-actions-flex" style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                       {activeSection === 'vendors' && (
-                        <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(255,255,255,0.03)', padding: '0.3rem', borderRadius: '0.8rem', border: '1px solid var(--border-glass)' }}>
+                        <div className="vendor-filter-group" style={{ display: 'flex', gap: '0.5rem', background: 'rgba(255,255,255,0.03)', padding: '0.3rem', borderRadius: '0.8rem', border: '1px solid var(--border-glass)' }}>
                            <button onClick={() => setVendorFilter('all')} style={{ padding: '0.4rem 0.8rem', borderRadius: '0.5rem', background: vendorFilter === 'all' ? 'var(--accent-gold)' : 'transparent', color: vendorFilter === 'all' ? 'black' : 'var(--text-muted)', border: 'none', cursor: 'pointer', fontSize: '0.7rem' }}>ALL</button>
                            <button onClick={() => setVendorFilter('pending')} style={{ padding: '0.4rem 0.8rem', borderRadius: '0.5rem', background: vendorFilter === 'pending' ? 'var(--accent-gold)' : 'transparent', color: vendorFilter === 'pending' ? 'black' : 'var(--text-muted)', border: 'none', cursor: 'pointer', fontSize: '0.7rem' }}>NEW JOINERS</button>
                            <button onClick={() => setVendorFilter('preorder_pending')} style={{ padding: '0.4rem 0.8rem', borderRadius: '0.5rem', background: vendorFilter === 'preorder_pending' ? 'var(--accent-gold)' : 'transparent', color: vendorFilter === 'preorder_pending' ? 'black' : 'var(--text-muted)', border: 'none', cursor: 'pointer', fontSize: '0.7rem' }}>PREORDER APPS</button>
