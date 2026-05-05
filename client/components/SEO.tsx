@@ -19,7 +19,7 @@ const SEO: React.FC<SEOProps> = ({
   const siteTitle = 'Transhub | Premium Automotive Marketplace';
   const defaultDescription = 'Discover Nigeria\'s premier automotive marketplace for luxury and foreign-used cars.';
   const defaultKeywords = 'Transhub, luxury cars Nigeria, Tokunbo cars, automotive marketplace';
-  const siteUrl = 'https://transhub.cars';
+  const siteUrl = 'https://transhub.ng';
   const defaultImage = '/og-preview.png';
 
   const seo = {
