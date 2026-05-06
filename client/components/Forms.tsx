@@ -171,7 +171,7 @@ export const InquiryForm = ({ carId, carName, type, onClose }: { carId?: string,
                 type="number" 
                 name="budget" 
                 className="luxury-input" 
-                placeholder="USD" 
+                placeholder="NGN" 
                 style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', padding: '1.2rem', borderRadius: '0.5rem', width: '100%', color: '#fff' }}
               />
             </motion.div>
