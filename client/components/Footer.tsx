@@ -101,7 +101,7 @@ export const Footer = () => {
         <div style={{ gridColumn: 'span 2' }} className="footer-contact-col">
           <h4 className="footer-heading">CONTACT US</h4>
           <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
-            <ContactItem icon={<Phone size={16} />} text="+234 901 234 5678" />
+            <ContactItem icon={<Phone size={16} />} text="+234 808 678 8983" />
             <ContactItem icon={<Mail size={16} />} text="hello@transhub.com" />
             <ContactItem icon={<MapPin size={16} />} text="Lagos, Nigeria" />
           </ul>

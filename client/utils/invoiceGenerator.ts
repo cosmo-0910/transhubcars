@@ -10,7 +10,7 @@ export const generateInvoice = (order: Order, platformSettings: any[], type: 'IN
   const logoUrl = branding.logo_url || 'https://pub-8134706509df44b2a8d6729a6747192a.r2.dev/transhub-logo-gold.png';
   const address = support.address || 'Lagos, Nigeria';
   const email = support.email || 'support@transhub.com';
-  const phone = support.phone || '+234 800 TRANSHUB';
+  const phone = support.phone || '+234 808 678 8983';
 
   const invoiceDate = new Date().toLocaleDateString();
   const dueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString(); // 7 days from now

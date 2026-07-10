@@ -19,8 +19,8 @@ VALUES
   'support', 
   '{
     "email": "concierge@transhub.ng",
-    "phone": "+234 810 TRANSHUB",
-    "whatsapp": "+234 810 000 0000",
+    "phone": "+234 808 678 8983",
+    "whatsapp": "+234 808 678 8983",
     "address": "Victoria Island, Lagos, Nigeria",
     "coordinates": {"lat": 6.4281, "lng": 3.4219}
   }'::jsonb,

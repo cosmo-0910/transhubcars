@@ -38,5 +38,5 @@ FOR ALL USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = '
 INSERT INTO platform_settings (key, value)
 VALUES 
   ('branding', '{"name": "Transhub Luxury", "logo": "/logo.png", "primary_color": "#c5a059"}'),
-  ('contact', '{"email": "contact@transhub.com", "phone": "+234 800 TRANSHUB"}')
+  ('contact', '{"email": "contact@transhub.com", "phone": "+234 808 678 8983"}')
 ON CONFLICT (key) DO NOTHING;
