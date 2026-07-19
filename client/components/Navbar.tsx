@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Car, Search, Menu, User, LogOut, Shield, X } from 'lucide-react';
+import { Search, Menu, User, LogOut, Shield, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import SearchAutocomplete from '../../shared/components/SearchAutocomplete';
 import { ThemeToggle } from '../../shared/components/ThemeToggle';
@@ -41,193 +41,215 @@ export const Navbar = ({ onAdminToggle, isAdmin, onAuthClick, onProfileClick, us
 
   return (
     <>
-      <nav 
-        className={`glass smooth-transition navbar-main ${scrolled ? 'navbar-scrolled' : ''}`} 
-        style={{
-          position: 'fixed',
-          top: 0,
-          width: '100%',
-          zIndex: 1000,
-          padding: '1.4rem 2rem',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          background: 'transparent',
-          border: 'none',
-          borderBottom: scrolled ? '1px solid rgba(197,160,89,0.1)' : '1px solid rgba(255,255,255,0.05)',
-          transform: (scrolled && window.innerWidth < 768) ? 'translateY(-100%)' : 'translateY(0)' // Hide on mobile scroll
-        }}
-      >
-        <div className="mobile-only-flex" onClick={() => setIsMobileMenuOpen(true)}>
-          <Menu size={20} color="var(--accent-gold)" />
-        </div>
-
-
-        {/* Brand Area */}
-        <div 
-          onClick={() => onViewChange('home')}
-          className="navbar-brand-group"
-        >
-          <img src="/logo.png" alt="Transhub Logo" style={{ height: '32px', width: 'auto' }} />
-          <span className="luxury-font brand-text" style={{ fontSize: '1.4rem', letterSpacing: '2px', fontWeight: 800 }}>
-            TRANSHUB<span style={{ color: 'var(--accent-gold)' }}>.</span>
-          </span>
-        </div>
-
-        {/* Desktop Navigation Links */}
-        <div className="desktop-nav" style={{ display: 'flex', gap: '3rem', alignItems: 'center' }}>
-          {navLinks.map(link => (
+      <nav className={`fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-md border-b border-glass-border shadow-sm smooth-transition ${scrolled ? 'py-3 bg-surface/95' : 'py-4'}`}>
+        <div className="flex justify-between items-center w-full px-4 md:px-margin-desktop max-w-container-max mx-auto">
+          
+          {/* Mobile Menu Toggle & Brand */}
+          <div className="flex items-center gap-4">
             <button 
-              key={link.label} 
-              onClick={() => onViewChange(link.view)} 
-              className={`nav-link ${currentView === link.view ? 'active' : ''}`}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="md:hidden text-luxury-gold p-1 hover:opacity-85"
             >
-              {link.label}
+              <Menu size={24} />
             </button>
-          ))}
-        </div>
-
-        {/* Functional Icons & Auth */}
-        <div className="navbar-actions-group" style={{ display: 'flex', gap: '1.8rem', alignItems: 'center' }}>
-          <div className="desktop-flex" style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
-            <AnimatePresence>
-              {isSearchOpen ? (
-                <motion.div
-                  initial={{ width: 0, opacity: 0 }}
-                  animate={{ width: '250px', opacity: 1 }}
-                  exit={{ width: 0, opacity: 0 }}
-                  style={{ overflow: 'hidden', marginRight: '1rem' }}
-                >
-                  <SearchAutocomplete 
-                    placeholder="SEARCH MODELS..." 
-                    onSearch={(query) => {
-                      if (query) {
-                        if (onSearch) onSearch(query);
-                      }
-                    }}
-                    autoFocus
-                  />
-                </motion.div>
-              ) : null}
-            </AnimatePresence>
-            <Search 
-              size={20} 
-              color={isSearchOpen ? 'var(--accent-gold)' : 'var(--text-muted)'} 
-              style={{ cursor: 'pointer' }} 
-              className="smooth-transition" 
-              onClick={() => setIsSearchOpen(!isSearchOpen)}
-            />
+            <div 
+              onClick={() => onViewChange('home')}
+              className="flex items-center gap-2 cursor-pointer active:opacity-80"
+            >
+              <img src="/logo.png" alt="Transhub Logo" className="h-8 w-auto" />
+              <span className="font-headline-md text-headline-md font-bold tracking-tighter text-on-surface">
+                TRANSHUB.
+              </span>
+            </div>
           </div>
 
-          <div className="desktop-flex"><ThemeToggle /></div>
-          
-          {user && <NotificationInbox />}
-          
-          <div className="desktop-nav">
-            {user ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                {isAdmin && (
-                  <motion.div 
-                    whileHover={{ scale: 1.05 }}
-                    onClick={onAdminToggle} 
-                    style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--accent-gold)', background: 'var(--accent-gold-soft)', padding: '0.4rem 0.8rem', borderRadius: '2rem' }}
+          {/* Desktop Navigation Links */}
+          <div className="hidden md:flex items-center gap-8">
+            {navLinks.map(link => {
+              const isActive = currentView === link.view;
+              return (
+                <button 
+                  key={link.label} 
+                  onClick={() => onViewChange(link.view)} 
+                  className={`text-label-caps font-label-caps tracking-wider transition-colors duration-300 ${
+                    isActive 
+                      ? 'text-primary border-b-2 border-primary pb-1 font-bold' 
+                      : 'text-on-surface-variant hover:text-primary'
+                  }`}
+                >
+                  {link.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Actions: Search, Theme, Auth */}
+          <div className="flex items-center gap-4 md:gap-6">
+            
+            {/* Search Input Box */}
+            <div className="hidden lg:flex items-center bg-surface-container rounded-full px-4 py-1.5 border border-glass-border">
+              <Search size={16} className="text-luxury-gold mr-2" />
+              <input 
+                type="text"
+                placeholder="Search showroom..."
+                className="bg-transparent border-none focus:ring-0 text-sm placeholder:text-on-surface-variant/50 w-36 xl:w-48 text-on-surface outline-none"
+                onChange={(e) => onSearch && onSearch(e.target.value)}
+              />
+            </div>
+
+            {/* Mobile / Medium Screen Search Button */}
+            <div className="lg:hidden flex items-center relative">
+              <AnimatePresence>
+                {isSearchOpen && (
+                  <motion.div
+                    initial={{ width: 0, opacity: 0 }}
+                    animate={{ width: '180px', opacity: 1 }}
+                    exit={{ width: 0, opacity: 0 }}
+                    className="absolute right-8 top-1/2 -translate-y-1/2 overflow-hidden mr-2"
                   >
-                    <Shield size={16} />
-                    <span style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '1px' }}>MANAGEMENT</span>
+                    <SearchAutocomplete 
+                      placeholder="SEARCH..." 
+                      onSearch={(query) => {
+                        if (query && onSearch) onSearch(query);
+                      }}
+                      autoFocus
+                    />
                   </motion.div>
                 )}
-                
-                <div 
-                  onClick={onProfileClick}
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.7rem', cursor: 'pointer' }}
-                >
-                  <div className="glass" style={{ width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--accent-gold)' }}>
-                    <User size={16} color="var(--accent-gold)" />
-                  </div>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '1.5px', color: 'var(--text-main)' }}>
-                    {user.email?.split('@')[0].toUpperCase()}
-                  </span>
-                </div>
-
-                <div className="glass" style={{ height: '20px', width: '1px' }}></div>
-
-                <motion.button 
-                  whileHover={{ x: 3 }}
-                  onClick={onSignOut} 
-                  style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-                >
-                  <LogOut size={18} />
-                </motion.button>
-              </div>
-            ) : (
+              </AnimatePresence>
               <button 
-                onClick={onAuthClick}
-                className="btn-gold luxury-font" 
-                style={{ padding: '0.6rem 1.8rem', fontSize: '0.75rem', letterSpacing: '2px', borderRadius: '0' }}
+                onClick={() => setIsSearchOpen(!isSearchOpen)}
+                className="text-on-surface-variant hover:text-primary transition-colors p-1"
               >
-                SIGN IN
+                <Search size={20} />
               </button>
-            )}
+            </div>
+
+            <ThemeToggle />
+            
+            {user && <NotificationInbox />}
+            
+            <div className="hidden md:flex items-center">
+              {user ? (
+                <div className="flex items-center gap-4">
+                  {isAdmin && (
+                    <button 
+                      onClick={onAdminToggle} 
+                      className="bg-luxury-gold/10 border border-luxury-gold text-luxury-gold px-4 py-1.5 rounded-full text-label-caps font-label-caps font-bold hover:bg-luxury-gold/20 transition-all flex items-center gap-1.5"
+                    >
+                      <Shield size={14} />
+                      <span>MANAGEMENT</span>
+                    </button>
+                  )}
+                  
+                  <div 
+                    onClick={onProfileClick}
+                    className="flex items-center gap-2 cursor-pointer hover:opacity-85 transition-opacity"
+                  >
+                    <div className="w-8 h-8 rounded-full border border-glass-border flex items-center justify-center bg-surface-container overflow-hidden">
+                      <User size={16} className="text-luxury-gold" />
+                    </div>
+                    <span className="text-xs font-bold tracking-wider text-on-surface uppercase">
+                      {user.email?.split('@')[0]}
+                    </span>
+                  </div>
+
+                  <button 
+                    onClick={onSignOut} 
+                    className="text-on-surface-variant hover:text-error transition-colors p-1"
+                    title="Sign Out"
+                  >
+                    <LogOut size={18} />
+                  </button>
+                </div>
+              ) : (
+                <button 
+                  onClick={onAuthClick}
+                  className="bg-luxury-gold text-on-primary px-6 py-2 text-label-caps font-label-caps font-bold hover:opacity-90 scale-95 active:scale-90 transition-all shadow-lg shadow-luxury-gold/10"
+                >
+                  SIGN IN
+                </button>
+              )}
+            </div>
+
           </div>
         </div>
       </nav>
 
-      {/* Mobile Fullscreen Menu */}
+      {/* Mobile Drawer Navigation */}
       <AnimatePresence>
         {isMobileMenuOpen && (
           <motion.div 
-            initial={{ opacity: 0, x: '100%' }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: '100%' }}
+            initial={{ x: '-100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '-100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="mobile-menu-overlay"
+            className="fixed inset-0 z-[10000] bg-surface flex flex-col p-8 md:hidden"
           >
-            <button 
-              onClick={() => setIsMobileMenuOpen(false)}
-              style={{ position: 'absolute', top: '2rem', right: '2rem', background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}
-            >
-              <X size={32} />
-            </button>
-
-            <Car size={64} color="var(--accent-gold)" style={{ marginBottom: '2rem' }} />
-
-            {navLinks.map(link => (
+            <div className="flex justify-between items-center mb-10">
+              <span className="font-headline-md text-headline-md font-bold text-luxury-gold">TRANSHUB.</span>
               <button 
-                key={link.label} 
-                className={`nav-link luxury-font ${currentView === link.view ? 'active' : ''}`} 
-                style={{ fontSize: '1.5rem', background: 'none', border: 'none', cursor: 'pointer' }}
-                onClick={() => {
-                  onViewChange(link.view);
-                  setIsMobileMenuOpen(false);
-                }}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="text-on-surface hover:text-luxury-gold transition-colors p-1"
               >
-                {link.label}
+                <X size={28} />
               </button>
-            ))}
+            </div>
 
-            <div style={{ padding: '1px', background: 'var(--accent-gold-soft)', width: '60%', margin: '1rem 0' }}></div>
-
-            {user ? (
-              <>
-                <div onClick={onProfileClick} style={{ color: 'white', fontSize: '1rem', letterSpacing: '2px', fontWeight: 600 }}>MY ACQUISITIONS</div>
-                {isAdmin && <div onClick={onAdminToggle} style={{ color: 'var(--accent-gold)', fontSize: '1rem', letterSpacing: '2px', fontWeight: 600 }}>ADMIN PORTAL</div>}
+            <div className="flex flex-col gap-6 mb-10">
+              {navLinks.map(link => (
                 <button 
-                  onClick={() => { onSignOut?.(); setIsMobileMenuOpen(false); }}
-                  style={{ background: 'none', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-muted)', padding: '0.8rem 2rem', letterSpacing: '2px' }}
+                  key={link.label} 
+                  className={`text-left text-xl font-bold tracking-wide ${
+                    currentView === link.view ? 'text-luxury-gold' : 'text-on-surface-variant'
+                  }`}
+                  onClick={() => {
+                    onViewChange(link.view);
+                    setIsMobileMenuOpen(false);
+                  }}
                 >
-                  SIGN OUT
+                  {link.label}
                 </button>
-              </>
-            ) : (
-              <button 
-                onClick={() => { onAuthClick?.(); setIsMobileMenuOpen(false); }}
-                className="btn-gold"
-                style={{ width: '200px' }}
-              >
-                SIGN IN
-              </button>
-            )}
+              ))}
+            </div>
+
+            <div className="h-px bg-glass-border w-full mb-8" />
+
+            <div className="mt-auto flex flex-col gap-4">
+              {user ? (
+                <>
+                  <button 
+                    onClick={() => { onProfileClick?.(); setIsMobileMenuOpen(false); }} 
+                    className="text-left text-lg text-on-surface hover:text-luxury-gold transition-colors flex items-center gap-3"
+                  >
+                    <User size={20} className="text-luxury-gold" />
+                    <span>My Profile</span>
+                  </button>
+                  {isAdmin && (
+                    <button 
+                      onClick={() => { onAdminToggle(); setIsMobileMenuOpen(false); }} 
+                      className="text-left text-lg text-luxury-gold hover:opacity-80 transition-colors flex items-center gap-3"
+                    >
+                      <Shield size={20} />
+                      <span>Admin Command Center</span>
+                    </button>
+                  )}
+                  <button 
+                    onClick={() => { onSignOut?.(); setIsMobileMenuOpen(false); }}
+                    className="border border-error/30 text-error hover:bg-error/10 w-full py-3 rounded-lg text-center font-bold tracking-wide mt-4"
+                  >
+                    SIGN OUT
+                  </button>
+                </>
+              ) : (
+                <button 
+                  onClick={() => { onAuthClick?.(); setIsMobileMenuOpen(false); }}
+                  className="bg-luxury-gold text-on-primary w-full py-4 text-center font-bold tracking-wide shadow-lg shadow-luxury-gold/10"
+                >
+                  SIGN IN
+                </button>
+              )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

@@ -1,154 +1,107 @@
 import { motion } from 'framer-motion';
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, Heart, ArrowRight } from 'lucide-react';
 import { formatPrice } from '../../shared/lib/formatters';
 import type { Car } from '../../shared/lib/db';
 
 export const VehicleCard = ({ car, onInquiry }: { car: Car, onInquiry: (car: Car) => void }) => {
+  const isAvail = car.status === 'Readily Available';
+
   return (
     <motion.div 
       layout
-      initial={{ opacity: 0, scale: 0.9 }}
+      initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.9 }}
-      className="glass glass-hover smooth-transition" 
-      style={{
-        borderRadius: '1rem',
-        overflow: 'hidden',
-        display: 'flex',
-        flexDirection: 'column',
-        position: 'relative'
-      }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      onClick={() => window.dispatchEvent(new CustomEvent('select-car', { detail: { car } }))}
+      className="glass-card group cursor-pointer overflow-hidden rounded-xl text-left flex flex-col h-full"
     >
-      {/* Status Badge Over Image */}
-      <div className="desktop-only" style={{ position: 'absolute', top: '1rem', right: '1rem', zIndex: 5, display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'flex-end' }}>
-        {car.is_pinned && (
-          <span className="glass" style={{ 
-            fontSize: '0.65rem', 
-            padding: '0.4rem 1rem', 
-            borderRadius: '2rem',
-            fontWeight: 800,
-            letterSpacing: '1px',
-            background: 'var(--accent-gold)', 
-            color: 'black',
-            boxShadow: '0 0 10px rgba(212, 175, 55, 0.5)'
-          }}>
-            PINNED
-          </span>
-        )}
-        <span className="glass" style={{ 
-          fontSize: '0.65rem', 
-          padding: '0.4rem 1rem', 
-          borderRadius: '2rem',
-          fontWeight: 800,
-          letterSpacing: '1px',
-          background: 'rgba(0,0,0,0.6)',
-          color: car.status === 'Readily Available' ? '#4ade80' : 'var(--accent-gold)',
-          border: '1px solid currentColor'
-        }}>
-          {car.status.toUpperCase()}
-        </span>
-        
-        {car.condition === 'New' && (
-          <span className="glass" style={{ 
-            fontSize: '0.65rem', 
-            padding: '0.2rem 0.8rem', 
-            borderRadius: '2rem',
-            fontWeight: 800,
-            letterSpacing: '1px',
-            background: '#60a5fa', 
-            color: 'white',
-            border: 'none'
-          }}>
-            BRAND NEW
-          </span>
-        )}
-
-        {/* Transhub Official Badge */}
-        {!car.vendor_id && (
-          <div className="glass" style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '0.5rem',
-            padding: '0.4rem 0.8rem', 
-            borderRadius: '2rem',
-            background: 'rgba(212, 175, 55, 0.15)',
-            border: '1px solid var(--accent-gold)',
-            backdropFilter: 'blur(10px)'
-          }}>
-            <img src="/logo.png" alt="Transhub" style={{ width: '16px', height: '16px' }} />
-            <span style={{ 
-              fontSize: '0.6rem', 
-              fontWeight: 800,
-              letterSpacing: '1px',
-              color: 'var(--accent-gold)'
-            }}>
-              TRANSHUB OFFICIAL
-            </span>
-          </div>
-        )}
-      </div>
-
-      <div style={{ height: 'clamp(120px, 30vw, 240px)', overflow: 'hidden' }}>
+      {/* Image Container */}
+      <div className="relative aspect-[16/10] overflow-hidden bg-black flex-shrink-0">
         <img 
           src={car.image_url} 
           alt={`${car.make} ${car.model}`}
-          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-          className="smooth-transition image-zoom"
+          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
         />
-      </div>
-      
-      <div className="mobile-card-dense" style={{ padding: '1.8rem', flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-        <div style={{ marginBottom: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.5rem' }}>
-              <span style={{ fontSize: '0.5rem', color: 'var(--accent-gold)', fontWeight: 800, letterSpacing: '1px' }}>CERTIFIED</span>
-              <div style={{ width: '3px', height: '3px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)' }} />
-              <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '1px' }}>
-                {car.year}
-              </span>
-              {car.state && (
-                <>
-                   <div style={{ width: '3px', height: '3px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)' }} />
-                   <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '1px' }}>
-                     {car.state}
-                   </span>
-                </>
-              )}
-            </div>
-            <h3 className="luxury-font mobile-text-dense" style={{ fontSize: '1.6rem', lineHeight: '1.1' }}>
-              {car.make} {car.model}
-            </h3>
+        
+        {/* Top Badges */}
+        <div className="absolute top-4 left-4 flex gap-2 z-10">
+          {car.is_pinned && (
+            <span className="bg-luxury-gold text-black font-label-caps text-[9px] px-2.5 py-1 rounded font-bold shadow-lg shadow-luxury-gold/20">
+              PINNED
+            </span>
+          )}
+          <span className="bg-primary text-on-primary text-[9px] font-bold px-2.5 py-1 rounded">
+            VERIFIED
+          </span>
+          <span className="bg-deep-charcoal/60 backdrop-blur-md text-on-surface text-[9px] font-bold px-2.5 py-1 rounded border border-glass-border">
+            {isAvail ? 'AVAILABLE' : 'PREORDER'}
+          </span>
         </div>
 
-        {/* Carwow-style Spec Row */}
-        <div className="mobile-spec-dense" style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', padding: '0.5rem 0', borderTop: '1px solid var(--border-glass)', borderBottom: '1px solid var(--border-glass)' }}>
-          <SpecQuickInfo label="KM" value={`${(car.mileage / 1000).toFixed(0)}K`} />
-          <SpecQuickInfo label="TYPE" value={car.body_type ? car.body_type.toUpperCase() : 'N/A'} />
-          <SpecQuickInfo label="TRANS" value={car.transmission?.slice(0, 3).toUpperCase()} />
+        {/* Favorite Heart Button */}
+        <button 
+          onClick={(e) => {
+            e.stopPropagation();
+            // Optional: add to favorites
+          }}
+          className="absolute bottom-4 right-4 w-10 h-10 rounded-full bg-black/60 border border-glass-border flex items-center justify-center text-on-surface hover:text-luxury-gold transition-colors z-10"
+        >
+          <Heart size={15} />
+        </button>
+      </div>
+
+      {/* Details Area */}
+      <div className="p-6 flex flex-col flex-grow bg-surface-container/10">
+        <div className="mb-4">
+          <div className="flex items-center gap-2 text-[10px] text-on-surface-variant font-bold tracking-wider mb-1.5">
+            <span>{car.year}</span>
+            <span>•</span>
+            <span className="uppercase">{car.condition || 'Foreign Used'}</span>
+            {car.state && (
+              <>
+                <span>•</span>
+                <span className="uppercase">{car.state}</span>
+              </>
+            )}
+          </div>
+          <h3 className="text-lg font-bold text-on-surface font-headline-md truncate">
+            {car.make} {car.model}
+          </h3>
         </div>
-        
-        <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+
+        {/* Specs Row */}
+        <div className="grid grid-cols-3 gap-2 py-3 border-y border-glass-border text-xs mb-6">
           <div>
-            <div style={{ fontSize: '0.55rem', color: 'var(--text-muted)', letterSpacing: '1px', fontWeight: 600 }}>INVESTMENT</div>
-            <div className="mobile-text-dense" style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--accent-gold)' }}>
+            <div className="text-[9px] text-on-surface-variant uppercase tracking-wider font-semibold mb-0.5">MILEAGE</div>
+            <div className="font-bold text-on-surface">{car.mileage ? `${(car.mileage / 1000).toFixed(0)}K KM` : 'BRAND NEW'}</div>
+          </div>
+          <div>
+            <div className="text-[9px] text-on-surface-variant uppercase tracking-wider font-semibold mb-0.5">BODY TYPE</div>
+            <div className="font-bold text-on-surface truncate">{car.body_type ? car.body_type.toUpperCase() : 'COUPE'}</div>
+          </div>
+          <div>
+            <div className="text-[9px] text-on-surface-variant uppercase tracking-wider font-semibold mb-0.5">TRANS</div>
+            <div className="font-bold text-on-surface">{car.transmission ? car.transmission.slice(0, 3).toUpperCase() : 'AUT'}</div>
+          </div>
+        </div>
+
+        {/* Bottom Actions */}
+        <div className="flex justify-between items-center mt-auto">
+          <div>
+            <div className="text-[9px] text-on-surface-variant uppercase tracking-wider font-semibold mb-0.5">INVESTMENT</div>
+            <div className="text-lg font-bold text-luxury-gold tracking-tight">
               {car.original_price && car.original_price > car.price && (
-                <span style={{ textDecoration: 'line-through', color: 'var(--text-muted)', fontSize: '0.9rem', marginRight: '0.5rem' }}>{formatPrice(car.original_price)}</span>
+                <span className="line-through text-on-surface-variant text-xs mr-1.5 font-normal">
+                  {formatPrice(car.original_price)}
+                </span>
               )}
               {formatPrice(car.price)}
             </div>
           </div>
-          <div style={{ display: 'flex', gap: '0.4rem' }}>
+
+          <div className="flex gap-2">
             <button 
-              className="smooth-transition glass-hover"
-              style={{
-                background: 'rgba(212, 175, 55, 0.1)',
-                border: '1px solid var(--accent-gold)',
-                color: 'var(--accent-gold)',
-                padding: '0.6rem',
-                borderRadius: '0.4rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
+              className="w-9 h-9 rounded bg-luxury-gold/10 border border-luxury-gold/30 text-luxury-gold flex items-center justify-center hover:bg-luxury-gold hover:text-black transition-colors"
               onClick={(e) => {
                 e.stopPropagation();
                 window.dispatchEvent(new CustomEvent('open-chat', {
@@ -164,11 +117,13 @@ export const VehicleCard = ({ car, onInquiry }: { car: Car, onInquiry: (car: Car
               <MessageSquare size={14} />
             </button>
             <button 
-              className="btn-gold" 
-              style={{ padding: '0.6rem 1rem', fontSize: '0.65rem', fontWeight: 800, borderRadius: '0.4rem' }} 
-              onClick={() => onInquiry(car)}
+              className="bg-luxury-gold/10 border border-luxury-gold/30 text-luxury-gold px-4 py-1.5 rounded text-xs font-bold hover:bg-luxury-gold hover:text-black transition-all flex items-center gap-1"
+              onClick={(e) => {
+                e.stopPropagation();
+                onInquiry(car);
+              }}
             >
-              DETAILS
+              DETAILS <ArrowRight size={12} />
             </button>
           </div>
         </div>
@@ -176,10 +131,3 @@ export const VehicleCard = ({ car, onInquiry }: { car: Car, onInquiry: (car: Car
     </motion.div>
   );
 };
-
-const SpecQuickInfo = ({ label, value }: { label: string, value: string }) => (
-  <div style={{ flex: 1 }}>
-    <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', letterSpacing: '1px', marginBottom: '0.25rem' }}>{label}</div>
-    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)' }}>{value || 'N/A'}</div>
-  </div>
-);

@@ -1,0 +1,110 @@
+================================================================================
+           TRANSHUB CARS - PAGE ROUTING, DATA FLOW, & CONNECTIONS
+================================================================================
+
+This document describes how pages are navigated, how data flows between different
+modules, how the database synchronizes, and how external APIs are integrated.
+
+--------------------------------------------------------------------------------
+1. PORTAL REDIRECTION & ROUTING FLOW
+--------------------------------------------------------------------------------
+The project does not use a traditional SPA routing package (like React Router).
+Instead, separation between the client, vendor, and superadmin portals is
+achieved through page redirects, and views within each portal are managed
+via React local state.
+
+* Showroom Portal (client/App.tsx)
+  - Manages view swapping using `currentView` state:
+    'home' | 'preorder' | 'services' | 'inventory' | 'collections' |
+    'brands' | 'categories' | 'messages' | 'profile' | 'vendor'
+  - The main Navbar and MobileBottomNav components update this state to redraw
+    the corresponding container layout.
+  - Modals are overlay cards toggled using React states:
+    - selectedCar -> Opens <VehicleDetail> specifications modal.
+    - discoveryFilter -> Opens <DiscoveryGallery> category overlay.
+    - chatModal -> Opens <MessageVendorModal> overlay.
+    - showInquiry -> Opens <InquiryForm> (Inspection, Purchase, Preorder).
+    - showAuth -> Opens <AuthForm> (Login, Signup).
+    - showVendorApp -> Opens <VendorApplication> onboarding form.
+
+* Portal Route Guards (admin/App.tsx & vendor/App.tsx)
+  - When loading `/admin.html` or `/vendor.html`, the AuthProvider verifies credentials.
+  - If the profile's role does not match ('admin' or 'vendor' respectively),
+    it runs a browser-level redirect to the home page: `window.location.href = '/'`.
+  - Authorized users load the dashboard layouts (AdminDashboard / VendorDashboard),
+    where menu swapping is controlled by the `activeSection` state.
+
+* Internal Navigation Hooks
+  - Category Swaps: Clicking categories/brands on the Home page changes
+    `currentView` to 'inventory' and updates the filter terms.
+  - Detail Popups: Select events on inventory grids launch custom window events:
+    - window.dispatchEvent(new CustomEvent('select-car', { detail: { car } }))
+    - window.dispatchEvent(new CustomEvent('open-chat', { detail: { carId, vendorId } }))
+  - Detail Actions: Inside <VehicleDetail>, clicking "Acquisition Protocol" or
+    "Book Inspection" opens the Inquiry modal. Clicking "Vendor details" updates
+    `selectedVendorId` and opens the 'vendor' profile page.
+
+--------------------------------------------------------------------------------
+2. DATABASE SYNC & ROW-LEVEL SECURITY (RLS)
+--------------------------------------------------------------------------------
+All client-side components interact with database endpoints via helper libraries.
+
+* Initialization (shared/lib/supabase.ts)
+  - Uses Vite environment variables to create the public client:
+    - VITE_SUPABASE_URL
+    - VITE_SUPABASE_ANON_KEY
+
+* Auth State Listener (shared/lib/AuthContext.tsx)
+  - Subscribes to Auth triggers: `supabase.auth.onAuthStateChange`.
+  - When a login state change is detected:
+    1. Fetches metadata from the user table.
+    2. Syncs details from the public `profiles` table.
+    3. Exposes user, role permissions, and active statuses globally via React Context.
+
+* RLS Data Flow Constraints
+  - Profiles: Public read access enabled. Users can only update records matching
+    their auth.uid() ID. Admins bypass this.
+  - Cars: Approved vehicles are readable by anyone. Vendor accounts can perform
+    all CRUD operations only on listings matching their vendor_id.
+  - Orders & Preorders: Customers can only insert and read orders where
+    user_id equals auth.uid().
+  - Cart Items: Constrained strictly to active users (`auth.uid() = user_id`).
+  - Automatic Profiles: A database trigger (`on_auth_user_created`) intercepts
+    new registrations in Supabase Auth to automatically insert a matching record
+    into the `profiles` table.
+
+--------------------------------------------------------------------------------
+3. REAL-TIME CHAT & TOWING SYNCHRONIZATION
+--------------------------------------------------------------------------------
+Real-time operations are built on top of Supabase Realtime Channels.
+
+* Active Chat Messages (shared/services/chat.service.ts)
+  - Subscribes to Postgres INSERT events on the messages table:
+    `supabase.channel('chat_[conversationId]').on('postgres_changes', ...)`
+  - New inserts trigger state updates inside the MessagingPanel to append
+    messages and trigger scroll animations.
+* Global Message Listeners
+  - Listens to public inserts globally. Ignores own messages to increase
+    unread badge counts dynamically.
+* Tow Truck Dispatch System
+  - The TowingManagement dashboard listens to changes on the `tow_requests`
+    table. When a request is placed, it calculates matching online driver locations
+    in real time and handles updates.
+
+--------------------------------------------------------------------------------
+4. EXTERNAL API INTEGRATIONS
+--------------------------------------------------------------------------------
+* Nominatim OpenStreetMap API
+  - Integrated into towService (`reverseGeocode`). Runs standard HTTP fetch calls:
+    `https://nominatim.openstreetmap.org/reverse?format=json&lat=[lat]&lon=[lon]...`
+  - Resolves latitude and longitude into physical street addresses on the towing form.
+* NHTSA Vehicle API
+  - Used in vendor inventory registration. Queries model lists from NHTSA:
+    `https://vpic.nhtsa.dot.gov/api/vehicles/GetModelsForMake/[make]?format=json`
+  - Validates make input, autofills vehicle model dropdowns, and matches body styles.
+* Custom Admin Auth Server
+  - Queries a Node/Express server running on localhost port 3001.
+  - Used by admins to trigger actions requiring service-role privileges:
+    - Create Admins: `/api/admin/create`
+    - Update Admin Permissions: `/api/admin/update`
+================================================================================

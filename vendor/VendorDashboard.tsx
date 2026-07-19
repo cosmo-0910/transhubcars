@@ -9,25 +9,23 @@ import AddPartModal from './components/AddPartModal';
 import UpgradeToPreorderModal from './components/UpgradeToPreorderModal';
 import { 
   Plus, 
-  Search, 
   CarFront,
   CheckCircle2,
   Clock,
   AlertCircle,
-  LayoutDashboard,
   ShoppingBag,
-  Settings,
   LogOut,
   Store,
   TrendingUp,
   DollarSign,
   Package,
   ArrowRight,
-  Eye,
   Trash2,
   Edit,
   Menu,
-  X
+  X,
+  User,
+  MessageSquare
 } from 'lucide-react';
 import { ThemeToggle } from '../shared/components/ThemeToggle';
 import { useAlert } from '../shared/context/AlertContext';
@@ -146,10 +144,10 @@ export default function VendorDashboard() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'approved': return '#4ade80';
-      case 'pending': return '#eab308';
-      case 'rejected': return '#ef4444';
-      default: return 'var(--text-muted)';
+      case 'approved': return 'text-green-400 border-green-500/20 bg-green-500/10';
+      case 'pending': return 'text-yellow-400 border-yellow-500/20 bg-yellow-500/10';
+      case 'rejected': return 'text-red-400 border-red-500/20 bg-red-500/10';
+      default: return 'text-on-surface-variant border-glass-border/40';
     }
   };
 
@@ -165,206 +163,182 @@ export default function VendorDashboard() {
   });
 
   return (
-    <div className="logo-grid-bg dashboard-container">
-      <div style={{ position: 'fixed', inset: 0, background: 'var(--bg-deep)', zIndex: -2 }}></div>
+    <div className="min-h-screen bg-background text-on-surface flex flex-col md:flex-row text-left font-body-md">
       
-      {/* Mobile Toggle */}
-      <div className="mobile-only-flex" style={{ position: 'fixed', bottom: '2rem', right: '2rem', zIndex: 3000 }}>
+      {/* Mobile Sidebar Hamburger Toggle */}
+      <div className="md:hidden fixed bottom-6 right-6 z-[1000]">
         <button 
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          className="glass" 
-          style={{ width: '56px', height: '56px', borderRadius: '50%', color: 'var(--accent-gold)', border: '1px solid var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.8)' }}
+          className="w-14 h-14 rounded-full bg-black/90 border border-luxury-gold text-luxury-gold flex items-center justify-center shadow-lg shadow-luxury-gold/20"
         >
           {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
       </div>
 
-      {/* Sidebar */}
-      <motion.div
-        className={`dashboard-sidebar ${isSidebarOpen ? 'mobile-sidebar-open' : ''}`}
-        initial={{ x: -20, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        style={{
-          width: '280px',
-          background: 'linear-gradient(180deg, rgba(0,0,0,0.95) 0%, rgba(10,10,10,0.98) 100%)',
-          borderRight: '1px solid var(--border-glass)',
-          display: 'flex',
-          flexDirection: 'column',
-          zIndex: 2000
-        }}
+      {/* Left Sidebar */}
+      <aside 
+        className={`${
+          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        } md:translate-x-0 fixed md:sticky top-0 left-0 h-screen w-72 bg-deep-charcoal border-r border-glass-border p-6 flex flex-col justify-between transition-transform duration-300 z-[999]`}
       >
-        {/* Logo */}
-        <div style={{ padding: '0 2rem', marginBottom: '3rem' }}>
-          <img src="/logo.png" alt="Transhub Logo" style={{ height: '32px', width: 'auto', marginBottom: '0.5rem' }} />
-          <div style={{ fontSize: '0.7rem', letterSpacing: '2px', color: 'var(--accent-gold)' }}>
-            {profile?.vendor_type === 'parts' ? 'PARTS HUB' : 'VENDOR PORTAL'}
+        <div className="space-y-8">
+          {/* Logo Header */}
+          <div>
+            <span className="font-bold text-luxury-gold tracking-wider text-lg">Transhub</span>
+            <span className="text-[9px] font-label-caps font-bold tracking-widest text-on-surface-variant block mt-0.5">
+              {profile?.vendor_type === 'parts' ? 'PARTS HUB REGISTRY' : 'EXECUTIVE MERCHANT'}
+            </span>
           </div>
-        </div>
 
-        {/* Vendor Info */}
-        <div className="glass" style={{ margin: '0 1rem 2rem 1rem', padding: '1.5rem', borderRadius: '1rem' }}>
-          <div style={{ fontSize: '0.7rem', letterSpacing: '2px', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
-            BUSINESS
+          {/* User profile business identity */}
+          <div className="glass-card p-4 rounded-xl flex gap-3 items-center bg-surface-container/20 border border-glass-border">
+            <div className="w-10 h-10 rounded-full border border-luxury-gold overflow-hidden bg-black/40">
+              <img 
+                src={profile?.avatar_url || "https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&q=80&w=200"} 
+                className="w-full h-full object-cover" 
+                alt=""
+              />
+            </div>
+            <div className="min-w-0">
+              <h4 className="font-bold text-xs text-on-surface truncate">{profile?.business_name || 'Dealer'}</h4>
+              <p className="text-[9px] text-on-surface-variant">{profile?.full_name}</p>
+            </div>
           </div>
-          <div style={{ fontWeight: 600, marginBottom: '0.3rem' }}>
-            {profile?.business_name || 'Unnamed Business'}
-          </div>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-            {profile?.full_name}
-          </div>
-        </div>
 
-        {/* Upgrade Banner — hidden for parts-only vendors */}
-        {profile?.vendor_type !== 'parts' && profile?.preorder_status !== 'approved' && (
-          <div style={{ margin: '0 1rem 2rem 1rem' }}>
-             <button 
-               onClick={() => setShowUpgradeModal(true)}
-               disabled={profile?.preorder_status === 'pending'}
-               className="glass-hover"
-               style={{ width: '100%', padding: '1rem', borderRadius: '1rem', background: 'linear-gradient(45deg, rgba(212, 175, 55, 0.1), rgba(0,0,0,0))', border: '1px solid var(--accent-gold)', color: 'var(--accent-gold)', textAlign: 'left', cursor: profile?.preorder_status === 'pending' ? 'default' : 'pointer' }}
-             >
-               <div style={{ fontSize: '0.7rem', fontWeight: 700, marginBottom: '0.3rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                 {profile?.preorder_status === 'pending' ? <Clock size={14} /> : <Store size={14} />}
-                 {profile?.preorder_status === 'pending' ? 'REVIEW IN PROGRESS' : 'UNLOCK PREORDERS'}
-               </div>
-               <div style={{ fontSize: '0.7rem', opacity: 0.8 }}>
-                 {profile?.preorder_status === 'pending' ? 'Applications under review.' : 'Verify store for preorder access.'}
-               </div>
-             </button>
-          </div>
-        )}
-
-        {/* Navigation */}
-        <nav style={{ flex: 1, padding: '0 1rem' }}>
-          {[
-            { id: 'inventory', icon: profile?.vendor_type === 'parts' ? Package : CarFront, label: 'Inventory' },
-            { id: 'orders', icon: ShoppingBag, label: 'Orders' },
-            { id: 'analytics', icon: TrendingUp, label: 'Analytics' },
-          ].map(item => (
-            <button
-              key={item.id}
-              onClick={() => setActiveSection(item.id)}
-              style={{
-                width: '100%',
-                padding: '1rem',
-                marginBottom: '0.5rem',
-                background: activeSection === item.id ? 'rgba(212, 175, 55, 0.1)' : 'transparent',
-                border: activeSection === item.id ? '1px solid var(--accent-gold)' : '1px solid transparent',
-                borderRadius: '0.8rem',
-                color: activeSection === item.id ? 'var(--accent-gold)' : 'var(--text-muted)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '1rem',
-                fontSize: '0.9rem',
-                transition: 'all 0.2s'
-              }}
+          {/* Upgrade Preorders Option */}
+          {profile?.vendor_type !== 'parts' && profile?.preorder_status !== 'approved' && (
+            <button 
+              onClick={() => setShowUpgradeModal(true)}
+              disabled={profile?.preorder_status === 'pending'}
+              className="w-full text-left p-4 rounded-xl border border-luxury-gold/30 bg-gradient-to-r from-luxury-gold/5 to-transparent hover:border-luxury-gold transition-colors duration-300 disabled:opacity-60"
             >
-              <item.icon size={18} />
-              {item.label}
+              <div className="text-[10px] font-bold text-luxury-gold uppercase tracking-wider flex items-center gap-1.5 mb-1">
+                {profile?.preorder_status === 'pending' ? <Clock size={12} /> : <Store size={12} />}
+                <span>{profile?.preorder_status === 'pending' ? 'Tier Application Pending' : 'Unlock Preorders'}</span>
+              </div>
+              <p className="text-[9px] text-on-surface-variant leading-relaxed">
+                {profile?.preorder_status === 'pending' ? 'Under verification review.' : 'Verify store credentials.'}
+              </p>
             </button>
-          ))}
-        </nav>
+          )}
+
+          {/* Nav list links */}
+          <nav className="space-y-1">
+            {[
+              { id: 'inventory', icon: profile?.vendor_type === 'parts' ? Package : CarFront, label: 'Asset Inventory' },
+              { id: 'orders', icon: ShoppingBag, label: 'Order History' },
+              { id: 'analytics', icon: TrendingUp, label: 'Analytics Insights' },
+            ].map(item => {
+              const isActive = activeSection === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => { setActiveSection(item.id); setIsSidebarOpen(false); }}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs font-label-caps tracking-wider transition-all ${
+                    isActive 
+                      ? 'bg-luxury-gold/10 text-luxury-gold border border-luxury-gold/20 font-bold' 
+                      : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/20 border border-transparent'
+                  }`}
+                >
+                  <item.icon size={16} />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+        </div>
 
         {/* Bottom Actions */}
-        <div style={{ padding: '0 1rem', borderTop: '1px solid var(--border-glass)', paddingTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <ThemeToggle />
-          </div>
-          <button
+        <div className="space-y-4 pt-4 border-t border-glass-border/40">
+          <div className="flex justify-center"><ThemeToggle /></div>
+          <button 
             onClick={signOut}
-            style={{
-              width: '100%',
-              padding: '1rem',
-              background: 'transparent',
-              border: '1px solid transparent',
-              borderRadius: '0.8rem',
-              color: '#ef4444',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '1rem',
-              fontSize: '0.9rem'
-            }}
+            className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-950/15 rounded-lg text-xs font-bold"
           >
-            <LogOut size={18} />
-            Sign Out
+            <LogOut size={16} />
+            <span>Sign Out</span>
           </button>
         </div>
-      </motion.div>
-      {/* Main Content */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <div style={{ padding: '2rem', borderBottom: '1px solid var(--border-glass)', background: 'rgba(0,0,0,0.4)', position: 'sticky', top: 0, zIndex: 10, backdropFilter: 'blur(10px)' }}>
-          <div className="responsive-flex-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div>
-              <h2 className="luxury-font" style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>
-                {activeSection === 'inventory' && (profile?.vendor_type === 'parts' ? 'Parts Catalog' : 'Inventory Management')}
-                {activeSection === 'orders' && 'Order Control'}
-                {activeSection === 'analytics' && 'Strategic Intelligence'}
-              </h2>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                {activeSection === 'inventory' && (profile?.vendor_type === 'parts' ? `${parts.length} components listed` : `${cars.length} assets under management`)}
-                {activeSection === 'orders' && `${orders.length} transaction records`}
-                {activeSection === 'analytics' && 'Real-time performance metrics'}
-              </p>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-              <NotificationInbox />
-              {activeSection === 'inventory' && (
-                <button 
-                  onClick={() => { 
-                    if (activeInventoryType === 'cars') {
-                      setEditingCar(null); 
-                    } else {
-                      setEditingPart(null);
-                    }
-                    setShowAddModal(true); 
-                  }}
-                  className="btn-gold" 
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '1rem 2rem' }}
-                >
-                  <Plus size={18} />
-                  {activeInventoryType === 'cars' ? 'ADD ASSET' : 'ADD PART'}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <main className="flex-1 min-w-0 flex flex-col">
         
+        {/* Navigation / Page context header */}
+        <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-md border-b border-glass-border px-6 py-4 flex justify-between items-center flex-wrap gap-4">
+          <div>
+            <h2 className="font-headline-lg text-2xl font-bold text-on-surface">
+              {activeSection === 'inventory' && (profile?.vendor_type === 'parts' ? 'Parts Inventory' : 'Fleet Management')}
+              {activeSection === 'orders' && 'Order Receipts'}
+              {activeSection === 'analytics' && 'Strategic Analytics'}
+            </h2>
+            <p className="text-[10px] text-on-surface-variant font-bold tracking-wider uppercase mt-0.5">
+              {activeSection === 'inventory' && (profile?.vendor_type === 'parts' ? `${parts.length} Spare Components listed` : `${cars.length} Vehicles listed`)}
+              {activeSection === 'orders' && `${orders.length} transaction listings`}
+              {activeSection === 'analytics' && 'Executive Performance Metrics'}
+            </p>
+          </div>
+          
+          <div className="flex items-center gap-4">
+            <NotificationInbox />
+            {activeSection === 'inventory' && (
+              <button 
+                onClick={() => { 
+                  if (activeInventoryType === 'cars') setEditingCar(null);
+                  else setEditingPart(null);
+                  setShowAddModal(true); 
+                }}
+                className="bg-luxury-gold text-on-primary px-5 py-2.5 rounded font-label-caps text-xs font-bold hover:brightness-110 active:scale-95 transition-all flex items-center gap-1"
+              >
+                <Plus size={16} />
+                <span>{activeInventoryType === 'cars' ? 'LIST VEHICLE' : 'LIST PART'}</span>
+              </button>
+            )}
+          </div>
+        </header>
+
         <ChatSystem />
 
-        {/* Content Area */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '2rem' }}>
+        {/* Content Body Canvas */}
+        <div className="flex-1 p-6 md:p-8 space-y-8">
+          
           {activeSection === 'inventory' && (
-            <>
-              {/* Toolbar */}
-              <div style={{ marginBottom: '2rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            <div className="space-y-6">
+              
+              {/* Toolbar filters */}
+              <div className="flex flex-col sm:flex-row gap-4 items-center">
                 <SearchAutocomplete 
-                  placeholder={activeInventoryType === 'cars' ? "Search by model, VIN or stock number..." : "Search parts by name or vehicle..."}
+                  placeholder={activeInventoryType === 'cars' ? "Search fleet by model or VIN..." : "Search parts by name..."}
                   onSearch={setSearchQuery}
-                  style={{ flex: 1 }}
+                  style={{ flex: 1, height: '40px' }}
                 />
 
                 {profile?.vendor_type === 'both' && (
-                  <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', padding: '0.3rem', borderRadius: '0.8rem', border: '1px solid var(--border-glass)' }}>
+                  <div className="bg-surface border border-glass-border p-1 rounded-lg flex shrink-0">
                     <button 
                       onClick={() => setActiveInventoryType('cars')}
-                      style={{ padding: '0.6rem 1.2rem', borderRadius: '0.6rem', border: 'none', background: activeInventoryType === 'cars' ? 'var(--accent-gold)' : 'transparent', color: activeInventoryType === 'cars' ? 'black' : 'var(--text-muted)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}
+                      className={`px-4 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                        activeInventoryType === 'cars' ? 'bg-luxury-gold text-black' : 'text-on-surface-variant'
+                      }`}
                     >VEHICLES</button>
                     <button 
                       onClick={() => setActiveInventoryType('parts')}
-                      style={{ padding: '0.6rem 1.2rem', borderRadius: '0.6rem', border: 'none', background: activeInventoryType === 'parts' ? 'var(--accent-gold)' : 'transparent', color: activeInventoryType === 'parts' ? 'black' : 'var(--text-muted)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}
-                    >SPARE PARTS</button>
+                      className={`px-4 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                        activeInventoryType === 'parts' ? 'bg-luxury-gold text-black' : 'text-on-surface-variant'
+                      }`}
+                    >PARTS</button>
                   </div>
                 )}
 
                 {activeInventoryType === 'cars' && (
-                  <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(255,255,255,0.03)', padding: '0.3rem', borderRadius: '0.8rem', border: '1px solid var(--border-glass)' }}>
+                  <div className="bg-surface border border-glass-border p-1 rounded-lg flex shrink-0 gap-1">
                     {['all', 'approved', 'pending', 'rejected'].map(s => (
                       <button 
                         key={s}
                         onClick={() => setFilter(s)}
-                        style={{ padding: '0.6rem 1.2rem', borderRadius: '0.6rem', border: 'none', background: filter === s ? 'var(--accent-gold)' : 'transparent', color: filter === s ? 'black' : 'var(--text-muted)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, textTransform: 'capitalize' }}
+                        className={`px-3 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                          filter === s ? 'bg-luxury-gold text-black' : 'text-on-surface-variant'
+                        }`}
                       >
                         {s}
                       </button>
@@ -373,159 +347,148 @@ export default function VendorDashboard() {
                 )}
               </div>
 
+              {/* Data Grid list */}
               {loading ? (
-                <div style={{ height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>SYNCHRONIZING...</div>
+                <div className="py-20 text-center text-on-surface-variant">SYNCHRONIZING FLEET REGISTRY...</div>
               ) : (activeInventoryType === 'cars' ? filteredCars : filteredParts).length === 0 ? (
-                <div style={{ height: '300px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem', opacity: 0.5 }}>
-                  {activeInventoryType === 'cars' ? <CarFront size={48} /> : <Package size={48} />}
-                  <p>No {activeInventoryType} found in the selected category.</p>
+                <div className="py-24 text-center glass-card rounded-xl border border-glass-border/60 text-on-surface-variant">
+                  <CarFront size={40} className="mx-auto opacity-30 mb-3" />
+                  <p className="text-sm">No inventory listings found.</p>
                 </div>
               ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                   {activeInventoryType === 'cars' ? (
                     filteredCars.map(car => (
-                      <motion.div 
-                        key={car.id} 
-                        layout
-                        className="glass-hover" 
-                        style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '1.2rem', overflow: 'hidden', border: '1px solid var(--border-glass)' }}
-                      >
-                        <div style={{ height: '180px', background: 'black', position: 'relative' }}>
-                          <img src={car.image_url} alt={car.model} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.8 }} />
-                          <div style={{ position: 'absolute', top: '1rem', right: '1rem', padding: '0.3rem 0.8rem', borderRadius: '1rem', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(10px)', border: `1px solid ${getStatusColor(car.approval_status || 'pending')}`, color: getStatusColor(car.approval_status || 'pending'), fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                            {car.approval_status === 'approved' ? <CheckCircle2 size={12} /> : car.approval_status === 'rejected' ? <AlertCircle size={12} /> : <Clock size={12} />}
+                      <div key={car.id} className="glass-card rounded-xl overflow-hidden border border-glass-border flex flex-col text-left">
+                        <div className="relative aspect-[16/10] bg-black">
+                          <img src={car.image_url} alt="" className="w-full h-full object-cover opacity-80" />
+                          <span className={`absolute top-4 left-4 px-2.5 py-1 rounded text-[9px] font-bold border uppercase ${getStatusColor(car.approval_status || 'pending')}`}>
                             {car.approval_status || 'pending'}
-                          </div>
+                          </span>
                         </div>
-                        <div style={{ padding: '1.5rem' }}>
-                          <div style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '0.5rem' }}>{car.year} {car.make} {car.model}</div>
-                          <div style={{ fontSize: '1.2rem', color: 'var(--accent-gold)', marginBottom: '1.5rem' }}>{formatPrice(car.price)}</div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Clock size={14} /> {car.mileage.toLocaleString()} mi</span>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><ArrowRight size={14} /> Details</span>
-                          </div>
+                        <div className="p-5 flex-grow space-y-1">
+                          <h4 className="font-bold text-base text-on-surface">{car.year} {car.make} {car.model}</h4>
+                          <p className="text-[10px] text-on-surface-variant font-bold tracking-wider">VIN: {car.vin || 'N/A'}</p>
+                          <p className="text-lg font-bold text-luxury-gold pt-2">{formatPrice(car.price)}</p>
                         </div>
-                        <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border-glass)', display: 'flex', gap: '1rem' }}>
+                        <div className="p-4 bg-surface-container/10 border-t border-glass-border flex gap-2">
                           <button 
                             onClick={() => { setEditingCar(car); setShowAddModal(true); }}
-                            style={{ flex: 1, padding: '0.6rem', background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: '0.5rem', color: 'white', cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                            className="flex-1 border border-glass-border hover:bg-surface-variant/40 py-2 rounded text-xs font-bold text-on-surface flex items-center justify-center gap-1"
                           >
-                            <Edit size={14} /> EDIT
+                            <Edit size={12} />
+                            <span>EDIT</span>
                           </button>
                           <button 
                             onClick={() => handleDeleteCar(car.id)}
-                            style={{ flex: 1, padding: '0.6rem', background: 'rgba(239, 68, 68, 0.05)', border: 'none', borderRadius: '0.5rem', color: '#ef4444', cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                            className="flex-1 bg-red-950/20 border border-red-900/30 text-red-500 hover:bg-red-900/10 py-2 rounded text-xs font-bold flex items-center justify-center gap-1"
                           >
-                            <Trash2 size={14} /> DELETE
+                            <Trash2 size={12} />
+                            <span>DELETE</span>
                           </button>
                         </div>
-                      </motion.div>
+                      </div>
                     ))
                   ) : (
                     filteredParts.map(part => (
-                      <motion.div 
-                        key={part.id} 
-                        layout
-                        className="glass-hover" 
-                        style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '1.2rem', overflow: 'hidden', border: '1px solid var(--border-glass)' }}
-                      >
-                        <div style={{ height: '180px', background: 'black', position: 'relative' }}>
-                          <img src={part.image_url} alt={part.name} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.8 }} />
-                          <div style={{ position: 'absolute', top: '1rem', right: '1rem', padding: '0.3rem 0.8rem', borderRadius: '1rem', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(10px)', border: '1px solid #4ade80', color: '#4ade80', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase' }}>
-                            {part.status.toUpperCase()}
-                          </div>
+                      <div key={part.id} className="glass-card rounded-xl overflow-hidden border border-glass-border flex flex-col text-left">
+                        <div className="relative aspect-[16/10] bg-black">
+                          <img src={part.image_url} alt="" className="w-full h-full object-cover opacity-80" />
+                          <span className="absolute top-4 left-4 bg-green-500/10 border border-green-500/20 text-green-400 px-2.5 py-1 rounded text-[9px] font-bold uppercase">
+                            {part.status}
+                          </span>
                         </div>
-                        <div style={{ padding: '1.5rem' }}>
-                          <div style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '0.5rem' }}>{part.name}</div>
-                          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>{part.vehicle_make} {part.vehicle_model} ({part.vehicle_year})</div>
-                          <div style={{ fontSize: '1.2rem', color: 'var(--accent-gold)', marginBottom: '1.5rem' }}>{formatPrice(part.price)}</div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                            <span>Qty: {part.stock_quantity}</span>
-                            <span>{part.condition}</span>
-                          </div>
+                        <div className="p-5 flex-grow space-y-1">
+                          <h4 className="font-bold text-base text-on-surface truncate">{part.name}</h4>
+                          <p className="text-[10px] text-on-surface-variant font-bold tracking-wider">{part.vehicle_make} {part.vehicle_model}</p>
+                          <p className="text-lg font-bold text-luxury-gold pt-2">{formatPrice(part.price)}</p>
                         </div>
-                        <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border-glass)', display: 'flex', gap: '1rem' }}>
+                        <div className="p-4 bg-surface-container/10 border-t border-glass-border flex gap-2">
                           <button 
                             onClick={() => { setEditingPart(part); setShowAddModal(true); }}
-                            style={{ flex: 1, padding: '0.6rem', background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: '0.5rem', color: 'white', cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                            className="flex-1 border border-glass-border hover:bg-surface-variant/40 py-2 rounded text-xs font-bold text-on-surface flex items-center justify-center gap-1"
                           >
-                            <Edit size={14} /> EDIT
+                            <Edit size={12} />
+                            <span>EDIT</span>
                           </button>
                           <button 
                             onClick={() => handleDeletePart(part.id)}
-                            style={{ flex: 1, padding: '0.6rem', background: 'rgba(239, 68, 68, 0.05)', border: 'none', borderRadius: '0.5rem', color: '#ef4444', cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                            className="flex-1 bg-red-950/20 border border-red-900/30 text-red-500 hover:bg-red-900/10 py-2 rounded text-xs font-bold flex items-center justify-center gap-1"
                           >
-                            <Trash2 size={14} /> DELETE
+                            <Trash2 size={12} />
+                            <span>DELETE</span>
                           </button>
                         </div>
-                      </motion.div>
+                      </div>
                     ))
                   )}
                 </div>
               )}
-            </>
+
+            </div>
           )}
 
           {activeSection === 'analytics' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-              <div className="responsive-grid-4">
-                <KpiCard title="TOTAL REVENUE" value={formatPrice(stats.totalEarnings)} icon={DollarSign} color="var(--accent-gold)" />
-                <KpiCard title="ACTIVE ASSETS" value={stats.activeListings} icon={CarFront} color="#4ade80" />
-                <KpiCard title="TOTAL SALES" value={stats.totalSales} icon={ShoppingBag} color="white" />
-                <KpiCard title="AWAITING APPR." value={stats.pendingApprovals} icon={Clock} color="#eab308" />
+            <div className="space-y-8">
+              {/* KPI metrics row */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <KpiMetricCard title="TOTAL ACQUISITION VALUE" value={formatPrice(stats.totalEarnings)} icon={<DollarSign size={18} />} />
+                <KpiMetricCard title="ASSETS LISTED" value={stats.activeListings} icon={<CarFront size={18} />} />
+                <KpiMetricCard title="COMPLETED DEALS" value={stats.totalSales} icon={<ShoppingBag size={18} />} />
+                <KpiMetricCard title="INSPECTIONS PENDING" value={stats.pendingApprovals} icon={<Clock size={18} />} />
               </div>
 
-              <div className="glass" style={{ padding: '2rem', borderRadius: '1.5rem' }}>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '1.5rem' }}>Sales Distribution</h3>
-                <div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', border: '1px dashed var(--border-glass)', borderRadius: '1rem' }}>
-                  Visualization engine initializing...
+              {/* Analytical mockup box */}
+              <div className="glass-card rounded-xl p-8 border border-glass-border text-center">
+                <h3 className="font-headline-md text-lg font-bold text-on-surface mb-6 text-left">Earnings Report Distribution</h3>
+                <div className="w-full h-80 rounded-lg bg-surface border border-glass-border flex items-center justify-center text-on-surface-variant">
+                  <TrendingUp size={44} className="text-luxury-gold/30 animate-pulse" />
                 </div>
               </div>
             </div>
           )}
 
           {activeSection === 'orders' && (
-            <div className="glass responsive-table-wrapper" style={{ borderRadius: '1.5rem' }}>
-              <table style={{ minWidth: '800px', width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid var(--border-glass)' }}>
-                    <th style={{ padding: '1.2rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--text-muted)' }}>ORDER ID</th>
-                    <th style={{ padding: '1.2rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--text-muted)' }}>VEHICLE</th>
-                    <th style={{ padding: '1.2rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--text-muted)' }}>AMOUNT</th>
-                    <th style={{ padding: '1.2rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--text-muted)' }}>STATUS</th>
-                    <th style={{ padding: '1.2rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--text-muted)' }}>DATE</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {orders.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-muted)' }}>No completed transactions.</td>
+            <div className="glass-card rounded-xl overflow-hidden border border-glass-border">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-surface-container-low border-b border-glass-border text-[10px] font-label-caps text-on-surface-variant tracking-wider">
+                      <th className="p-4 pl-6">ORDER ID</th>
+                      <th className="p-4">VEHICLE DETAILS</th>
+                      <th className="p-4">TRANSACTION VALUE</th>
+                      <th className="p-4">ACQUISITION STATUS</th>
+                      <th className="p-4 pr-6">ORDER DATE</th>
                     </tr>
-                  ) : (
-                    orders.map(order => (
-                      <tr key={order.id} style={{ borderBottom: '1px solid var(--border-glass)' }}>
-                        <td style={{ padding: '1.2rem', fontSize: '0.9rem' }}>#{order.id.slice(0, 8)}</td>
-                        <td style={{ padding: '1.2rem' }}>
-                          <div style={{ fontWeight: 600 }}>{order.cars?.year} {order.cars?.make} {order.cars?.model}</div>
-                        </td>
-                        <td style={{ padding: '1.2rem', color: 'var(--accent-gold)', fontWeight: 600 }}>{formatPrice(order.amount)}</td>
-                        <td style={{ padding: '1.2rem' }}>
-                          <span style={{ padding: '0.4rem 0.8rem', borderRadius: '0.5rem', background: 'rgba(255,255,255,0.05)', fontSize: '0.75rem', fontWeight: 600 }}>
-                            {order.status.toUpperCase()}
-                          </span>
-                        </td>
-                        <td style={{ padding: '1.2rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                          {new Date(order.created_at).toLocaleDateString()}
-                        </td>
+                  </thead>
+                  <tbody className="divide-y divide-glass-border/30 text-xs">
+                    {orders.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="p-12 text-center text-on-surface-variant">No client purchases logged.</td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                    ) : (
+                      orders.map(order => (
+                        <tr key={order.id} className="hover:bg-surface-variant/10 transition-colors">
+                          <td className="p-4 pl-6 font-mono">#{order.id.slice(0, 8).toUpperCase()}</td>
+                          <td className="p-4 font-bold text-on-surface">{order.cars?.year} {order.cars?.make} {order.cars?.model}</td>
+                          <td className="p-4 font-bold text-luxury-gold">{formatPrice(order.amount)}</td>
+                          <td className="p-4">
+                            <span className="bg-luxury-gold/10 border border-luxury-gold/30 text-luxury-gold px-2.5 py-1 rounded text-[9px] font-bold uppercase tracking-wider">
+                              {order.status}
+                            </span>
+                          </td>
+                          <td className="p-4 pr-6 text-on-surface-variant">{new Date(order.created_at).toLocaleDateString()}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
+
         </div>
-      </div>
+      </main>
 
       <AnimatePresence>
         {showAddModal && (
@@ -554,7 +517,7 @@ export default function VendorDashboard() {
             onClose={() => setShowUpgradeModal(false)}
             onSuccess={() => {
               setShowUpgradeModal(false);
-              window.location.reload(); // Refresh to update profile status
+              window.location.reload();
             }}
           />
         )}
@@ -563,14 +526,12 @@ export default function VendorDashboard() {
   );
 }
 
-function KpiCard({ title, value, icon: Icon, color }: { title: string, value: string | number, icon: any, color: string }) {
-  return (
-    <div className="glass" style={{ padding: '1.5rem', borderRadius: '1.2rem', border: '1px solid var(--border-glass)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-        <span style={{ fontSize: '0.7rem', letterSpacing: '2px', color: 'var(--text-muted)' }}>{title}</span>
-        <Icon size={16} color={color} />
-      </div>
-      <div style={{ fontSize: '1.8rem', fontWeight: 700, color: color }}>{value}</div>
+const KpiMetricCard = ({ title, value, icon }: { title: string, value: string | number, icon: React.ReactNode }) => (
+  <div className="glass-card p-6 rounded-xl border border-glass-border space-y-4">
+    <div className="flex justify-between items-center text-on-surface-variant">
+      <span className="text-[9px] font-label-caps font-bold tracking-widest uppercase">{title}</span>
+      <div className="text-luxury-gold">{icon}</div>
     </div>
-  );
-}
+    <div className="text-3xl font-bold font-headline-lg text-on-surface tracking-tight">{value}</div>
+  </div>
+);

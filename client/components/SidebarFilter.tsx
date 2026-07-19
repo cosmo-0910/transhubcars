@@ -1,14 +1,5 @@
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, ChevronUp, Check, MapPin, Tag, Award, Percent, DollarSign } from 'lucide-react';
-import { formatPrice } from '../../shared/lib/formatters';
+import { useState, useEffect } from 'react';
 
-const NIGERIAN_STATES = [
-  "Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue", "Borno", "Cross River", "Delta", "Ebonyi", "Edo", "Ekiti", "Enugu", "FCT - Abuja", "Gombe", "Imo", "Jigawa", "Kaduna", "Kano", "Katsina", "Kebbi", "Kogi", "Kwara", "Lagos", "Nasarawa", "Niger", "Ogun", "Ondo", "Osun", "Oyo", "Plateau", "Rivers", "Sokoto", "Taraba", "Yobe", "Zamfara"
-];
-
-const CAR_CONDITIONS = ["Foreign Used", "Nigerian Used", "New"];
-const CAR_BODY_TYPES = ["SUV", "Saloon", "Coupe", "Convertible", "Sports", "Pickup", "Crossover", "Hatchback", "Van", "Wagon", "Limousine", "Other"];
 
 interface FilterState {
   priceRange: [number, number];
@@ -34,7 +25,7 @@ interface FilterState {
 interface SidebarFilterProps {
   filters: FilterState;
   onFilterChange: (filters: FilterState) => void;
-  priceBounds: [number, number]; // Min and max price from actual data
+  priceBounds: [number, number];
   counts?: {
     conditions: Record<string, number>;
     bodyTypes: Record<string, number>;
@@ -43,381 +34,214 @@ interface SidebarFilterProps {
   };
 }
 
-const FilterSection = ({ title, icon: Icon, children, defaultOpen = false }: any) => {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
+export const SidebarFilter = ({ filters, onFilterChange, priceBounds }: SidebarFilterProps) => {
+  const [sliderMax, setSliderMax] = useState(priceBounds[1]);
 
-  return (
-    <div style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--border-glass)', paddingBottom: '1.5rem' }}>
-      <button 
-        onClick={() => setIsOpen(!isOpen)}
-        style={{ 
-          width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          background: 'none', border: 'none', color: 'var(--text-main)', cursor: 'pointer',
-          marginBottom: isOpen ? '1rem' : '0'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
-          <Icon size={16} color="var(--accent-gold)" />
-          <span style={{ fontSize: '0.8rem', fontWeight: 700, letterSpacing: '1px' }}>{title.toUpperCase()}</span>
-        </div>
-        {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-      </button>
+  useEffect(() => {
+    setSliderMax(priceBounds[1] || 500000000);
+  }, [priceBounds]);
 
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            style={{ overflow: 'hidden' }}
-          >
-            {children}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-};
+  const handleMakeToggle = (make: string) => {
+    const current = filters.makes || [];
+    const updated = current.includes(make)
+      ? current.filter(m => m !== make)
+      : [...current, make];
+    onFilterChange({ ...filters, makes: updated });
+  };
 
-export const SidebarFilter = ({ filters, onFilterChange, priceBounds, counts }: SidebarFilterProps) => {
-  
-  const handleCheckboxChange = (category: 'conditions' | 'locations' | 'bodyTypes' | 'transmissions' | 'fuels' | 'powertrains' | 'colors', value: string) => {
-    const current = filters[category] || [];
-    const updated = current.includes(value)
-      ? current.filter(item => item !== value)
-      : [...current, value];
-    onFilterChange({ ...filters, [category]: updated });
+  const handleBodyTypeToggle = (type: string) => {
+    const current = filters.bodyTypes || [];
+    // Convert 'Sedan' in mock button to database matching 'Saloon'
+    const dbType = type === 'Sedan' ? 'Saloon' : type;
+    const updated = current.includes(dbType)
+      ? current.filter(t => t !== dbType)
+      : [...current, dbType];
+    onFilterChange({ ...filters, bodyTypes: updated });
   };
 
   const handleToggle = (key: 'verifiedOnly' | 'discountOnly' | 'registeredOnly' | 'exchangeOnly') => {
     onFilterChange({ ...filters, [key]: !filters[key] });
   };
 
-  return (
-    <div className="glass" style={{ padding: 'clamp(1rem, 2vw, 2rem)', borderRadius: '1rem', width: '100%', height: 'fit-content' }}>
-      <div style={{ fontSize: '1.2rem', fontFamily: 'var(--font-heading)', marginBottom: '2rem' }}>Refine Selection</div>
+  const handleClear = () => {
+    onFilterChange({
+      priceRange: priceBounds,
+      yearRange: [1900, 2100],
+      mileageRange: [0, 1000000],
+      conditions: [],
+      makes: [],
+      models: [],
+      bodyTypes: [],
+      locations: [],
+      transmissions: [],
+      fuels: [],
+      powertrains: [],
+      colors: [],
+      engineSize: '',
+      registeredOnly: false,
+      exchangeOnly: false,
+      verifiedOnly: false,
+      discountOnly: false
+    });
+  };
 
-      {/* Verified & Discount Toggles */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem', paddingBottom: '1rem', borderBottom: '1px solid var(--border-glass)' }}>
-        <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
-             <Award size={16} color="var(--accent-gold)" />
-             <span style={{ fontSize: '0.9rem' }}>Verified Sellers</span>
-          </div>
+  return (
+    <div className="sticky top-28 space-y-8 glass-card p-6 rounded-xl text-left bg-surface-container/20">
+      
+      {/* Title */}
+      <div className="flex items-center justify-between">
+        <h2 className="font-headline-md text-xl text-luxury-gold font-bold">Filters</h2>
+        <button 
+          onClick={handleClear}
+          className="text-[10px] font-label-caps text-on-surface-variant hover:text-primary transition-colors tracking-widest font-bold"
+        >
+          CLEAR ALL
+        </button>
+      </div>
+
+      {/* Price Slider */}
+      <div className="space-y-4">
+        <label className="font-label-caps text-[10px] text-on-surface-variant tracking-wider font-bold block">
+          PRICE RANGE
+        </label>
+        <input 
+          type="range"
+          min={priceBounds[0] || 0}
+          max={sliderMax}
+          value={filters.priceRange[1]}
+          onChange={(e) => onFilterChange({ ...filters, priceRange: [filters.priceRange[0], Number(e.target.value)] })}
+          className="w-full h-1 bg-surface-container-highest rounded-lg appearance-none cursor-pointer accent-luxury-gold"
+        />
+        <div className="flex justify-between text-xs font-semibold text-muted-gold mt-1">
+          <span>₦{(priceBounds[0] || 0).toLocaleString()}</span>
+          <span>₦{filters.priceRange[1].toLocaleString()}</span>
+        </div>
+      </div>
+
+      {/* Premium Brands Checklist */}
+      <div className="space-y-4">
+        <label className="font-label-caps text-[10px] text-on-surface-variant tracking-wider font-bold block">
+          PREMIUM BRANDS
+        </label>
+        <div className="space-y-2.5">
+          {["Mercedes-Benz", "Lexus", "Toyota", "Porsche", "Range Rover", "Bentley"].map(brand => {
+            const isChecked = filters.makes.includes(brand);
+            return (
+              <label key={brand} className="flex items-center group cursor-pointer text-sm">
+                <input 
+                  type="checkbox"
+                  checked={isChecked}
+                  onChange={() => handleMakeToggle(brand)}
+                  className="rounded border-glass-border bg-transparent text-luxury-gold focus:ring-0 w-4 h-4 cursor-pointer"
+                />
+                <span className="ml-3 font-body-md text-on-surface-variant group-hover:text-on-surface transition-colors">
+                  {brand}
+                </span>
+              </label>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Body Types Grid */}
+      <div className="space-y-4">
+        <label className="font-label-caps text-[10px] text-on-surface-variant tracking-wider font-bold block">
+          BODY TYPE
+        </label>
+        <div className="grid grid-cols-2 gap-2">
+          {["Coupe", "SUV", "Sedan", "Convertible"].map(type => {
+            const dbType = type === 'Sedan' ? 'Saloon' : type;
+            const isSelected = filters.bodyTypes.includes(dbType);
+            return (
+              <button 
+                key={type}
+                onClick={() => handleBodyTypeToggle(type)}
+                className={`px-3 py-2 border rounded font-body-md text-xs text-left transition-all ${
+                  isSelected 
+                    ? 'border-luxury-gold text-luxury-gold bg-luxury-gold/5' 
+                    : 'border-glass-border text-on-surface-variant hover:border-luxury-gold hover:text-luxury-gold'
+                }`}
+              >
+                {type}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Transmission dropdown */}
+      <div className="space-y-4">
+        <label className="font-label-caps text-[10px] text-on-surface-variant tracking-wider font-bold block">
+          TRANSMISSION
+        </label>
+        <select 
+          value={filters.transmissions[0] || 'Any'}
+          onChange={(e) => {
+            const val = e.target.value;
+            onFilterChange({ ...filters, transmissions: val === 'Any' ? [] : [val] });
+          }}
+          className="w-full bg-surface border border-glass-border rounded-lg px-4 py-2.5 text-sm text-on-surface focus:ring-1 focus:ring-luxury-gold focus:border-luxury-gold outline-none cursor-pointer"
+        >
+          <option value="Any">Any</option>
+          <option value="Automatic">Automatic</option>
+          <option value="Manual">Manual</option>
+          <option value="Semi-Auto">Semi-Auto</option>
+        </select>
+      </div>
+
+      {/* Model Year Input */}
+      <div className="space-y-4">
+        <label className="font-label-caps text-[10px] text-on-surface-variant tracking-wider font-bold block">
+          MODEL YEAR
+        </label>
+        <div className="flex gap-2">
           <input 
-            type="checkbox" 
-            checked={filters.verifiedOnly} 
+            type="number"
+            placeholder="From"
+            value={filters.yearRange[0] === 1900 ? '' : filters.yearRange[0]}
+            onChange={(e) => onFilterChange({ ...filters, yearRange: [Number(e.target.value) || 1900, filters.yearRange[1]] })}
+            className="w-1/2 bg-surface border border-glass-border rounded px-3 py-2 text-xs focus:border-luxury-gold outline-none text-on-surface"
+          />
+          <input 
+            type="number"
+            placeholder="To"
+            value={filters.yearRange[1] === 2100 ? '' : filters.yearRange[1]}
+            onChange={(e) => onFilterChange({ ...filters, yearRange: [filters.yearRange[0], Number(e.target.value) || 2100] })}
+            className="w-1/2 bg-surface border border-glass-border rounded px-3 py-2 text-xs focus:border-luxury-gold outline-none text-on-surface"
+          />
+        </div>
+      </div>
+
+      {/* Extra Toggles */}
+      <div className="border-t border-glass-border pt-6 space-y-3.5">
+        <label className="flex items-center justify-between group cursor-pointer text-xs">
+          <span className="text-on-surface-variant group-hover:text-on-surface transition-colors">Verified Sellers</span>
+          <input 
+            type="checkbox"
+            checked={filters.verifiedOnly}
             onChange={() => handleToggle('verifiedOnly')}
-            style={{ accentColor: 'var(--accent-gold)', width: '16px', height: '16px' }} 
+            className="rounded border-glass-border bg-transparent text-luxury-gold focus:ring-0 w-4 h-4 cursor-pointer"
           />
         </label>
-        <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
-             <Percent size={16} color="var(--accent-gold)" />
-             <span style={{ fontSize: '0.9rem' }}>Discount Deals</span>
-          </div>
+        <label className="flex items-center justify-between group cursor-pointer text-xs">
+          <span className="text-on-surface-variant group-hover:text-on-surface transition-colors">Registered Cars</span>
           <input 
-            type="checkbox" 
-            checked={filters.discountOnly} 
-            onChange={() => handleToggle('discountOnly')}
-            style={{ accentColor: 'var(--accent-gold)', width: '16px', height: '16px' }} 
-          />
-        </label>
-        <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
-             <Check size={16} color="var(--accent-gold)" />
-             <span style={{ fontSize: '0.9rem' }}>Registered Cars</span>
-          </div>
-          <input 
-            type="checkbox" 
-            checked={filters.registeredOnly} 
+            type="checkbox"
+            checked={filters.registeredOnly}
             onChange={() => handleToggle('registeredOnly')}
-            style={{ accentColor: 'var(--accent-gold)', width: '16px', height: '16px' }} 
+            className="rounded border-glass-border bg-transparent text-luxury-gold focus:ring-0 w-4 h-4 cursor-pointer"
           />
         </label>
-        <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
-             <Tag size={16} color="var(--accent-gold)" />
-             <span style={{ fontSize: '0.9rem' }}>Exchange Possible</span>
-          </div>
+        <label className="flex items-center justify-between group cursor-pointer text-xs">
+          <span className="text-on-surface-variant group-hover:text-on-surface transition-colors">Discount Deals</span>
           <input 
-            type="checkbox" 
-            checked={filters.exchangeOnly} 
-            onChange={() => handleToggle('exchangeOnly')}
-            style={{ accentColor: 'var(--accent-gold)', width: '16px', height: '16px' }} 
+            type="checkbox"
+            checked={filters.discountOnly}
+            onChange={() => handleToggle('discountOnly')}
+            className="rounded border-glass-border bg-transparent text-luxury-gold focus:ring-0 w-4 h-4 cursor-pointer"
           />
         </label>
       </div>
-
-      {/* Price Range */}
-      <FilterSection title="Price Range" icon={DollarSign} defaultOpen={true}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <div style={{ flex: 1 }}>
-              <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.3rem', display: 'block' }}>MIN PRICE</label>
-              <input 
-                type="number" 
-                value={filters.priceRange[0] === 0 ? '' : filters.priceRange[0]} 
-                onChange={(e) => onFilterChange({ ...filters, priceRange: [Number(e.target.value) || 0, filters.priceRange[1]] })}
-                placeholder="0"
-                className="admin-input" // Reusing admin-input style if available, else inline
-                style={{ 
-                  width: '100%', padding: '0.5rem', background: 'rgba(255,255,255,0.05)', 
-                  border: '1px solid var(--border-glass)', borderRadius: '0.4rem', color: 'var(--text-main)', fontSize: '0.9rem' 
-                }}
-              />
-            </div>
-            <span style={{ color: 'var(--text-muted)', marginTop: '1rem' }}>-</span>
-            <div style={{ flex: 1 }}>
-              <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.3rem', display: 'block' }}>MAX PRICE</label>
-              <input 
-                type="number" 
-                value={filters.priceRange[1] >= 1000000000 ? '' : filters.priceRange[1]} 
-                onChange={(e) => onFilterChange({ ...filters, priceRange: [filters.priceRange[0], Number(e.target.value) || 1000000000] })}
-                placeholder="Max"
-                style={{ 
-                   width: '100%', padding: '0.5rem', background: 'rgba(255,255,255,0.05)', 
-                   border: '1px solid var(--border-glass)', borderRadius: '0.4rem', color: 'var(--text-main)', fontSize: '0.9rem' 
-                }}
-              />
-            </div>
-          </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--accent-gold)', textAlign: 'center' }}>
-            {formatPrice(filters.priceRange[0])} — {filters.priceRange[1] >= 1000000000 ? 'Any' : formatPrice(filters.priceRange[1])}
-          </div>
-        </div>
-      </FilterSection>
-
-      {/* Condition */}
-      <FilterSection title="Condition" icon={Tag} defaultOpen={true}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-          {CAR_CONDITIONS.map(condition => (
-            <label key={condition} style={{ display: 'flex', alignItems: 'center', gap: '1rem', cursor: 'pointer', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-              <div style={{ 
-                width: '18px', height: '18px', borderRadius: '4px', border: '1px solid var(--border-glass)',
-                background: filters.conditions.includes(condition) ? 'var(--accent-gold)' : 'transparent',
-                display: 'flex', alignItems: 'center', justifyContent: 'center'
-              }}>
-                {filters.conditions.includes(condition) && <Check size={12} color="black" />}
-              </div>
-              <input 
-                type="checkbox" 
-                style={{ display: 'none' }}
-                checked={filters.conditions.includes(condition)}
-                onChange={() => handleCheckboxChange('conditions', condition)}
-              />
-              <span style={{ flex: 1 }}>{condition}</span>
-              {counts?.conditions && <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', opacity: 0.7 }}>{counts.conditions[condition] || 0}</span>}
-            </label>
-          ))}
-        </div>
-      </FilterSection>
-
-      {/* Architecture (Body Type) */}
-      <FilterSection title="Architecture" icon={Tag} defaultOpen={true}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-          {CAR_BODY_TYPES.map(type => (
-            <label key={type} style={{ display: 'flex', alignItems: 'center', gap: '1rem', cursor: 'pointer', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-              <div style={{ 
-                width: '18px', height: '18px', borderRadius: '4px', border: '1px solid var(--border-glass)',
-                background: filters.bodyTypes?.includes(type) ? 'var(--accent-gold)' : 'transparent',
-                display: 'flex', alignItems: 'center', justifyContent: 'center'
-              }}>
-                {filters.bodyTypes?.includes(type) && <Check size={12} color="black" />}
-              </div>
-              <input 
-                type="checkbox" 
-                style={{ display: 'none' }}
-                checked={filters.bodyTypes?.includes(type)}
-                onChange={() => handleCheckboxChange('bodyTypes', type)}
-              />
-              <span style={{ flex: 1 }}>{type}</span>
-              {counts?.bodyTypes && <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', opacity: 0.7 }}>{counts.bodyTypes[type] || 0}</span>}
-            </label>
-          ))}
-        </div>
-      </FilterSection>
-
-      {/* Location */}
-      <FilterSection title="Location" icon={MapPin}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '300px', overflowY: 'auto', paddingRight: '0.5rem' }}>
-          {NIGERIAN_STATES.map(state => (
-             <label key={state} style={{ display: 'flex', alignItems: 'center', gap: '1rem', cursor: 'pointer', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-              <div style={{ 
-                width: '18px', height: '18px', borderRadius: '4px', border: '1px solid var(--border-glass)',
-                background: filters.locations.includes(state) ? 'var(--accent-gold)' : 'transparent',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
-              }}>
-                {filters.locations.includes(state) && <Check size={12} color="black" />}
-              </div>
-              <input 
-                type="checkbox" 
-                style={{ display: 'none' }}
-                checked={filters.locations.includes(state)}
-                onChange={() => handleCheckboxChange('locations', state)}
-              />
-              <span style={{ flex: 1 }}>{state}</span>
-              {counts?.locations && (counts.locations[state] || 0) > 0 && (
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', opacity: 0.7 }}>{counts.locations[state]}</span>
-              )}
-            </label>
-          ))}
-        </div>
-      </FilterSection>
-      
-      {/* Technical Details */}
-      <FilterSection title="Technical Details" icon={Tag}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          {/* Make Selection */}
-          <div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.8rem' }}>MANUFACTURER</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '200px', overflowY: 'auto' }}>
-              {(counts?.makes ? Object.keys(counts.makes).sort() : ["Toyota", "Honda", "Mercedes-Benz", "Lexus", "BMW", "Range Rover", "Land Rover", "Hyundai", "Kia", "Nissan", "Ford", "Mazda", "Mitsubishi", "Audi", "Porsche", "Bentley", "Volkswagen", "Chevrolet", "Jeep", "Volvo"]).map(make => (
-                <label key={make} style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', cursor: 'pointer', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                  <div style={{ 
-                    width: '18px', height: '18px', borderRadius: '4px', border: '1px solid var(--border-glass)',
-                    background: filters.makes?.includes(make) ? 'var(--accent-gold)' : 'transparent',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
-                  }}>
-                    {filters.makes?.includes(make) && <Check size={12} color="black" />}
-                  </div>
-                  <input 
-                    type="checkbox" 
-                    style={{ display: 'none' }}
-                    checked={filters.makes?.includes(make)}
-                    onChange={() => handleCheckboxChange('makes' as any, make)}
-                  />
-                  <span style={{ flex: 1 }}>{make}</span>
-                  {counts?.makes && counts.makes[make] && (
-                    <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>{counts.makes[make]}</span>
-                  )}
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {/* Engine Size */}
-          <div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.8rem' }}>ENGINE CAPACITY</div>
-            <input 
-              type="text"
-              placeholder="e.g. 4.0L"
-              value={filters.engineSize || ''}
-              onChange={(e) => onFilterChange({ ...filters, engineSize: e.target.value } as any)}
-              style={{ 
-                width: '100%', padding: '0.6rem', background: 'rgba(255,255,255,0.05)', 
-                border: '1px solid var(--border-glass)', borderRadius: '0.4rem', color: 'var(--text-main)', fontSize: '0.85rem' 
-              }}
-            />
-          </div>
-
-          {/* Transmission */}
-          <div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.8rem' }}>TRANSMISSION</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-              {["Automatic", "Manual", "Semi-Auto"].map(t => (
-                <button
-                  key={t}
-                  onClick={() => handleCheckboxChange('transmissions', t)}
-                  style={{
-                    padding: '0.4rem 0.8rem', borderRadius: '0.4rem', fontSize: '0.75rem', border: '1px solid var(--border-glass)',
-                    background: filters.transmissions?.includes(t) ? 'var(--accent-gold)' : 'transparent',
-                    color: filters.transmissions?.includes(t) ? 'black' : 'var(--text-main)', cursor: 'pointer'
-                  }}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
-          </div>
-          {/* Fuel */}
-          <div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.8rem' }}>FUEL TYPE</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-              {["Petrol", "Diesel", "Hybrid", "Electric"].map(f => (
-                <button
-                  key={f}
-                  onClick={() => handleCheckboxChange('fuels', f)}
-                  style={{
-                    padding: '0.4rem 0.8rem', borderRadius: '0.4rem', fontSize: '0.75rem', border: '1px solid var(--border-glass)',
-                    background: filters.fuels?.includes(f) ? 'var(--accent-gold)' : 'transparent',
-                    color: filters.fuels?.includes(f) ? 'black' : 'var(--text-main)', cursor: 'pointer'
-                  }}
-                >
-                  {f}
-                </button>
-              ))}
-            </div>
-          </div>
-          {/* Powertrain */}
-          <div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.8rem' }}>POWERTRAIN</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-              {["2WD", "4WD", "AWD", "RWD"].map(p => (
-                <button
-                  key={p}
-                  onClick={() => handleCheckboxChange('powertrains', p)}
-                  style={{
-                    padding: '0.4rem 0.8rem', borderRadius: '0.4rem', fontSize: '0.75rem', border: '1px solid var(--border-glass)',
-                    background: filters.powertrains?.includes(p) ? 'var(--accent-gold)' : 'transparent',
-                    color: filters.powertrains?.includes(p) ? 'black' : 'var(--text-main)', cursor: 'pointer'
-                  }}
-                >
-                  {p}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </FilterSection>
-
-      {/* Aesthetic Identity */}
-      <FilterSection title="Aesthetic Identity" icon={Tag}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
-          <div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.8rem' }}>EXTERIOR COLOR</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-              {["Black", "White", "Silver", "Gray", "Blue", "Red", "Gold", "Green"].map(c => (
-                <label key={c} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.8rem' }}>
-                  <input 
-                    type="checkbox" 
-                    checked={filters.colors?.includes(c)}
-                    onChange={() => handleCheckboxChange('colors', c)}
-                    style={{ accentColor: 'var(--accent-gold)' }}
-                  />
-                  <span>{c}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-        </div>
-      </FilterSection>
-
-      {/* Reset Button */}
-      <button 
-        onClick={() => onFilterChange({ 
-          priceRange: priceBounds, 
-          yearRange: [1900, 2100],
-          mileageRange: [0, 1000000],
-          conditions: [], 
-          makes: [],
-          models: [],
-          bodyTypes: [], 
-          locations: [], 
-          transmissions: [],
-          fuels: [],
-          powertrains: [],
-          colors: [],
-          engineSize: '',
-          registeredOnly: false,
-          exchangeOnly: false,
-          verifiedOnly: false, 
-          discountOnly: false 
-        })}
-        style={{ width: '100%', padding: '1rem', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-glass)', color: 'var(--text-muted)', borderRadius: '0.5rem', cursor: 'pointer', marginTop: '1rem', fontSize: '0.8rem' }}
-      >
-        RESET FILTERS
-      </button>
 
     </div>
   );

@@ -8,13 +8,10 @@ import {
   MapPin, 
   Gauge, 
   Settings, 
-  Droplets, 
   Calendar,
-  Zap,
-  Phone,
   MessageSquare,
-  ChevronDown,
-  Car as CarIcon
+  Sparkles,
+  ArrowRight
 } from 'lucide-react';
 import { db, type Car } from '../../shared/lib/db';
 import { useAuth } from '../../shared/lib/AuthContext';
@@ -31,7 +28,6 @@ export const VehicleDetail = ({ car, onClose, onInquiry, onVendorClick }: Vehicl
   const { user } = useAuth();
   const allImages = [car.image_url, ...(car.gallery_urls || [])].filter(Boolean);
   const [activeImg, setActiveImg] = useState(0);
-  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [relatedCars, setRelatedCars] = useState<Car[]>([]);
 
@@ -49,7 +45,7 @@ export const VehicleDetail = ({ car, onClose, onInquiry, onVendorClick }: Vehicl
           const allCars = await db.getCars({ onlyApproved: true });
           const matches = allCars
             .filter(c => c.id !== car.id && c.body_type === car.body_type)
-            .slice(0, 5);
+            .slice(0, 4);
           setRelatedCars(matches);
         } catch (err) {
           console.error('Failed to load recommendations:', err);
@@ -59,227 +55,307 @@ export const VehicleDetail = ({ car, onClose, onInquiry, onVendorClick }: Vehicl
     }
   }, [car.id, user?.id, car.body_type]);
 
+  const shareVehicle = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: `${car.make} ${car.model}`,
+        text: `Check out this ${car.year} ${car.make} ${car.model} on Transhub Automotive Group`,
+        url: window.location.href
+      }).catch(console.error);
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      alert('Link copied to clipboard!');
+    }
+  };
+
   return (
     <motion.div 
-      initial={{ opacity: 0, y: 100 }}
+      initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 100 }}
-      className="profile-fullscreen-mobile"
-      style={{
-        width: '100%',
-        height: '100vh',
-        background: '#000',
-        color: '#fff',
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        zIndex: 5000,
-        overflowY: 'auto'
-      }}
+      exit={{ opacity: 0, y: 30 }}
+      className="fixed inset-0 z-[1000] w-full h-screen bg-background text-on-surface overflow-y-auto"
     >
-      {/* Header Actions */}
-      <div style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        width: '100%',
-        padding: '1.2rem',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        zIndex: 50
-      }}>
-        <button onClick={onClose} style={{ background: 'rgba(0,0,0,0.4)', border: 'none', color: '#fff', padding: '0.6rem', borderRadius: '50%', display: 'flex' }}>
+      
+      {/* Top Navbar Actions */}
+      <div className="absolute top-0 left-0 right-0 z-50 p-4 max-w-container-max mx-auto flex justify-between items-center bg-gradient-to-b from-black/80 to-transparent">
+        <button 
+          onClick={onClose} 
+          className="w-10 h-10 rounded-full bg-black/60 border border-glass-border flex items-center justify-center text-on-surface hover:text-luxury-gold transition-colors"
+        >
           <ChevronLeft size={24} />
         </button>
-        <div style={{ display: 'flex', gap: '0.8rem' }}>
-          <button style={{ background: 'rgba(0,0,0,0.4)', border: 'none', color: '#fff', padding: '0.6rem', borderRadius: '50%', display: 'flex' }}>
-            <Share2 size={20} />
+        <div className="flex gap-2">
+          <button 
+            onClick={shareVehicle}
+            className="w-10 h-10 rounded-full bg-black/60 border border-glass-border flex items-center justify-center text-on-surface hover:text-luxury-gold transition-colors"
+          >
+            <Share2 size={18} />
           </button>
           <button 
             onClick={() => setIsWishlisted(!isWishlisted)}
-            style={{ background: 'rgba(0,0,0,0.4)', border: 'none', color: isWishlisted ? 'var(--accent-gold)' : '#fff', padding: '0.6rem', borderRadius: '50%', display: 'flex' }}
+            className="w-10 h-10 rounded-full bg-black/60 border border-glass-border flex items-center justify-center text-on-surface hover:text-luxury-gold transition-colors"
           >
-            <Heart size={20} fill={isWishlisted ? 'var(--accent-gold)' : 'none'} />
+            <Heart size={18} className={isWishlisted ? 'fill-luxury-gold text-luxury-gold' : ''} />
           </button>
         </div>
       </div>
 
-      {/* Image Section */}
-      <div style={{ position: 'relative', height: '40vh', width: '100%', background: '#111' }}>
-        <img 
-          src={allImages[activeImg]} 
-          alt="" 
-          onClick={() => setActiveImg((prev) => (prev + 1) % allImages.length)}
-          style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' }} 
-        />
-        <div style={{ position: 'absolute', bottom: '1.2rem', right: '1.2rem', background: 'rgba(0,0,0,0.6)', padding: '0.3rem 0.7rem', borderRadius: '0.5rem', fontSize: '0.7rem', fontWeight: 700 }}>
-          {activeImg + 1}/{allImages.length}
-        </div>
-        
-        {/* Gallery Thumbnails Overlay (Simplified) */}
-        <div style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '3px', display: 'flex', gap: '2px' }}>
-          {allImages.map((_, i) => (
-            <div key={i} style={{ flex: 1, background: i === activeImg ? 'var(--accent-gold)' : 'rgba(255,255,255,0.2)' }} />
-          ))}
-        </div>
-      </div>
-
-      <div style={{ padding: '1.5rem', paddingBottom: '140px' }}>
-        {/* Primary Info */}
-        <div style={{ marginBottom: '2rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-            <h1 style={{ fontSize: '1.6rem', fontWeight: 800, margin: 0 }}>{car.make} {car.model}</h1>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--accent-gold)' }}>{formatPrice(car.price)}</div>
-            <div style={{ color: '#4ade80', fontSize: '0.7rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.3rem', background: 'rgba(74,222,128,0.1)', padding: '0.3rem 0.7rem', borderRadius: '0.5rem' }}>
-              <CheckCircle2 size={12} /> Verified
-            </div>
-          </div>
-        </div>
-
-        {/* Spec Grid - High Density */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem', marginBottom: '2.5rem' }}>
-          <SpecSquare icon={<Calendar size={18} />} label="Year" value={car.year.toString()} />
-          <SpecSquare icon={<Settings size={18} />} label="Automatic" value="Transmission" />
-          <SpecSquare icon={<Droplets size={18} />} label="Fuel" value="Petrol" />
-          <SpecSquare icon={<Gauge size={18} />} label="200 km" value="Mileage" />
-        </div>
-
-        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '1.2rem', marginBottom: '2rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'rgba(255,255,255,0.6)', fontSize: '0.8rem' }}>
-            <MapPin size={14} color="var(--accent-gold)" /> Lagos, Nigeria
-          </div>
-          <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.75rem' }}>Posted 2 days ago</div>
-        </div>
-
-        {/* Overview */}
-        <div style={{ marginBottom: '2.5rem' }}>
-          <h2 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '1.2rem' }}>Overview</h2>
-          <div style={{ display: 'grid', gap: '1.2rem' }}>
-            <OverviewItem icon={<Settings size={18} />} label="Engine" value="6.5L V12 Hybrid" />
-            <OverviewItem icon={<Zap size={18} />} label="Power" value="1001 hp" />
-            <OverviewItem icon={<CarIcon size={18} />} label="Drive" value="AWD" />
-            <OverviewItem icon={<Settings size={18} />} label="Exterior" value="Arancio Orange" />
-            <OverviewItem icon={<Settings size={18} />} label="Interior" value="Nero Ade" />
-            <OverviewItem icon={<Settings size={18} />} label="VIN" value="ZHWED4ZX8RLA12345" />
-          </div>
-        </div>
-
-        {/* Description */}
-        <div style={{ marginBottom: '3rem' }}>
-          <h2 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '0.8rem' }}>Description</h2>
-          <p style={{ fontSize: '0.88rem', color: 'rgba(255,255,255,0.6)', lineHeight: 1.6, margin: 0 }}>
-            {isDescriptionExpanded ? car.description : `${car.description?.slice(0, 150)}...`}
-          </p>
-          <button 
-            onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
-            style={{ background: 'none', border: 'none', color: 'var(--accent-gold)', fontSize: '0.85rem', fontWeight: 700, marginTop: '0.75rem', padding: 0, display: 'flex', alignItems: 'center', gap: '0.3rem' }}
-          >
-            {isDescriptionExpanded ? 'Read less' : 'Read more'} <ChevronDown size={16} />
-          </button>
-        </div>
-
-        {/* Seller Info */}
-        <div style={{ marginBottom: '3rem' }}>
-          <h2 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '1.2rem' }}>Seller Information</h2>
-          <div style={{ background: '#111', padding: '1.2rem', borderRadius: '1rem', border: '1px solid rgba(255,255,255,0.05)' }}>
-            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1.2rem' }}>
-              <div style={{ width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden', background: '#222' }}>
-                <img src={car.profiles?.avatar_url || '/logo.png'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+      {/* Main Grid Wrapper */}
+      <div className="max-w-container-max mx-auto px-4 md:px-margin-desktop pt-24 pb-32">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          
+          {/* Left Area: Images & Details */}
+          <div className="lg:col-span-8 space-y-8">
+            
+            {/* Gallery View */}
+            <div className="relative aspect-[16/9] rounded-2xl overflow-hidden bg-black border border-glass-border group">
+              <img 
+                src={allImages[activeImg]} 
+                alt={`${car.make} ${car.model}`}
+                className="w-full h-full object-cover" 
+              />
+              <div className="absolute bottom-6 right-6 bg-black/60 backdrop-blur-md px-4 py-2 rounded-lg text-xs font-bold text-on-surface border border-glass-border">
+                {activeImg + 1} / {allImages.length}
               </div>
+              
+              {/* Slider Taps overlay */}
+              <div className="absolute bottom-0 left-0 right-0 h-1.5 flex gap-1 bg-black/20 px-2 py-0.5">
+                {allImages.map((_, i) => (
+                  <div 
+                    key={i} 
+                    onClick={() => setActiveImg(i)}
+                    className={`h-full flex-grow rounded-full cursor-pointer transition-all ${
+                      i === activeImg ? 'bg-luxury-gold' : 'bg-white/25 hover:bg-white/40'
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Thumbnail row */}
+            {allImages.length > 1 && (
+              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                {allImages.map((img, i) => (
+                  <button 
+                    key={i}
+                    onClick={() => setActiveImg(i)}
+                    className={`relative w-28 aspect-[16/10] rounded-lg overflow-hidden flex-shrink-0 border-2 transition-all ${
+                      i === activeImg ? 'border-luxury-gold' : 'border-glass-border hover:border-luxury-gold/50'
+                    }`}
+                  >
+                    <img src={img} className="w-full h-full object-cover" alt="" />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Specs Bento Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-left">
+              <div className="glass-card p-5 rounded-xl flex flex-col justify-between aspect-square">
+                <Calendar size={24} className="text-luxury-gold" />
+                <div>
+                  <p className="text-[10px] font-label-caps text-on-surface-variant font-bold">MODEL YEAR</p>
+                  <p className="font-headline-md text-lg font-bold text-on-surface">{car.year}</p>
+                </div>
+              </div>
+              
+              <div className="glass-card p-5 rounded-xl flex flex-col justify-between aspect-square">
+                <Gauge size={24} className="text-luxury-gold" />
+                <div>
+                  <p className="text-[10px] font-label-caps text-on-surface-variant font-bold">MILEAGE</p>
+                  <p className="font-headline-md text-lg font-bold text-on-surface">{car.mileage ? `${car.mileage.toLocaleString()} KM` : 'BRAND NEW'}</p>
+                </div>
+              </div>
+
+              <div className="glass-card p-5 rounded-xl flex flex-col justify-between aspect-square">
+                <Settings size={24} className="text-luxury-gold" />
+                <div>
+                  <p className="text-[10px] font-label-caps text-on-surface-variant font-bold">TRANSMISSION</p>
+                  <p className="font-headline-md text-lg font-bold text-on-surface truncate">{car.transmission || 'Automatic'}</p>
+                </div>
+              </div>
+
+              <div className="glass-card p-5 rounded-xl flex flex-col justify-between aspect-square">
+                <Sparkles size={24} className="text-luxury-gold" />
+                <div>
+                  <p className="text-[10px] font-label-caps text-on-surface-variant font-bold">FUEL SYSTEM</p>
+                  <p className="font-headline-md text-lg font-bold text-on-surface truncate">{car.fuel_type || 'Petrol'}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Overview / Technical Specs list */}
+            <div className="glass-card p-8 rounded-xl text-left space-y-6">
+              <h3 className="font-headline-md text-xl font-bold text-on-surface border-b border-glass-border pb-3">Technical Specifications</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-12 text-sm">
+                <div className="flex justify-between py-2 border-b border-glass-border/40">
+                  <span className="text-on-surface-variant font-medium">Manufacturer</span>
+                  <span className="font-bold text-on-surface">{car.make}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-glass-border/40">
+                  <span className="text-on-surface-variant font-medium">Model Variant</span>
+                  <span className="font-bold text-on-surface">{car.model}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-glass-border/40">
+                  <span className="text-on-surface-variant font-medium">Body Type</span>
+                  <span className="font-bold text-on-surface">{car.body_type || 'Coupe'}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-glass-border/40">
+                  <span className="text-on-surface-variant font-medium">Exterior Color</span>
+                  <span className="font-bold text-on-surface">{car.exterior_color || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-glass-border/40">
+                  <span className="text-on-surface-variant font-medium">Interior Color</span>
+                  <span className="font-bold text-on-surface">{car.interior_color || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-glass-border/40">
+                  <span className="text-on-surface-variant font-medium">Powertrain</span>
+                  <span className="font-bold text-on-surface">{car.powertrain || 'AWD'}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Description */}
+            <div className="text-left space-y-4">
+              <h3 className="font-label-caps text-[10px] text-luxury-gold tracking-widest font-bold">DESCRIPTION</h3>
+              <p className="text-on-surface-variant text-sm sm:text-base leading-relaxed whitespace-pre-line">
+                {car.description || 'No description details provided for this vehicle allocation.'}
+              </p>
+            </div>
+
+            {/* Location visual box */}
+            {car.state && (
+              <div className="glass-card p-6 rounded-xl text-left space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-label-caps font-bold tracking-wider text-on-surface-variant">PHYSICAL LOCATION</span>
+                  <span className="text-xs font-bold text-luxury-gold uppercase tracking-wider flex items-center gap-1">
+                    <MapPin size={14} /> {car.state}, Nigeria
+                  </span>
+                </div>
+                <div className="w-full h-44 rounded-lg bg-surface-container/50 border border-glass-border relative overflow-hidden flex items-center justify-center">
+                  <MapPin size={36} className="text-luxury-gold/40 animate-bounce" />
+                </div>
+              </div>
+            )}
+
+          </div>
+
+          {/* Right Area: Purchase/Acquisition Details Card */}
+          <div className="lg:col-span-4 sticky top-28 space-y-6 text-left">
+            
+            {/* Main pricing & purchase box */}
+            <div className="glass-card p-8 rounded-xl border border-glass-border bg-surface-container/20 space-y-6">
+              
+              <div className="flex justify-between items-start border-b border-glass-border pb-4">
+                <div>
+                  <span className="text-[10px] font-label-caps text-on-surface-variant tracking-wider block font-bold mb-1">INVESTMENT VALUE</span>
+                  <h2 className="text-3xl font-bold text-luxury-gold tracking-tight">{formatPrice(car.price)}</h2>
+                </div>
+                <span className="bg-primary/10 border border-primary/30 text-primary font-bold text-[9px] px-2.5 py-1 rounded">
+                  VERIFIED
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                <button 
+                  onClick={onInquiry}
+                  className="w-full bg-luxury-gold text-on-primary py-4 rounded-lg font-label-caps text-xs font-bold hover:brightness-110 active:scale-[0.99] transition-all shadow-lg shadow-luxury-gold/15"
+                >
+                  SECURE VEHICLE
+                </button>
+                <button 
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent('open-chat', {
+                      detail: {
+                        carId: car.id,
+                        vendorId: car.vendor_id || null,
+                        autoSendMessage: true
+                      }
+                    }));
+                    onClose();
+                  }}
+                  className="w-full border border-glass-border text-on-surface py-4 rounded-lg font-label-caps text-xs font-bold hover:bg-surface-variant transition-colors flex items-center justify-center gap-2"
+                >
+                  <MessageSquare size={14} className="text-luxury-gold" />
+                  <span>START CHAT INQUIRY</span>
+                </button>
+              </div>
+
+              {/* Security info notes */}
+              <div className="text-[10px] text-on-surface-variant leading-relaxed pt-2 border-t border-glass-border">
+                All acquisitions go through Transhub secure holding accounts. Vehicle inspections are fully certified prior to dispatch.
+              </div>
+
+            </div>
+
+            {/* Vendor/Dealer info card */}
+            <div className="glass-card p-6 rounded-xl space-y-4 text-left bg-surface-container/20">
+              <span className="text-[10px] font-label-caps text-on-surface-variant tracking-wider block font-bold">MERCHANT REGISTRY</span>
+              <div className="flex gap-4 items-center">
+                <div className="w-12 h-12 rounded-full overflow-hidden bg-black/30 border border-glass-border">
+                  <img 
+                    src={car.profiles?.avatar_url || 'https://images.unsplash.com/photo-1579033461380-adb47c3eb938?q=80&w=200'} 
+                    className="w-full h-full object-cover" 
+                    alt="Vendor Avatar"
+                  />
+                </div>
+                <div>
+                  <h4 className="font-bold text-on-surface text-sm">{car.profiles?.business_name || 'Transhub Official'}</h4>
+                  <p className="text-[10px] text-luxury-gold font-bold flex items-center gap-1 uppercase tracking-wider mt-0.5">
+                    <CheckCircle2 size={10} /> Certified Merchant
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => {
+                  if (car.vendor_id) onVendorClick(car.vendor_id);
+                  else alert('Vendor profile is handled by Transhub Official.');
+                }}
+                className="w-full border border-luxury-gold/30 text-luxury-gold py-2.5 rounded font-label-caps text-xs font-bold hover:bg-luxury-gold/5 transition-all"
+              >
+                VIEW VENDOR SHOWROOM
+              </button>
+            </div>
+
+          </div>
+
+        </div>
+
+        {/* You may also like: related cars row */}
+        {relatedCars.length > 0 && (
+          <div className="border-t border-glass-border pt-16 mt-16 text-left">
+            <div className="flex justify-between items-end mb-8">
               <div>
-                <div style={{ fontSize: '1rem', fontWeight: 700 }}>{car.profiles?.business_name || 'AutoHub Luxury Cars'}</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: '#4ade80', fontSize: '0.7rem', fontWeight: 600, marginTop: '0.1rem' }}>
-                  <CheckCircle2 size={10} /> Verified Dealer
-                </div>
-                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem', marginTop: '0.2rem' }}>
-                   <span style={{ color: 'var(--accent-gold)' }}>★ 4.8</span> (128 reviews)
-                </div>
+                <span className="text-[10px] font-label-caps text-luxury-gold tracking-widest block font-bold mb-1">SIMILAR SELECTIONS</span>
+                <h3 className="text-2xl font-headline-lg font-bold text-on-surface">You May Also Like</h3>
               </div>
             </div>
-            <button 
-              onClick={() => {
-                console.log('View Dealer Profile clicked. Vendor ID:', car.vendor_id);
-                if (car.vendor_id) onVendorClick(car.vendor_id);
-                else alert('Vendor information not available for this vehicle.');
-              }}
-              className="btn-gold" 
-              style={{ width: '100%', padding: '0.8rem', borderRadius: '0.5rem', fontWeight: 800, fontSize: '0.85rem', background: 'transparent', border: '1px solid var(--accent-gold)', color: 'var(--accent-gold)' }}
-            >
-              View Dealer Profile
-            </button>
-          </div>
-        </div>
-
-        {/* Recommendations */}
-        <div style={{ marginBottom: '2rem' }}>
-           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem' }}>
-              <h2 style={{ fontSize: '1.2rem', fontWeight: 800 }}>You may also like</h2>
-              <span style={{ color: 'var(--accent-gold)', fontSize: '0.8rem', fontWeight: 700 }}>View all</span>
-           </div>
-           <div style={{ display: 'flex', gap: '1rem', overflowX: 'auto', paddingBottom: '0.5rem' }} className="no-scrollbar">
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {relatedCars.map(rc => (
-                <div key={rc.id} style={{ minWidth: '220px', background: '#111', borderRadius: '1rem', overflow: 'hidden' }}>
-                   <div style={{ height: '130px', position: 'relative' }}>
-                      <img src={rc.image_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      <button style={{ position: 'absolute', top: '0.5rem', left: '0.5rem', background: 'rgba(0,0,0,0.4)', border: 'none', color: '#fff', padding: '0.4rem', borderRadius: '50%', display: 'flex' }}>
-                         <Heart size={14} />
-                      </button>
-                   </div>
-                   <div style={{ padding: '0.8rem' }}>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.2rem' }}>{rc.make} {rc.model}</div>
-                      <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', marginBottom: '0.6rem' }}>2021 • Petrol</div>
-                      <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--accent-gold)' }}>{formatPrice(rc.price)}</div>
-                   </div>
+                <div 
+                  key={rc.id}
+                  onClick={() => window.dispatchEvent(new CustomEvent('select-car', { detail: { car: rc } }))}
+                  className="glass-card group cursor-pointer overflow-hidden rounded-xl"
+                >
+                  <div className="relative aspect-[16/10] overflow-hidden bg-black">
+                    <img src={rc.image_url} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="" />
+                  </div>
+                  <div className="p-4 bg-surface-container/5">
+                    <h4 className="font-bold text-on-surface text-sm truncate">{rc.make} {rc.model}</h4>
+                    <p className="text-[10px] text-on-surface-variant mt-1">{rc.year} • {rc.fuel_type || 'Petrol'}</p>
+                    <div className="flex justify-between items-center mt-3 pt-2 border-t border-glass-border">
+                      <span className="text-luxury-gold font-bold text-sm">{formatPrice(rc.price)}</span>
+                      <span className="text-[10px] font-bold text-luxury-gold flex items-center gap-0.5">VIEW <ArrowRight size={10} /></span>
+                    </div>
+                  </div>
                 </div>
               ))}
-           </div>
-        </div>
-      </div>
+            </div>
+          </div>
+        )}
 
-      {/* Sticky Bottom Bar */}
-      <div style={{ 
-        position: 'fixed', bottom: 0, left: 0, right: 0, 
-        padding: '1.2rem 1.5rem', background: 'rgba(0,0,0,0.8)', 
-        backdropFilter: 'blur(10px)', borderTop: '1px solid rgba(255,255,255,0.05)',
-        zIndex: 100
-      }}>
-        <button 
-          onClick={onInquiry}
-          className="btn-gold" 
-          style={{ width: '100%', padding: '1rem', borderRadius: '0.6rem', fontWeight: 800, fontSize: '0.95rem', marginBottom: '0.8rem' }}
-        >
-          Contact Seller
-        </button>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
-          <button style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '0.6rem', padding: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontSize: '0.85rem', fontWeight: 700 }}>
-             <Phone size={18} color="var(--accent-gold)" /> Call
-          </button>
-          <button style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '0.6rem', padding: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontSize: '0.85rem', fontWeight: 700 }}>
-             <MessageSquare size={18} color="var(--accent-gold)" /> Chat
-          </button>
-        </div>
       </div>
     </motion.div>
   );
 };
-
-const SpecSquare = ({ icon, label, value }: { icon: any, label: string, value: string }) => (
-  <div style={{ background: '#111', padding: '0.8rem 0.4rem', borderRadius: '0.8rem', border: '1px solid rgba(255,255,255,0.03)', textAlign: 'center' }}>
-     <div style={{ color: 'var(--accent-gold)', marginBottom: '0.3rem', display: 'flex', justifyContent: 'center' }}>{icon}</div>
-     <div style={{ fontSize: '0.8rem', fontWeight: 700 }}>{label}</div>
-     <div style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.1rem' }}>{value}</div>
-  </div>
-);
-
-const OverviewItem = ({ icon, label, value }: { icon: any, label: string, value: string }) => (
-  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-    <div style={{ color: 'var(--accent-gold)' }}>{icon}</div>
-    <div style={{ flex: 1, display: 'flex', gap: '0.5rem', fontSize: '0.85rem' }}>
-       <span style={{ color: 'rgba(255,255,255,0.4)' }}>{label}:</span>
-       <span style={{ fontWeight: 600 }}>{value}</span>
-    </div>
-  </div>
-);

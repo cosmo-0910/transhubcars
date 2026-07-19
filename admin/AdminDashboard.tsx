@@ -928,15 +928,13 @@ export const AdminDashboard = () => {
   }, [activeSection, vendors, users, cars, orders, auditLogs, admins, mechanics, inquiries, preorders, partsRequests, towRequests, searchQuery]);
 
   return (
-    <div className="logo-grid-bg dashboard-container" style={{ color: 'var(--text-main)' }}>
-      <div style={{ position: 'fixed', inset: 0, background: 'var(--bg-deep)', zIndex: -2 }}></div>
+    <div className="min-h-screen bg-background text-on-surface flex flex-col md:flex-row text-left font-body-md">
       
       {/* --- MOBILE TOGGLE --- */}
-      <div className="mobile-only-flex" style={{ position: 'fixed', bottom: '2rem', right: '2rem', zIndex: 3000 }}>
+      <div className="md:hidden fixed bottom-6 right-6 z-[1000]">
         <button 
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          className="glass" 
-          style={{ width: '60px', height: '60px', borderRadius: '50%', color: 'var(--accent-gold)', border: '1px solid var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}
+          className="w-14 h-14 rounded-full bg-black/90 border border-luxury-gold text-luxury-gold flex items-center justify-center shadow-lg shadow-luxury-gold/20"
         >
           {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
@@ -944,81 +942,90 @@ export const AdminDashboard = () => {
 
       {/* --- SIDEBAR --- */}
       <aside 
-        className={`dashboard-sidebar ${isSidebarOpen ? 'mobile-sidebar-open' : ''}`}
-        style={{ width: '260px', borderRight: '1px solid var(--border-glass)', display: 'flex', flexDirection: 'column', background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(20px)', zIndex: 2000 }}
+        className={`${
+          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        } md:translate-x-0 fixed md:sticky top-0 left-0 h-screen w-72 bg-deep-charcoal border-r border-glass-border p-6 flex flex-col justify-between transition-transform duration-300 z-[999]`}
       >
-        <div style={{ padding: '2rem', display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
-          <img src="/logo.png" alt="Transhub Logo" style={{ height: '32px', width: 'auto' }} />
-          <h1 className="luxury-font" style={{ fontSize: '1.2rem', margin: 0 }}>Transhub.</h1>
-        </div>
-
-        <div className="sidebar-scroll" style={{ flex: 1, overflowY: 'auto' }}>
-          <div style={{ padding: '0 1rem', marginBottom: '2rem' }}>
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', padding: '0.5rem 1rem' }}>Control Center</div>
-            <SidebarItem icon={LayoutDashboard} label="Imperial Overview" active={activeSection === 'overview'} onClick={() => setActiveSection('overview')} />
+        <div>
+          <div className="flex items-center gap-3 mb-8">
+            <img src="/logo.png" alt="Transhub Logo" className="h-8 w-auto" />
+            <h1 className="font-bold text-luxury-gold text-lg">Transhub.</h1>
           </div>
 
-          <div style={{ padding: '0 1rem', marginBottom: '2rem' }}>
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', padding: '0.5rem 1rem' }}>Management</div>
-            {hasPermission('vendors') && <SidebarItem icon={Store} label="Vendors" active={activeSection === 'vendors'} onClick={() => setActiveSection('vendors')} badge={stats.pendingVendors} />}
-            {hasPermission('users') && <SidebarItem icon={Users} label="Users" active={activeSection === 'users'} onClick={() => setActiveSection('users')} />}
-            {hasPermission('inventory') && <SidebarItem icon={CarFront} label="Inventory" active={activeSection === 'inventory'} onClick={() => setActiveSection('inventory')} badge={stats.pendingListings} />}
-            {hasPermission('inventory') && <SidebarItem icon={ShoppingBag} label="Orders" active={activeSection === 'orders'} onClick={() => setActiveSection('orders')} />}
-            {hasPermission('mechanics') && <SidebarItem icon={Wrench} label="Workshops" active={activeSection === 'mechanics'} onClick={() => setActiveSection('mechanics')} />}
-            {hasPermission('towing') && <SidebarItem icon={Truck} label="Towing Fleet" active={activeSection === 'towing'} onClick={() => setActiveSection('towing')} />}
-            {hasPermission('inquiries') && <SidebarItem icon={Phone} label="Client Inquiries" active={activeSection === 'inquiries'} onClick={() => setActiveSection('inquiries')} badge={stats.pendingInquiries} />}
-            {hasPermission('preorders') && <SidebarItem icon={RefreshCw} label="Preorder Requests" active={activeSection === 'preorders'} onClick={() => setActiveSection('preorders')} badge={stats.pendingPreorders} />}
-            {hasPermission('parts-requests') && <SidebarItem icon={Package} label="Parts Requests" active={activeSection === 'parts-requests'} onClick={() => setActiveSection('parts-requests')} badge={stats.pendingParts} />}
-            <SidebarItem icon={Wrench} label="Parts Catalog" active={activeSection === 'parts-catalog'} onClick={() => setActiveSection('parts-catalog')} />
-            <SidebarItem icon={MessageSquare} label="Messages" active={activeSection === 'messages'} onClick={() => setActiveSection('messages')} />
-          </div>
-
-          {(hasPermission('finance') || hasPermission('sales')) && (
-            <div style={{ padding: '0 1rem', marginBottom: '2rem' }}>
-              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', padding: '0.5rem 1rem' }}>Financial</div>
-              {hasPermission('finance') && <SidebarItem icon={TrendingUp} label="Sales Velocity" active={activeSection === 'sales'} onClick={() => setActiveSection('sales')} />}
-              {hasPermission('finance') && <SidebarItem icon={FileText} label="Ledger" active={activeSection === 'ledger'} onClick={() => setActiveSection('ledger')} />}
+          <div className="overflow-y-auto max-h-[calc(100vh-200px)] space-y-6 scrollbar-hide">
+            <div className="space-y-1">
+              <div className="text-[10px] font-label-caps font-bold tracking-widest text-on-surface-variant/60 px-3 mb-2 uppercase">Control Center</div>
+              <SidebarItem icon={LayoutDashboard} label="Imperial Overview" active={activeSection === 'overview'} onClick={() => setActiveSection('overview')} />
             </div>
-          )}
 
-          <div style={{ padding: '0 1rem', marginBottom: '1rem' }}>
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', padding: '0.5rem 1rem' }}>System</div>
-            {user?.email === 'admin@transhub.com' && <SidebarItem icon={ShieldCheck} label="Admins" active={activeSection === 'admins'} onClick={() => setActiveSection('admins')} />}
-            {hasPermission('audit') && <SidebarItem icon={ShieldAlert} label="Audit Logs" active={activeSection === 'audit'} onClick={() => setActiveSection('audit')} />}
-            {hasPermission('settings') && <SidebarItem icon={Settings} label="Settings" active={activeSection === 'settings'} onClick={() => setActiveSection('settings')} />}
+            <div className="space-y-1">
+              <div className="text-[10px] font-label-caps font-bold tracking-widest text-on-surface-variant/60 px-3 mb-2 uppercase">Management</div>
+              {hasPermission('vendors') && <SidebarItem icon={Store} label="Vendors" active={activeSection === 'vendors'} onClick={() => setActiveSection('vendors')} badge={stats.pendingVendors} />}
+              {hasPermission('users') && <SidebarItem icon={Users} label="Users" active={activeSection === 'users'} onClick={() => setActiveSection('users')} />}
+              {hasPermission('inventory') && <SidebarItem icon={CarFront} label="Inventory" active={activeSection === 'inventory'} onClick={() => setActiveSection('inventory')} badge={stats.pendingListings} />}
+              {hasPermission('inventory') && <SidebarItem icon={ShoppingBag} label="Orders" active={activeSection === 'orders'} onClick={() => setActiveSection('orders')} />}
+              {hasPermission('mechanics') && <SidebarItem icon={Wrench} label="Workshops" active={activeSection === 'mechanics'} onClick={() => setActiveSection('mechanics')} />}
+              {hasPermission('towing') && <SidebarItem icon={Truck} label="Towing Fleet" active={activeSection === 'towing'} onClick={() => setActiveSection('towing')} />}
+              {hasPermission('inquiries') && <SidebarItem icon={Phone} label="Client Inquiries" active={activeSection === 'inquiries'} onClick={() => setActiveSection('inquiries')} badge={stats.pendingInquiries} />}
+              {hasPermission('preorders') && <SidebarItem icon={RefreshCw} label="Preorder Requests" active={activeSection === 'preorders'} onClick={() => setActiveSection('preorders')} badge={stats.pendingPreorders} />}
+              {hasPermission('parts-requests') && <SidebarItem icon={Package} label="Parts Requests" active={activeSection === 'parts-requests'} onClick={() => setActiveSection('parts-requests')} badge={stats.pendingParts} />}
+              <SidebarItem icon={Wrench} label="Parts Catalog" active={activeSection === 'parts-catalog'} onClick={() => setActiveSection('parts-catalog')} />
+              <SidebarItem icon={MessageSquare} label="Messages" active={activeSection === 'messages'} onClick={() => setActiveSection('messages')} />
+            </div>
+
+            {(hasPermission('finance') || hasPermission('sales')) && (
+              <div className="space-y-1">
+                <div className="text-[10px] font-label-caps font-bold tracking-widest text-on-surface-variant/60 px-3 mb-2 uppercase">Financial</div>
+                {hasPermission('finance') && <SidebarItem icon={TrendingUp} label="Sales Velocity" active={activeSection === 'sales'} onClick={() => setActiveSection('sales')} />}
+                {hasPermission('finance') && <SidebarItem icon={FileText} label="Ledger" active={activeSection === 'ledger'} onClick={() => setActiveSection('ledger')} />}
+              </div>
+            )}
+
+            <div className="space-y-1">
+              <div className="text-[10px] font-label-caps font-bold tracking-widest text-on-surface-variant/60 px-3 mb-2 uppercase">System</div>
+              {user?.email === 'admin@transhub.com' && <SidebarItem icon={ShieldCheck} label="Admins" active={activeSection === 'admins'} onClick={() => setActiveSection('admins')} />}
+              {hasPermission('audit') && <SidebarItem icon={ShieldAlert} label="Audit Logs" active={activeSection === 'audit'} onClick={() => setActiveSection('audit')} />}
+              {hasPermission('settings') && <SidebarItem icon={Settings} label="Settings" active={activeSection === 'settings'} onClick={() => setActiveSection('settings')} />}
+            </div>
           </div>
         </div>
 
-        <div style={{ padding: '1.5rem', borderTop: '1px solid var(--border-glass)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-            <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', fontWeight: 700, color: 'black' }}>
+        <div className="pt-4 border-t border-glass-border/40 space-y-4">
+          <div className="flex gap-3 items-center">
+            <div className="w-9 h-9 rounded-full bg-luxury-gold flex items-center justify-center font-bold text-black text-sm shrink-0">
               {profile?.full_name?.charAt(0) || 'A'}
             </div>
-            <div style={{ flex: 1, overflow: 'hidden' }}>
-              <div style={{ fontSize: '0.9rem', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{profile?.full_name || 'Admin'}</div>
-              <div style={{ fontSize: '0.7rem', color: '#4ade80' }}>System Root</div>
+            <div className="min-w-0">
+              <div className="font-bold text-xs text-on-surface truncate">{profile?.full_name || 'Admin'}</div>
+              <div className="text-[9px] text-green-500 font-bold uppercase">System Root</div>
             </div>
           </div>
-          <button onClick={signOut} style={{ width: '100%', padding: '0.8rem', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-glass)', borderRadius: '0.5rem', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontSize: '0.8rem' }}>
-            <LogOut size={14} /> TERMINATE SESSION
+          <button 
+            onClick={signOut} 
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-950/20 border border-red-900/30 text-red-500 hover:bg-red-900/10 rounded-lg text-xs font-bold transition-colors"
+          >
+            <LogOut size={14} /> 
+            <span>SIGN OUT</span>
           </button>
         </div>
       </aside>
 
       {/* --- MAIN CONTENT --- */}
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
+      <main className="flex-1 min-w-0 flex flex-col overflow-hidden relative">
         
         {/* Top Header */}
-        <header className="dashboard-main-header" style={{ padding: '1.5rem 2rem', borderBottom: '1px solid var(--border-glass)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.2)' }}>
+        <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-md border-b border-glass-border px-6 py-4 flex justify-between items-center shrink-0">
           <div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              Admin Portal <ChevronRight size={14} /> {activeSection.charAt(0).toUpperCase() + activeSection.slice(1)}
+            <div className="text-[10px] text-on-surface-variant font-bold tracking-wider uppercase flex items-center gap-1.5">
+              <span>Admin Portal</span>
+              <ChevronRight size={12} className="text-luxury-gold" />
+              <span>{activeSection}</span>
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <div style={{ padding: '0.5rem 1rem', background: 'rgba(74, 222, 128, 0.1)', color: '#4ade80', borderRadius: '2rem', fontSize: '0.7rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#4ade80' }} />
-              NETWORK SOVEREIGN
+          <div className="flex items-center gap-4">
+            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-green-500/10 border border-green-500/20 rounded-full text-[9px] font-bold text-green-400">
+              <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+              <span>SOVEREIGN OPERATIONAL</span>
             </div>
             <ThemeToggle />
             <NotificationInbox />

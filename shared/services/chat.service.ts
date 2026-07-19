@@ -1,8 +1,12 @@
 import { supabase } from '../lib/supabase';
+import { db } from '../lib/db';
 import type { Conversation, Message } from '../types/chat';
 
 export const chatService = {
   supabase,
+  async uploadChatImage(file: File): Promise<string> {
+    return db.uploadImage(file, 'chat-attachments');
+  },
   async getConversations(userId: string): Promise<Conversation[]> {
     const { data, error } = await supabase
       .from('conversations')

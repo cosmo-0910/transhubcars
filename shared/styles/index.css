@@ -1,4 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  .glass-card {
+    background: rgba(30, 30, 30, 0.4);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(212, 175, 55, 0.2);
+    transition: all 0.3s ease;
+  }
+  .glass-card:hover {
+    border-color: rgba(212, 175, 55, 0.5);
+    box-shadow: 0 0 20px rgba(212, 175, 55, 0.1);
+  }
+  .text-glow {
+    text-shadow: 0 0 15px rgba(212, 175, 55, 0.3);
+  }
+  .luxury-gradient {
+    background: linear-gradient(180deg, rgba(22, 19, 11, 0) 0%, rgba(22, 19, 11, 1) 100%);
+  }
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: #110e07;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #D4AF37;
+  }
+}
+
 @import url('./messaging-list.css');
+
 
 :root {
   --accent-gold: #c5a059;

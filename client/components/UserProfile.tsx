@@ -6,37 +6,24 @@ import { db } from '../../shared/lib/db';
 import {
   ShieldCheck,
   User,
-  Mail,
   ChevronRight,
-  Gem,
   MessageSquare,
-  TrendingUp,
   Car,
-  Headphones,
   Bell,
   MapPin,
-  Phone,
   Wallet,
   ShoppingBag,
-  Tag,
-  History,
   Heart,
   Lock,
   Camera,
   LayoutDashboard,
-  CreditCard,
   Edit,
   X
 } from 'lucide-react';
 
-
-/* ─── colours & tokens ────────────────────────────────────── */
-const GOLD = 'var(--accent-gold)';
-
-/* ═══════════════════════════════════════════════════════════ */
 export const UserProfile = ({ onClose, onApplyVendor }: { onClose: () => void, onApplyVendor?: () => void }) => {
   const { user, profile, signOut } = useAuth();
-  const [activeTab, setActiveTab] = useState<'profile' | 'messages' | 'verification' | 'security' | 'notifications' | 'payment' | 'watchlist' | 'orders'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'messages' | 'verification' | 'security' | 'watchlist' | 'orders'>('profile');
   const [unreadCounts, setUnreadCounts] = useState({ unreadMessages: 0, unreadNotifications: 0 });
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -56,7 +43,6 @@ export const UserProfile = ({ onClose, onApplyVendor }: { onClose: () => void, o
       const loadStats = async () => {
         try {
           const cars = await db.getVendorCars(user.id);
-          // In a real app, we'd also fetch saved cars and purchases from respective tables
           setUserStats(prev => ({ ...prev, listings: cars.length }));
         } catch (err) {
           console.error('Failed to load stats:', err);
@@ -83,8 +69,6 @@ export const UserProfile = ({ onClose, onApplyVendor }: { onClose: () => void, o
     try {
       await db.updateProfile(user.id, editForm);
       setIsEditing(false);
-      // AuthContext should automatically refresh profile if implemented correctly, 
-      // otherwise we might need a manual refresh call.
       window.location.reload(); 
     } catch (err) {
       console.error('Failed to save profile:', err);
@@ -110,16 +94,21 @@ export const UserProfile = ({ onClose, onApplyVendor }: { onClose: () => void, o
     }
   };
 
-  // Handle Authentication Inline
   if (!user) {
     return (
-      <div className="profile-fullscreen-mobile" style={{ background: '#000', minHeight: '100vh', padding: '2rem 1rem', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <User size={64} color="var(--accent-gold)" style={{ margin: '0 auto 1.5rem' }} />
-          <h2 className="luxury-font" style={{ fontSize: '1.8rem', color: '#fff', marginBottom: '1rem' }}>SIGN IN TO VIEW PROFILE</h2>
-          <p style={{ color: '#888', maxWidth: '300px', margin: '0 auto' }}>Manage your listings, view your portfolio, and track your acquisitions.</p>
+      <div className="fixed inset-0 z-[1000] w-full h-screen bg-black overflow-y-auto flex flex-col justify-center items-center p-4">
+        <div className="text-center max-w-sm w-full space-y-6">
+          <div className="w-16 h-16 bg-luxury-gold/10 text-luxury-gold rounded-full flex items-center justify-center mx-auto">
+            <User size={36} />
+          </div>
+          <div>
+            <h2 className="font-headline-lg text-2xl font-bold text-on-surface">Sign In To Profile</h2>
+            <p className="text-xs text-on-surface-variant mt-2 leading-relaxed">
+              Manage your acquisition portfolio, view direct messages, and secure preorders.
+            </p>
+          </div>
+          <AuthForm type="login" onSuccess={() => window.location.reload()} />
         </div>
-        <AuthForm type="login" onSuccess={() => window.location.reload()} />
       </div>
     );
   }
@@ -128,368 +117,339 @@ export const UserProfile = ({ onClose, onApplyVendor }: { onClose: () => void, o
   const isAdmin = profile?.role === 'admin';
   const isAdminOrVendor = isAdmin || isVendor;
 
-  if (activeTab === 'messages') {
-    return (
-      <div className="profile-fullscreen-mobile" style={{ background: '#000', minHeight: '100vh', padding: '2rem 1rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem' }}>
-           <button onClick={() => setActiveTab('profile')} style={{ background: 'none', border: 'none', color: '#fff' }}><ChevronRight size={24} style={{ transform: 'rotate(180deg)' }} /></button>
-           <h2 className="luxury-font" style={{ fontSize: '1.5rem' }}>Messages</h2>
-           <div style={{ width: '24px' }} />
-        </div>
-        <MessagingPanel userId={user?.id || ''} role={profile?.role || 'customer'} height="calc(100vh - 150px)" />
-      </div>
-    );
-  }
-
-  if (activeTab !== 'profile') {
-    const tabTitles: Record<string, string> = {
-      verification: 'Identity Verification',
-      security: 'Security & MFA',
-      notifications: 'Notification Preferences',
-      payment: 'Payment Methods',
-      watchlist: 'My Watchlist',
-      orders: 'Order History',
-    };
-
-    return (
-      <div className="profile-fullscreen-mobile" style={{ background: '#000', minHeight: '100vh', padding: '2rem 1rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem' }}>
-           <button onClick={() => setActiveTab('profile')} style={{ background: 'none', border: 'none', color: '#fff' }}><ChevronRight size={24} style={{ transform: 'rotate(180deg)' }} /></button>
-           <h2 className="luxury-font" style={{ fontSize: '1.3rem' }}>{tabTitles[activeTab] || 'Section'}</h2>
-           <div style={{ width: '24px' }} />
-        </div>
-        
-        <div style={{ color: '#888', background: 'rgba(255,255,255,0.02)', padding: '2rem', borderRadius: '1rem', border: '1px solid rgba(255,255,255,0.05)', textAlign: 'center' }}>
-          <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'center', color: GOLD }}>
-            {activeTab === 'security' ? <Lock size={40} /> :
-             activeTab === 'verification' ? <ShieldCheck size={40} /> :
-             activeTab === 'payment' ? <CreditCard size={40} /> :
-             activeTab === 'watchlist' ? <Heart size={40} /> :
-             activeTab === 'orders' ? <ShoppingBag size={40} /> :
-             <Bell size={40} />}
-          </div>
-          <h3 style={{ color: '#fff', fontSize: '1.2rem', marginBottom: '1rem' }}>{tabTitles[activeTab]}</h3>
-          <p style={{ fontSize: '0.85rem', lineHeight: 1.5, marginBottom: '2rem' }}>
-            {activeTab === 'verification' ? 'Upload your government-issued ID to become verified and unlock premium bidding status.' :
-             activeTab === 'security' ? 'Update your password and enable Two-Factor Authentication for enhanced account security.' :
-             activeTab === 'payment' ? 'Manage your saved cards and bank accounts for seamless transactions.' :
-             activeTab === 'watchlist' ? 'Your curated list of saved masterpieces will appear here.' :
-             activeTab === 'orders' ? 'A complete history of your acquisitions and reservations.' :
-             'Manage your email and SMS alert preferences.'}
-          </p>
-          
-          {['verification', 'security', 'payment', 'notifications'].includes(activeTab) ? (
-            <form onSubmit={e => { e.preventDefault(); alert('Saved successfully.'); setActiveTab('profile'); }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', textAlign: 'left' }}>
-              {activeTab === 'security' && (
-                <>
-                  <input type="password" placeholder="Current Password" required style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '1rem', borderRadius: '0.5rem', width: '100%' }} />
-                  <input type="password" placeholder="New Password" required style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '1rem', borderRadius: '0.5rem', width: '100%' }} />
-                </>
-              )}
-              {activeTab === 'payment' && (
-                <>
-                  <input type="text" placeholder="Card Number" required style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '1rem', borderRadius: '0.5rem', width: '100%' }} />
-                  <div style={{ display: 'flex', gap: '1rem' }}>
-                    <input type="text" placeholder="MM/YY" required style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '1rem', borderRadius: '0.5rem', width: '100%' }} />
-                    <input type="text" placeholder="CVC" required style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '1rem', borderRadius: '0.5rem', width: '100%' }} />
-                  </div>
-                </>
-              )}
-              {activeTab === 'verification' && (
-                <div style={{ border: '1px dashed rgba(255,255,255,0.2)', padding: '2rem', textAlign: 'center', borderRadius: '0.5rem', color: '#888' }}>
-                  Tap to upload ID / Passport Document
-                </div>
-              )}
-              
-              <button type="submit" className="btn-gold" style={{ marginTop: '1rem', width: '100%' }}>SAVE {activeTab.toUpperCase()}</button>
-            </form>
-          ) : null}
-        </div>
-      </div>
-    );
-  }
-
-
   return (
-    <div
-      className="profile-fullscreen-mobile"
-      style={{
-        width: '100vw',
-        height: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        background: '#000',
-        color: '#fff',
-        overflowY: 'auto',
-        WebkitOverflowScrolling: 'touch',
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        zIndex: 5000 /* Ensure it overlays the Navbar */
-      }}
-    >
+    <div className="fixed inset-0 z-[1000] w-full h-screen bg-background text-on-surface overflow-y-auto">
+      
       {loading && (
-        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="loading-spinner" />
+        <div className="fixed inset-0 bg-black/60 z-[2000] flex items-center justify-center">
+          <div className="w-8 h-8 border-2 border-glass-border border-t-luxury-gold rounded-full animate-spin"></div>
         </div>
       )}
 
-      {/* ── Header ── */}
-      <header style={{ 
-        padding: '1.5rem', 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        position: 'sticky',
-        top: 0,
-        background: 'rgba(0,0,0,0.8)',
-        backdropFilter: 'blur(10px)',
-        zIndex: 10
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: '#fff', width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ChevronRight size={20} style={{ transform: 'rotate(180deg)' }} /></button>
-          <h1 className="luxury-font" style={{ fontSize: '1.8rem', margin: 0 }}>Account.</h1>
-        </div>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <button 
-            onClick={() => setIsEditing(!isEditing)}
-            style={{ 
-              background: isEditing ? GOLD : 'rgba(255,255,255,0.05)', 
-              border: isEditing ? 'none' : '1px solid rgba(255,255,255,0.1)', 
-              color: isEditing ? '#000' : '#fff', 
-              width: '36px', height: '36px', borderRadius: '50%',
-              display: 'flex', alignItems: 'center', justifyContent: 'center'
-            }}
-            title={isEditing ? 'Cancel Edit' : 'Edit Profile'}
-          >
-            {isEditing ? <X size={16} /> : <Edit size={16} />}
-          </button>
-          <div style={{ position: 'relative' }}>
-
-            <Bell size={22} />
-            {unreadCounts.unreadNotifications > 0 && <span style={{ position: 'absolute', top: -3, right: -3, background: GOLD, color: '#000', fontSize: '0.6rem', fontWeight: 900, padding: '2px 5px', borderRadius: '10px' }}>{unreadCounts.unreadNotifications}</span>}
+      {/* Header Area */}
+      <header className="sticky top-0 z-50 bg-surface/80 backdrop-blur-md border-b border-glass-border p-4">
+        <div className="max-w-container-max mx-auto flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={onClose} 
+              className="w-9 h-9 rounded-full bg-surface-container/50 border border-glass-border flex items-center justify-center text-on-surface hover:text-luxury-gold transition-colors"
+            >
+              <ChevronRight size={18} className="rotate-180" />
+            </button>
+            <h1 className="font-headline-md text-lg font-bold text-luxury-gold">Account Settings</h1>
+          </div>
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setIsEditing(!isEditing)}
+              className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors border ${
+                isEditing 
+                  ? 'bg-luxury-gold border-luxury-gold text-black' 
+                  : 'bg-surface-container/50 border-glass-border text-on-surface hover:text-luxury-gold'
+              }`}
+            >
+              {isEditing ? <X size={16} /> : <Edit size={16} />}
+            </button>
+            <div className="relative">
+              <Bell size={20} className="text-on-surface-variant" />
+              {unreadCounts.unreadNotifications > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 bg-luxury-gold text-black text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                  {unreadCounts.unreadNotifications}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </header>
 
-      <div style={{ padding: '0 1.5rem 8rem 1.5rem' }}>
-        {/* ── User Info Section ── */}
-        <div style={{ display: 'flex', gap: '1.5rem', marginBottom: '2rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-           <div style={{ position: 'relative' }}>
-             <div style={{ width: '90px', height: '90px', borderRadius: '50%', overflow: 'hidden', border: `2px solid ${GOLD}`, background: '#111' }}>
-               <img src={profile?.avatar_url || "https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&q=80&w=200"} alt="User" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-             </div>
-             <label style={{ position: 'absolute', bottom: 0, right: 0, background: GOLD, border: '2px solid #000', borderRadius: '50%', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-               <Camera size={14} color="#000" />
-               <input type="file" accept="image/*" onChange={handleAvatarUpload} style={{ display: 'none' }} />
-             </label>
-           </div>
-           
-           <div style={{ flex: 1, minWidth: '200px' }}>
-             {isEditing ? (
-               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                 <div className="luxury-input-group">
-                   <label style={{ fontSize: '0.65rem', color: GOLD, fontWeight: 800, marginBottom: '0.3rem', display: 'block' }}>FULL NAME</label>
-                   <input 
-                    type="text" 
-                    value={editForm.full_name} 
-                    onChange={e => setEditForm({...editForm, full_name: e.target.value})} 
-                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '0.8rem', borderRadius: '0.5rem', width: '100%', fontSize: '0.9rem' }}
-                   />
-                 </div>
-                 <div className="luxury-input-group">
-                   <label style={{ fontSize: '0.65rem', color: GOLD, fontWeight: 800, marginBottom: '0.3rem', display: 'block' }}>PHONE NUMBER</label>
-                   <input 
-                    type="tel" 
-                    value={editForm.phone} 
-                    onChange={e => setEditForm({...editForm, phone: e.target.value})} 
-                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '0.8rem', borderRadius: '0.5rem', width: '100%', fontSize: '0.9rem' }}
-                   />
-                 </div>
-                 <div className="luxury-input-group">
-                   <label style={{ fontSize: '0.65rem', color: GOLD, fontWeight: 800, marginBottom: '0.3rem', display: 'block' }}>LOCATION (STATE)</label>
-                   <input 
-                    type="text" 
-                    value={editForm.state} 
-                    onChange={e => setEditForm({...editForm, state: e.target.value})} 
-                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '0.8rem', borderRadius: '0.5rem', width: '100%', fontSize: '0.9rem' }}
-                   />
-                 </div>
-                 <button onClick={handleSaveProfile} className="btn-gold" style={{ padding: '0.8rem', borderRadius: '0.5rem', marginTop: '0.5rem', fontWeight: 800 }}>SAVE CHANGES</button>
-               </div>
-             ) : (
-               <>
-                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                   <h2 style={{ fontSize: '1.6rem', fontWeight: 700, margin: 0 }}>{profile?.full_name || 'Member'}</h2>
-                   {isAdminOrVendor && <ShieldCheck size={18} color={GOLD} />}
-                 </div>
-                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#888', fontSize: '0.8rem', marginTop: '0.3rem' }}>
-                   <span style={{ color: GOLD, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>
-                     {profile?.role === 'admin' ? 'Administrator' : profile?.role === 'vendor' ? 'Verified Vendor' : 'Verified Member'}
-                   </span>
-                 </div>
-                 <div style={{ marginTop: '1.2rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.8rem', fontSize: '0.85rem', color: '#888' }}>
-                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', background: 'rgba(255,255,255,0.03)', padding: '0.6rem 1rem', borderRadius: '0.8rem', border: '1px solid rgba(255,255,255,0.05)', minWidth: 0 }}>
-                     <Mail size={14} color={GOLD} style={{ flexShrink: 0 }} /> <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.email}</span>
-                   </div>
-                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', background: 'rgba(255,255,255,0.03)', padding: '0.6rem 1rem', borderRadius: '0.8rem', border: '1px solid rgba(255,255,255,0.05)', minWidth: 0 }}>
-                     <Phone size={14} color={GOLD} style={{ flexShrink: 0 }} /> <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{profile?.phone || 'No phone'}</span>
-                   </div>
-                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', background: 'rgba(255,255,255,0.03)', padding: '0.6rem 1rem', borderRadius: '0.8rem', border: '1px solid rgba(255,255,255,0.05)', minWidth: 0 }}>
-                     <MapPin size={14} color={GOLD} style={{ flexShrink: 0 }} /> <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{profile?.state || 'Not set'}</span>
-                   </div>
-                 </div>
-               </>
-             )}
-           </div>
-        </div>
+      <div className="max-w-container-max mx-auto px-4 md:px-margin-desktop py-12 pb-32 text-left">
+        
+        {/* Profile Card Header */}
+        <section className="flex flex-col md:flex-row items-center md:items-end justify-between gap-6 mb-12 border-b border-glass-border pb-10">
+          <div className="flex flex-col md:flex-row items-center gap-6">
+            
+            {/* Avatar input */}
+            <div className="relative group">
+              <div className="w-24 h-24 rounded-full border-2 border-luxury-gold p-0.5 overflow-hidden">
+                <img 
+                  src={profile?.avatar_url || "https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&q=80&w=200"} 
+                  alt="Avatar" 
+                  className="w-full h-full object-cover rounded-full grayscale group-hover:grayscale-0 transition-all duration-300"
+                />
+              </div>
+              <label className="absolute -bottom-1 -right-1 bg-luxury-gold text-black p-1.5 rounded-full flex items-center justify-center border-2 border-background cursor-pointer hover:scale-105 transition-transform shadow-lg">
+                <Camera size={12} />
+                <input type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
+              </label>
+            </div>
 
-        {/* ── Vendor Application Section ── */}
-        {!isAdminOrVendor && profile?.vendor_status === 'none' && (
-          <div style={{ background: 'linear-gradient(135deg, rgba(197,160,89,0.15) 0%, rgba(0,0,0,0) 100%)', border: `1px solid ${GOLD}44`, borderRadius: '1.2rem', padding: '1.5rem', marginBottom: '2.5rem', display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
-            <div style={{ width: '56px', height: '56px', background: 'rgba(197,160,89,0.1)', borderRadius: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Gem size={28} color={GOLD} />
+            {/* Profile Info */}
+            <div className="text-center md:text-left space-y-1">
+              <span className="text-[10px] font-label-caps text-luxury-gold tracking-widest block font-bold">
+                {profile?.role === 'admin' ? 'SYSTEM ADMINISTRATOR' : isVendor ? 'REGISTERED DEALER' : 'ELITE MEMBER'}
+              </span>
+              <h2 className="text-2xl font-bold font-headline-lg text-on-surface">{profile?.full_name || 'Acquisition Member'}</h2>
+              <div className="flex flex-wrap justify-center md:justify-start items-center gap-3 text-xs text-on-surface-variant">
+                <span className="flex items-center gap-1"><MapPin size={12} /> {profile?.state || 'Lagos, Nigeria'}</span>
+                <span>•</span>
+                <span>Registered since 2026</span>
+              </div>
             </div>
-            <div style={{ flex: 1, minWidth: '200px' }}>
-              <div style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: '0.3rem' }}>Partner with Transhub.</div>
-              <div style={{ fontSize: '0.8rem', color: '#888' }}>Sell your cars, parts, or services to our elite clientele.</div>
+
+          </div>
+
+          <div className="flex gap-2">
+            {isAdminOrVendor && (
+              <button 
+                onClick={() => window.location.href = isAdmin ? '/admin.html' : '/vendor.html'}
+                className="bg-luxury-gold text-on-primary px-5 py-2.5 rounded font-label-caps text-xs font-bold hover:brightness-110 active:scale-95 transition-all flex items-center gap-1.5"
+              >
+                <LayoutDashboard size={14} />
+                <span>{isAdmin ? 'ADMIN CONTROL' : 'VENDOR PORTAL'}</span>
+              </button>
+            )}
+          </div>
+        </section>
+
+        {isEditing ? (
+          <section className="max-w-xl glass-card p-8 rounded-xl border border-glass-border space-y-6">
+            <h3 className="font-headline-md text-lg font-bold text-on-surface border-b border-glass-border pb-2.5">Edit Personal Details</h3>
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-label-caps font-bold tracking-wider text-on-surface-variant block">Full Name</label>
+                <input 
+                  type="text"
+                  value={editForm.full_name}
+                  onChange={e => setEditForm({...editForm, full_name: e.target.value})}
+                  className="w-full bg-surface border border-glass-border rounded-lg px-4 py-2.5 text-sm text-on-surface focus:ring-1 focus:ring-luxury-gold"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-label-caps font-bold tracking-wider text-on-surface-variant block">Phone Number</label>
+                <input 
+                  type="tel"
+                  value={editForm.phone}
+                  onChange={e => setEditForm({...editForm, phone: e.target.value})}
+                  className="w-full bg-surface border border-glass-border rounded-lg px-4 py-2.5 text-sm text-on-surface focus:ring-1 focus:ring-luxury-gold"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-label-caps font-bold tracking-wider text-on-surface-variant block">Location State</label>
+                <input 
+                  type="text"
+                  value={editForm.state}
+                  onChange={e => setEditForm({...editForm, state: e.target.value})}
+                  className="w-full bg-surface border border-glass-border rounded-lg px-4 py-2.5 text-sm text-on-surface focus:ring-1 focus:ring-luxury-gold"
+                />
+              </div>
             </div>
-            <button 
-              onClick={() => onApplyVendor?.()} 
-              className="btn-gold" 
-              style={{ padding: '0.8rem 1.5rem', borderRadius: '0.8rem', fontWeight: 800, fontSize: '0.8rem' }}
-            >
-              APPLY NOW
-            </button>
+            <div className="flex gap-3 pt-2">
+              <button 
+                onClick={handleSaveProfile}
+                className="flex-1 bg-luxury-gold text-on-primary py-3 rounded font-label-caps text-xs font-bold hover:brightness-110 active:scale-95 transition-all"
+              >
+                SAVE PROFILE
+              </button>
+              <button 
+                onClick={() => setIsEditing(false)}
+                className="flex-1 border border-glass-border text-on-surface py-3 rounded font-label-caps text-xs font-bold hover:bg-surface-variant"
+              >
+                CANCEL
+              </button>
+            </div>
+          </section>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            
+            {/* Left Column: Metrics & Actions */}
+            <div className="lg:col-span-8 space-y-8">
+              
+              {/* Metrics Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <MetricCard icon={<ShoppingBag size={20} />} label="PURCHASES" value={userStats.purchases.toString()} />
+                <MetricCard icon={<Heart size={20} />} label="FAVORITES" value={userStats.saved.toString()} />
+                <MetricCard icon={<Car size={20} />} label="LISTINGS" value={userStats.listings.toString()} />
+                <MetricCard icon={<Wallet size={20} />} label="WALLET" value="₦0" />
+              </div>
+
+              {/* Vendor Apply Promo banner */}
+              {!isAdminOrVendor && profile?.vendor_status === 'none' && (
+                <div className="glass-card rounded-xl p-8 bg-gradient-to-r from-luxury-gold/10 to-transparent border border-glass-border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+                  <div className="space-y-1.5">
+                    <span className="text-luxury-gold font-bold text-[10px] tracking-wider uppercase">PARTNER PROGRAM</span>
+                    <h3 className="text-xl font-headline-lg font-bold text-on-surface">Become a Transhub Partner</h3>
+                    <p className="text-xs text-on-surface-variant leading-relaxed">
+                      Register as a verified automotive dealer or mechanic center to list your inventories and services.
+                    </p>
+                  </div>
+                  <button 
+                    onClick={onApplyVendor}
+                    className="bg-luxury-gold text-on-primary px-6 py-2.5 rounded font-label-caps text-xs font-bold hover:brightness-110 active:scale-95 transition-all whitespace-nowrap"
+                  >
+                    APPLY NOW
+                  </button>
+                </div>
+              )}
+
+              {/* Management grids */}
+              <div className="space-y-4">
+                <h3 className="font-headline-md text-lg font-bold text-on-surface">Management</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  
+                  <button 
+                    onClick={() => setActiveTab('messages')}
+                    className="flex justify-between items-center p-5 glass-card rounded-xl border border-glass-border hover:border-luxury-gold/40 text-left"
+                  >
+                    <div className="flex gap-4 items-center">
+                      <div className="text-luxury-gold"><MessageSquare size={20} /></div>
+                      <div>
+                        <h4 className="font-bold text-sm text-on-surface">Messages</h4>
+                        <p className="text-[10px] text-on-surface-variant">Acquisition conversations</p>
+                      </div>
+                    </div>
+                    {unreadCounts.unreadMessages > 0 && (
+                      <span className="bg-luxury-gold text-black text-[9px] font-bold px-2 py-0.5 rounded-full">
+                        {unreadCounts.unreadMessages} NEW
+                      </span>
+                    )}
+                  </button>
+
+                  <button 
+                    onClick={() => setActiveTab('watchlist')}
+                    className="flex justify-between items-center p-5 glass-card rounded-xl border border-glass-border hover:border-luxury-gold/40 text-left"
+                  >
+                    <div className="flex gap-4 items-center">
+                      <div className="text-luxury-gold"><Heart size={20} /></div>
+                      <div>
+                        <h4 className="font-bold text-sm text-on-surface">Watchlist</h4>
+                        <p className="text-[10px] text-on-surface-variant">Saved vehicle listings</p>
+                      </div>
+                    </div>
+                    <ChevronRight size={16} className="text-on-surface-variant" />
+                  </button>
+
+                </div>
+              </div>
+
+            </div>
+
+            {/* Right Column: Preferences Links & Logout */}
+            <div className="lg:col-span-4 space-y-6">
+              
+              <div className="glass-card rounded-xl overflow-hidden border border-glass-border">
+                <div className="p-5 border-b border-glass-border">
+                  <h3 className="font-headline-md text-base font-bold text-on-surface">Preferences</h3>
+                </div>
+                <div className="divide-y divide-glass-border/40">
+                  <button 
+                    onClick={() => setActiveTab('security')}
+                    className="w-full flex justify-between items-center px-6 py-4 hover:bg-surface-container/20 text-left transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Lock size={16} className="text-luxury-gold" />
+                      <div>
+                        <h4 className="font-bold text-xs text-on-surface">Security</h4>
+                        <p className="text-[9px] text-on-surface-variant">Passwords & MFA keypads</p>
+                      </div>
+                    </div>
+                    <ChevronRight size={14} className="text-on-surface-variant" />
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('verification')}
+                    className="w-full flex justify-between items-center px-6 py-4 hover:bg-surface-container/20 text-left transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <ShieldCheck size={16} className="text-luxury-gold" />
+                      <div>
+                        <h4 className="font-bold text-xs text-on-surface">Identity Verification</h4>
+                        <p className="text-[9px] text-on-surface-variant">Government-issued document audits</p>
+                      </div>
+                    </div>
+                    <span className="text-[9px] font-bold text-luxury-gold uppercase tracking-wider bg-luxury-gold/10 px-2 py-0.5 rounded">
+                      {profile?.status === 'active' ? 'VERIFIED' : 'PENDING'}
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Logout button */}
+              <button 
+                onClick={signOut}
+                className="w-full bg-red-950/20 border border-red-900/30 text-red-500 py-3.5 rounded-lg font-label-caps text-xs font-bold hover:bg-red-900/10 active:scale-[0.99] transition-all flex items-center justify-center gap-2"
+              >
+                <span>SIGN OUT OF ACCOUNT</span>
+              </button>
+
+            </div>
 
           </div>
         )}
 
-        {/* ── Overview Section ── */}
-        <div style={{ marginBottom: '2.5rem' }}>
-           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem' }}>
-             <h3 className="luxury-font" style={{ fontSize: '1.2rem' }}>{isAdminOrVendor ? 'Portfolio Metrics.' : 'Activity.'}</h3>
-           </div>
-           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))', gap: '1rem' }}>
-             {isAdminOrVendor ? (
-               <>
-                 <OverviewItem icon={<Car size={20} />} label="Listings" value={userStats.listings.toString()} />
-                 <OverviewItem icon={<Wallet size={20} />} label="Wallet" value="₦0" />
-                 <OverviewItem icon={<TrendingUp size={20} />} label="Active" value="0" />
-                 <OverviewItem icon={<Heart size={20} />} label="Saved" value={userStats.saved.toString()} />
-               </>
-             ) : (
-               <>
-                 <OverviewItem icon={<ShoppingBag size={20} />} label="Purchases" value={userStats.purchases.toString()} />
-                 <OverviewItem icon={<Heart size={20} />} label="Favorites" value={userStats.saved.toString()} />
-                 <OverviewItem icon={<History size={20} />} label="Viewed" value="12" />
-                 <OverviewItem icon={<Tag size={20} />} label="Offers" value="0" />
-               </>
-             )}
-           </div>
-        </div>
-
-        {/* ── Main Actions Grid ── */}
-        <div style={{ marginBottom: '2.5rem' }}>
-           <h3 className="luxury-font" style={{ fontSize: '1.2rem', marginBottom: '1.2rem' }}>Management.</h3>
-           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem' }}>
-             {isAdminOrVendor && (
-               <ActivityItem 
-                icon={<LayoutDashboard size={18} />} 
-                label={isAdmin ? "Superadmin Portal" : "Vendor Dashboard"} 
-                subText="Manage inventory & sales" 
-                onClick={() => window.location.href = isAdmin ? '/admin.html' : '/vendor.html'} 
-               />
-             )}
-             <ActivityItem icon={<MessageSquare size={18} />} label="Messages" subText="Acquisition conversations" badge={unreadCounts.unreadMessages} onClick={() => setActiveTab('messages')} />
-             <ActivityItem icon={<Heart size={18} />} label="Watchlist" subText="Saved masterpieces" onClick={() => setActiveTab('watchlist')} />
-             <ActivityItem icon={<ShoppingBag size={18} />} label="Orders" subText="Acquisition history" onClick={() => setActiveTab('orders')} />
-             <ActivityItem icon={<History size={18} />} label="Activity" subText="Recent interactions" />
-             <ActivityItem icon={<CreditCard size={18} />} label="Payments" subText="Billing & wallet" onClick={() => setActiveTab('payment')} />
-           </div>
-        </div>
-
-        {/* ── Account Settings List ── */}
-        <div style={{ marginBottom: '2.5rem' }}>
-           <h3 className="luxury-font" style={{ fontSize: '1.2rem', marginBottom: '1.2rem' }}>Preferences.</h3>
-           <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', background: 'rgba(255,255,255,0.05)', borderRadius: '1.2rem', overflow: 'hidden' }}>
-             <AccountLink 
-               icon={<User size={18} />} 
-               label="Personal Information" 
-               subText="Update your personal details" 
-               onClick={() => {
-                 setIsEditing(true);
-                 window.scrollTo({ top: 0, behavior: 'smooth' });
-               }}
-             />
-             <AccountLink icon={<ShieldCheck size={18} />} label="Identity Verification" subText="Verify your status" badgeText={profile?.status === 'active' ? "Verified" : "Pending"} badgeColor={profile?.status === 'active' ? "#4ade80" : GOLD} onClick={() => setActiveTab('verification')} />
-             <AccountLink icon={<Lock size={18} />} label="Security" subText="Password and MFA" onClick={() => setActiveTab('security')} />
-             <AccountLink icon={<Bell size={18} />} label="Notifications" subText="Manage alerts" onClick={() => setActiveTab('notifications')} />
-           </div>
-
-        </div>
-
-        {/* ── Logout Button ── */}
-        <button 
-          onClick={signOut}
-          style={{ width: '100%', padding: '1.2rem', borderRadius: '1rem', background: 'rgba(255,0,0,0.05)', border: '1px solid rgba(255,0,0,0.1)', color: '#ff4444', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.8rem', marginBottom: '2rem' }}
-        >
-          <History size={18} style={{ transform: 'rotate(180deg)' }} /> SIGN OUT
-        </button>
-
-        {/* ── Support Section ── */}
-        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '1.2rem', padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
-           <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(197,160,89,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-             <Headphones size={22} color={GOLD} />
-           </div>
-           <div style={{ flex: 1, minWidth: '150px' }}>
-             <div style={{ fontSize: '1rem', fontWeight: 700 }}>Exclusive Support.</div>
-             <div style={{ fontSize: '0.75rem', color: '#888' }}>Our concierge team is here for you</div>
-           </div>
-           <button style={{ background: GOLD, color: '#000', fontWeight: 800, padding: '0.8rem 1.2rem', borderRadius: '0.8rem', fontSize: '0.8rem' }}>Enquire</button>
-        </div>
       </div>
+      
+      {/* Messages Tab View Overlay */}
+      {activeTab === 'messages' && (
+        <div className="fixed inset-0 z-[1100] bg-background flex flex-col">
+          <header className="bg-surface border-b border-glass-border p-4 flex items-center gap-3">
+            <button 
+              onClick={() => setActiveTab('profile')} 
+              className="w-9 h-9 rounded-full bg-surface-container/50 border border-glass-border flex items-center justify-center text-on-surface"
+            >
+              <ChevronRight size={18} className="rotate-180" />
+            </button>
+            <h2 className="font-headline-md text-lg font-bold text-on-surface">Direct Conversations</h2>
+          </header>
+          <div className="flex-1 bg-deep-charcoal">
+            <MessagingPanel userId={user.id} role={profile?.role || 'customer'} height="calc(100vh - 72px)" />
+          </div>
+        </div>
+      )}
+
+      {/* Mock preferences content overlays */}
+      {['verification', 'security', 'watchlist', 'orders'].includes(activeTab) && (
+        <div className="fixed inset-0 z-[1100] bg-background/95 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="max-w-md w-full glass-card p-8 rounded-xl border border-glass-border text-center space-y-6 relative">
+            <button 
+              onClick={() => setActiveTab('profile')}
+              className="absolute top-4 right-4 text-on-surface-variant hover:text-on-surface"
+            >
+              <X size={20} />
+            </button>
+            
+            <div className="w-16 h-16 bg-luxury-gold/10 text-luxury-gold rounded-full flex items-center justify-center mx-auto">
+              {activeTab === 'security' && <Lock size={28} />}
+              {activeTab === 'verification' && <ShieldCheck size={28} />}
+              {activeTab === 'watchlist' && <Heart size={28} />}
+              {activeTab === 'orders' && <ShoppingBag size={28} />}
+            </div>
+
+            <div>
+              <h3 className="font-headline-md text-lg font-bold text-on-surface capitalize">{activeTab} Panel</h3>
+              <p className="text-xs text-on-surface-variant mt-2 leading-relaxed">
+                {activeTab === 'security' && 'You can update user passwords and multi-factor credentials here.'}
+                {activeTab === 'verification' && 'Verified users unlock elite bidding structures and concierge options.'}
+                {activeTab === 'watchlist' && 'Save vehicle listings inside showrooms to view them in this watchlist.'}
+                {activeTab === 'orders' && 'Your vehicle preorder lists and delivery updates are logged here.'}
+              </p>
+            </div>
+
+            <button 
+              onClick={() => setActiveTab('profile')}
+              className="w-full bg-luxury-gold text-on-primary py-3 rounded-lg text-xs font-bold"
+            >
+              CLOSE
+            </button>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
 
-const OverviewItem = ({ icon, label, value }: { icon: React.ReactNode, label: string, value: string }) => (
-  <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '1rem', padding: '1.2rem 0.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
-    <div style={{ color: GOLD }}>{icon}</div>
-    <div style={{ fontSize: '1.3rem', fontWeight: 800 }}>{value}</div>
-    <div style={{ fontSize: '0.65rem', color: '#888', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</div>
+const MetricCard = ({ icon, label, value }: { icon: React.ReactNode, label: string, value: string }) => (
+  <div className="bg-surface-container/10 border border-glass-border/60 rounded-xl p-4 flex flex-col items-center text-center space-y-1 justify-center">
+    <div className="text-luxury-gold mb-1">{icon}</div>
+    <div className="text-xl font-bold text-on-surface font-headline-md">{value}</div>
+    <div className="text-[8px] font-label-caps text-on-surface-variant tracking-wider font-bold">{label}</div>
   </div>
 );
-
-const ActivityItem = ({ icon, label, subText, badge, onClick }: { icon: React.ReactNode, label: string, subText: string, badge?: number, onClick?: () => void }) => (
-  <div 
-    onClick={onClick}
-    style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '1.2rem', padding: '1.2rem', display: 'flex', gap: '1rem', alignItems: 'center', cursor: onClick ? 'pointer' : 'default' }}
-  >
-    <div style={{ color: GOLD }}>{icon}</div>
-    <div style={{ flex: 1 }}>
-      <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>{label}</div>
-      <div style={{ fontSize: '0.7rem', color: '#888' }}>{subText}</div>
-    </div>
-    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-      {badge ? <span style={{ background: GOLD, color: '#000', fontSize: '0.65rem', fontWeight: 900, padding: '2px 6px', borderRadius: '10px' }}>{badge}</span> : null}
-      <ChevronRight size={14} color="#333" />
-    </div>
-  </div>
-);
-
-const AccountLink = ({ icon, label, subText, badgeText, badgeColor, onClick }: { icon: React.ReactNode, label: string, subText: string, badgeText?: string, badgeColor?: string, onClick?: () => void }) => (
-  <div onClick={onClick} style={{ background: 'rgba(0,0,0,0.3)', padding: '1.2rem', display: 'flex', gap: '1rem', alignItems: 'center', cursor: onClick ? 'pointer' : 'default' }}>
-
-    <div style={{ color: GOLD }}>{icon}</div>
-    <div style={{ flex: 1 }}>
-      <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>{label}</div>
-      <div style={{ fontSize: '0.7rem', color: '#888' }}>{subText}</div>
-    </div>
-    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-      {badgeText && <span style={{ color: badgeColor, fontSize: '0.65rem', fontWeight: 700 }}>{badgeText}</span>}
-      <ChevronRight size={16} color="#333" />
-    </div>
-  </div>
-);
-

@@ -1,0 +1,151 @@
+================================================================================
+               TRANSHUB CARS - PROJECT ANALYSIS & FEATURE REGISTRY
+================================================================================
+
+This document provides a comprehensive section-by-section breakdown of the
+Transhub Cars codebase. The project is an elite, luxury-oriented automotive
+marketplace and concierge application built using a React + TypeScript + Vite
+frontend, a Node.js/Express admin helper server, a Supabase database (PostgreSQL
+with Row-Level Security), and a React Native mobile application.
+
+--------------------------------------------------------------------------------
+1. GLOBAL ARCHITECTURE & TECH STACK
+--------------------------------------------------------------------------------
+* Frontend Framework: React (v18+), TypeScript, Vite.
+  - Three distinct client entries: index.html (Client Showroom), admin.html
+    (Superadmin Dashboard), and vendor.html (Vendor Portal).
+  - Component library styled with Vanilla CSS (leveraging custom premium variables,
+    glassmorphism effects, and smooth micro-animations).
+  - Page transitions and modal popups powered by Framer Motion.
+* Backend Server: Node.js, Express, Cors, and @supabase/supabase-js.
+  - Securely creates/updates admin users in Supabase Auth using the service role.
+* Database & File Storage: Supabase (PostgreSQL with RLS, triggers, functions).
+* Mobile Platform: React Native (TypeScript) cross-platform iOS & Android app.
+
+--------------------------------------------------------------------------------
+2. DATABASE TABLES & CONSTRAINTS (SUPABASE_SCHEMA.sql & Migrations)
+--------------------------------------------------------------------------------
+* profiles: User profiles detailing roles ('customer', 'vendor', 'admin'),
+  vendor_status ('none', 'pending', 'approved', 'rejected'), vendor_type
+  ('car', 'parts', 'both', 'tow_truck'), preorder_status, driver tracking states
+  (is_online, last_lat, last_long), business names, and uploader documents.
+* cars: The vehicle inventory table mapping specifications (make, model, year,
+  price, status: 'Readily Available' | 'Preorder', description, image_url,
+  gallery_urls, features, mileage, vin, transmission, fuel_type, interior_color,
+  exterior_color, engine, stock_number, vendor_id, approval_status).
+* orders: Records purchases of vehicles and parts with billing detail status
+  ('Pending', 'Paid', 'Processing', 'Shipped', 'Delivered') and payment refs.
+* inquiries: Customer leads for inspection bookings or direct purchases.
+* preorders: Customer vehicle sourcing requests outlining model details, year,
+  and budget constraints.
+* cart_items: Localized shopping cart storage linked to user profiles.
+* spare_parts: Active components database listing category, manufacturer make/model,
+  price, description, condition ('New' | 'Used' | 'Refurbished'), stock quantity.
+* spare_part_orders: Individual custom parts sourcing inquiries.
+* tow_requests: Emergency towing requests featuring coordinates (pickup_lat/long,
+  destination_lat/long), assigned driver_id, estimated arrival time, and price.
+* mechanics: Certified luxury workshop profiles (name, specialty, location,
+  rating, certification check, uploader images).
+* conversations & messages: Message storage backing the chat module.
+* notifications: In-app system notification logs.
+* media_fingerprints: Storage uploader registry utilizing SHA-256 file hashes
+  to block duplicate image uploads.
+
+--------------------------------------------------------------------------------
+3. CLIENT SHOWROOM PORTAL (client/ components & App.tsx)
+--------------------------------------------------------------------------------
+* Main Hub & Showroom View (client/App.tsx)
+  - Manages view states: 'home' | 'preorder' | 'services' | 'inventory' |
+    'collections' | 'brands' | 'categories' | 'messages' | 'profile' | 'vendor'.
+  - Embeds custom Search and Select event listeners to dynamically route users.
+* Hero Section (client/components/Hero.tsx)
+  - Elite landing hero header showing luxury imagery, browse redirection, and
+    preorder inquiry actions.
+* Inventory Grid (client/components/Inventory.tsx & VehicleCard.tsx)
+  - Displays approved cars, searching/filtering configurations, pagination, and
+    tag cards ("Accident Free", "First Body").
+* Brand & Category Browsing (client/components/HomeSections.tsx, BrandsPage.tsx, CategoriesPage.tsx)
+  - Categorizes inventory by luxury manufacturers and vehicle styles.
+* Dynamic Gallery Viewer (client/components/DiscoveryGallery.tsx)
+  - Slideshow lightbox layout highlighting detailed catalog pictures.
+* Preorders Form (client/components/Preorder.tsx)
+  - Customer interface allowing users to submit exact luxury vehicles sourcing
+    requests.
+* Concierge Services Hub (client/components/Services.tsx)
+  - Hub routing to three main sub-services:
+    1. Spare Parts Marketplace (client/components/SparePartsMarketplace.tsx):
+       Comprehensive dashboard to query parts catalog. Includes a sourcing form
+       (SparePartsForm) for custom parts requests.
+    2. Certified Workshops (MechanicsList): Certified maintenance centers grid
+       detailing rating stars, maps location, phone bookings, and certifications.
+    3. Emergency Towing Recovery (TowTruckForm & StyledMap):
+       - Geolocation Auto-Detection: Browser API tracking pickup coordinates.
+       - Themed Map Preview: Google Maps implementation styled for Transhub.
+       - Sourcing: Dispatches truck recovery requests.
+* Vehicle Specs Page (client/components/VehicleDetail.tsx)
+  - Full display of specifications. Allows the customer to book a physical inspection,
+    initiate a purchase, or click the vendor profile to view other assets.
+* User Accounts (client/components/UserProfile.tsx)
+  - User details updating (full name, phone, location), avatar picture uploads,
+    identity document verification uploader, order history, active watchlist,
+    and a quick button to start a vendor application.
+* Vendor Onboarding Form (client/components/VendorApplication.tsx)
+  - Form requesting business registration fields, store verification photos,
+    and visual video walk-through tours.
+* Real-time Chat Center (client/components/MessagingPanel.tsx & MessageVendorModal.tsx)
+  - Thread-separated messaging screens, auto-scroll setups, listing headers (showing
+    the exact car or component the chat is about), and safety alert toasts.
+
+--------------------------------------------------------------------------------
+4. VENDOR PORTAL (vendor/ components & VendorDashboard.tsx)
+--------------------------------------------------------------------------------
+* Inventory Management Dashboard
+  - Add/Edit Vehicles (vendor/components/AddCarModal.tsx): Embeds NHTSA API checks.
+    Entering a car model dynamically checks NHTSA databases to auto-assign body configurations.
+  - Add/Edit Spare Parts (vendor/components/AddPartModal.tsx): Manages pricing,
+    quantity, compatibility matrices, and condition statuses.
+* Preorder Verification Application (vendor/components/UpgradeToPreorderModal.tsx)
+  - Verification uploader for visual store walkthroughs to unlock preorder features.
+* Sales and Order Logs
+  - Process customer purchases and alter fulfillment states (Paid, Shipped, Processing).
+* Strategic Intelligence Analytics
+  - Metric blocks tracking monthly revenue, listings under review, active stock count,
+    and total successful sales.
+
+--------------------------------------------------------------------------------
+5. SUPERADMIN PORTAL (admin/ components & AdminDashboard.tsx)
+--------------------------------------------------------------------------------
+* Executive Dashboard (admin/components/StatsOverview.tsx)
+  - Aggregated KPIs tracking sales volume, online vendors, server status, and
+    platform usage.
+* Merchant Moderation Feed (admin/components/VendorManagementTable.tsx)
+  - Queue management validating partner requests and preorder access submissions.
+* User Governance (admin/components/UserManagementTable.tsx)
+  - Modify user levels, adjust permissions, and suspend or ban profiles.
+* Global Inventory Audit (admin/components/CarManagementTable.tsx & SparePartsCatalogTable.tsx)
+  - Moderate every car or part listed. Edit configurations or remove banned listings.
+* Transaction & Invoicing logs (admin/components/OrderManagementTable.tsx)
+  - Monitor checkout logs and automatically generate PDF invoices
+    (client/utils/invoiceGenerator.ts) for customer records.
+* Tow Truck Dispatch System (admin/components/TowingManagement.tsx)
+  - Interactive map tracking online tow drivers. Utilizes PostgreSQL geodesic
+    distance functions to automatically match the nearest online tow driver.
+* Security Audit Ledger
+  - Audit logs tracking updates, deleted assets, and platform status switches.
+* System Management
+  - Configurations, maintenance modes, and portal parameters.
+
+--------------------------------------------------------------------------------
+6. CORE UTILITIES & SPECIAL IMPLEMENTATIONS
+--------------------------------------------------------------------------------
+* Image Watermarking (shared/lib/watermark.ts)
+  - Canvas utility capturing upload files. Overlays a Transhub custom golden watermark
+    (transhub/username) onto a dark background bar directly in the center of the image.
+* Theme and Alerts (shared/context/ThemeContext.tsx & AlertContext.tsx)
+  - Centralized hooks for dark/light transitions and customized modal popups.
+* Search Autocomplete (shared/components/SearchAutocomplete.tsx)
+  - Self-completing search bars used across portals.
+* Server Endpoints (server/index.ts)
+  - Handles secure admin creation (/api/admin/create) and administrative updates
+    (/api/admin/update) by interacting with Supabase Auth using high-level privileges.
+================================================================================

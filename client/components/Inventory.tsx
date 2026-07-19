@@ -3,18 +3,11 @@ import { db } from '../../shared/lib/db';
 import type { Car } from '../../shared/lib/db';
 import { motion, AnimatePresence } from 'framer-motion';
 import SearchAutocomplete from '../../shared/components/SearchAutocomplete';
-import { FilterDropdown } from './FilterDropdown';
 import { VehicleCard } from './VehicleCard';
-
-
-// BodyTypeCard moved to Footer.tsx
-
-// SVG icons moved to Footer.tsx
-
 import { SidebarFilter } from './SidebarFilter';
-import { Filter, X, ChevronRight } from 'lucide-react'; // Import icons
+import { Filter, X } from 'lucide-react';
 
-export const Inventory = ({ onInquiry, initialStatus = 'All', hideFilters = false, isHomeWidget = false, title = 'The Collection.', externalSearchQuery }: { 
+export const Inventory = ({ onInquiry, initialStatus = 'All', hideFilters = false, isHomeWidget = false, title = 'Premium Inventory', externalSearchQuery }: { 
   onInquiry: (car: Car) => void,
   initialStatus?: 'All' | 'Readily Available' | 'Preorder',
   hideFilters?: boolean,
@@ -30,9 +23,9 @@ export const Inventory = ({ onInquiry, initialStatus = 'All', hideFilters = fals
   const [filterStatus, setFilterStatus] = useState<'All' | 'Readily Available' | 'Preorder'>(initialStatus);
   const [activePillTab, setActivePillTab] = useState('All Vehicles');
   
-  // Advanced Filters
+  // Advanced Filters State
   const [filters, setFilters] = useState({
-    priceRange: [0, 2000000000] as [number, number],
+    priceRange: [0, 1500000000] as [number, number],
     yearRange: [1900, 2100] as [number, number],
     mileageRange: [0, 1000000] as [number, number],
     conditions: [] as string[],
@@ -51,13 +44,6 @@ export const Inventory = ({ onInquiry, initialStatus = 'All', hideFilters = fals
     discountOnly: false
   });
 
-  const [counts, setCounts] = useState({
-    conditions: {} as Record<string, number>,
-    bodyTypes: {} as Record<string, number>,
-    locations: {} as Record<string, number>,
-    makes: {} as Record<string, number>
-  });
-
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [dynamicPriceBounds, setDynamicPriceBounds] = useState<[number, number]>([0, 1000000000]);
 
@@ -73,7 +59,7 @@ export const Inventory = ({ onInquiry, initialStatus = 'All', hideFilters = fals
     setIsLoading(true);
     try {
       const currentPage = reset ? 0 : page;
-      const pageSize = isHomeWidget ? 8 : 12;
+      const pageSize = isHomeWidget ? 4 : 12;
       
       const data = await db.getPaginatedCars({ 
         onlyApproved: true, 
@@ -92,26 +78,10 @@ export const Inventory = ({ onInquiry, initialStatus = 'All', hideFilters = fals
       setHasMore(data.length === pageSize);
 
       if (reset && data.length > 0) {
-        // We only do this once conceptually, but to keep it simple:
-        // Calculate initial counts for filters (this might need a separate non-paginated call for accuracy)
         const allCarsForCounts = await db.getCars({ onlyApproved: true });
-        const newCounts = {
-          conditions: {} as Record<string, number>,
-          bodyTypes: {} as Record<string, number>,
-          locations: {} as Record<string, number>,
-          makes: {} as Record<string, number>
-        };
-        allCarsForCounts.forEach(car => {
-          if (car.condition) newCounts.conditions[car.condition] = (newCounts.conditions[car.condition] || 0) + 1;
-          if (car.body_type) newCounts.bodyTypes[car.body_type] = (newCounts.bodyTypes[car.body_type] || 0) + 1;
-          if (car.state) newCounts.locations[car.state] = (newCounts.locations[car.state] || 0) + 1;
-          if (car.make) newCounts.makes[car.make] = (newCounts.makes[car.make] || 0) + 1;
-        });
-        setCounts(newCounts as any);
-
-        if (data.length > 0) {
-          const minPrice = Math.min(...data.map(c => c.price));
-          const maxPrice = Math.max(...data.map(c => c.price));
+        if (allCarsForCounts.length > 0) {
+          const minPrice = Math.min(...allCarsForCounts.map(c => c.price));
+          const maxPrice = Math.max(...allCarsForCounts.map(c => c.price));
           setDynamicPriceBounds([minPrice, maxPrice]);
           setFilters(prev => ({ ...prev, priceRange: [minPrice, maxPrice] }));
         }
@@ -158,8 +128,8 @@ export const Inventory = ({ onInquiry, initialStatus = 'All', hideFilters = fals
       const matchesDiscount = !filters.discountOnly || (car.original_price && car.original_price > car.price);
 
       // HomeWidget Pill Overrides
-      if (isHomeWidget) {
-        if (activePillTab === 'Ready to Drive') _matchesBodyType = _matchesBodyType && car.status === 'Readily Available'; // Override status internally
+      if (isHomeWidget || activePillTab !== 'All Vehicles') {
+        if (activePillTab === 'Ready to Drive') _matchesBodyType = _matchesBodyType && car.status === 'Readily Available';
         if (activePillTab === 'Under N30M') _matchesPrice = _matchesPrice && car.price < 30000000;
         if (activePillTab === 'SUVs') _matchesBodyType = _matchesBodyType && (car.body_type?.toLowerCase() === 'suv');
         if (activePillTab === 'Preorder Only') _matchesBodyType = _matchesBodyType && car.status === 'Preorder';
@@ -173,149 +143,119 @@ export const Inventory = ({ onInquiry, initialStatus = 'All', hideFilters = fals
   }, [cars, searchQuery, filterStatus, filters, isHomeWidget, activePillTab]);
 
   return (
-    <div>
-      {/* Selection Control Bar */}
-      {isHomeWidget ? (
-        <div style={{ marginBottom: '3rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '2rem', marginBottom: '2rem' }}>
-            <div>
-              <div style={{ display: 'inline-flex', marginBottom: '1rem', fontSize: '0.65rem', color: 'var(--accent-gold)', letterSpacing: '2px', fontWeight: 800, padding: '4px 12px', borderRadius: '30px', border: '1px solid rgba(197, 160, 89, 0.3)', background: 'rgba(197, 160, 89, 0.1)' }}>PREMIUM SELECTION</div>
-              <h2 className="luxury-font" style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', lineHeight: 1.1, marginBottom: '0.5rem' }}>Find Your Next Car<br/>in Minutes</h2>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Verified listings. Transparent pricing. Fast delivery.</p>
-            </div>
-            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-               <SearchAutocomplete 
-                 placeholder="Search by make, model..." 
-                 onSearch={setSearchQuery}
-                 style={{ width: '280px', maxWidth: '100%', height: '50px' }}
-               />
-               <button className="btn-hero-secondary" style={{ height: '50px', padding: '0 1.5rem', borderRadius: '8px', fontSize: '0.8rem' }} onClick={() => setShowMobileFilters(true)}>
-                 Filters <Filter size={16} />
-               </button>
-            </div>
-          </div>
-          
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '1rem', overflowX: 'auto', gap: '2rem' }}>
-            <div style={{ display: 'flex', gap: '0.8rem' }}>
-               {['All Vehicles', 'Ready to Drive', 'Under N30M', 'SUVs', 'Preorder Only'].map(tab => {
-                 const isActive = activePillTab === tab;
-                 return (
-                   <button 
-                     key={tab} 
-                     onClick={() => setActivePillTab(tab)}
-                     className={isActive ? 'btn-gold' : 'btn-hero-secondary'} 
-                     style={{ borderRadius: '30px', padding: '0.6rem 1.2rem', height: 'auto', fontSize: '0.8rem', whiteSpace: 'nowrap', border: isActive ? 'none' : undefined }}
-                   >
-                     {tab}
-                   </button>
-                 );
-               })}
-            </div>
-            <button onClick={() => { setActivePillTab('All Vehicles'); setSearchQuery(''); }} style={{ background: 'none', border: 'none', color: 'var(--text-main)', fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap', fontWeight: 600 }}>Clear All</button>
-          </div>
-        </div>
-      ) : (
-        <div style={{ marginBottom: '4rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '3rem', flexWrap: 'wrap', gap: '1rem' }}>
-            <div>
-              <h2 className="luxury-font" style={{ fontSize: 'clamp(2rem, 8vw, 3rem)', marginBottom: '0.2rem' }}>{title}</h2>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
-                <span style={{ fontSize: '0.7rem', color: 'var(--accent-gold)', fontWeight: 800, letterSpacing: '4px' }}>ELITE REGISTRY</span>
-                <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)' }} />
-                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '2px' }}>{filteredCars.length} MASTERPIECES AVAILABLE</span>
-              </div>
-            </div>
-            
-            {!hideFilters && (
-              <>
-                <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', flexWrap: 'wrap', width: 'auto', maxWidth: '100%', justifyContent: 'flex-start' }} className="desktop-only-flex">
-                   <SearchAutocomplete 
-                     placeholder="SEARCH BY MODEL..." 
-                     onSearch={setSearchQuery}
-                     style={{ width: '240px', maxWidth: '100%' }}
-                   />
-                   
-                   <FilterDropdown 
-                     value={filterStatus}
-                     onChange={(val) => setFilterStatus(val as any)}
-                     options={[
-                       { label: 'ALL ACQUISITIONS', value: 'All' },
-                       { label: 'READILY AVAILABLE', value: 'Readily Available' },
-                       { label: 'PREORDER', value: 'Preorder' }
-                     ]}
-                   />
-                </div>
-
-                {/* Mobile Premium Filter Tabs */}
-                <div className="mobile-only-block" style={{ width: '100%', marginTop: '1.5rem' }}>
-                  <div className="inventory-mobile-tabs">
-                    <button className="inventory-tab-pill" onClick={() => setShowMobileFilters(true)}>
-                      <Filter size={14} />
-                      <span>All Categories</span>
-                    </button>
-                    <button className="inventory-tab-pill" onClick={() => setShowMobileFilters(true)}>
-                      <span>All Brands</span>
-                    </button>
-                    <button className="inventory-tab-pill" onClick={() => setShowMobileFilters(true)}>
-                      <span>Sort</span>
-                      <ChevronRight size={14} style={{ transform: 'rotate(90deg)' }} />
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-
-          <div className="glass" style={{ height: '1px', width: '100%', marginBottom: '2rem', opacity: 0.3 }}></div>
-        </div>
-      )}
-
-      <div style={{ display: 'grid', gridTemplateColumns: hideFilters ? '1fr' : 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem', alignItems: 'start' }} className={!hideFilters ? "inventory-with-sidebar" : ""}>
+    <div className="w-full">
+      <div className="flex flex-col lg:flex-row gap-8 items-start">
         
-        {/* Helper style for sidebar layout */}
-        <style>{`
-          @media (min-width: 769px) {
-            .inventory-with-sidebar {
-              grid-template-columns: 250px 1fr !important;
-            }
-          }
-        `}</style>
-        
-        {/* Sidebar */}
-        {!hideFilters && (
-          <div className="desktop-only">
-             <SidebarFilter 
-               filters={filters} 
-               onFilterChange={setFilters} 
-               priceBounds={dynamicPriceBounds}
-               counts={counts}
-             />
-          </div>
+        {/* Sidebar Filters */}
+        {!hideFilters && !isHomeWidget && (
+          <aside className="hidden lg:block w-80 flex-shrink-0">
+            <SidebarFilter 
+              filters={filters} 
+              onFilterChange={setFilters} 
+              priceBounds={dynamicPriceBounds}
+            />
+          </aside>
         )}
 
-        {/* Grid Area */}
-        <div>
-          <motion.div layout className="inventory-grid">
-            <AnimatePresence mode="popLayout">
+        {/* Main Content Area */}
+        <div className="flex-1 space-y-8 w-full text-left">
+          
+          {/* Header row & search */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h1 className="font-headline-lg text-3xl font-bold text-on-surface">{title}</h1>
+              <p className="font-body-md text-sm text-on-surface-variant">
+                Showing {filteredCars.length} elite vehicles curated for distinction.
+              </p>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <SearchAutocomplete 
+                placeholder="Search inventory..." 
+                onSearch={setSearchQuery}
+                style={{ width: '220px', height: '42px' }}
+              />
+              <button 
+                onClick={() => setShowMobileFilters(true)}
+                className="lg:hidden border border-glass-border rounded-lg px-4 py-2 text-xs font-label-caps text-luxury-gold flex items-center gap-1.5 hover:bg-luxury-gold/10"
+              >
+                <Filter size={14} />
+                <span>Filters</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Quick filter pills */}
+          <div className="flex justify-between items-center pb-2 border-b border-glass-border overflow-x-auto gap-4 scrollbar-hide">
+            <div className="flex gap-2">
+              {['All Vehicles', 'Ready to Drive', 'Under N30M', 'SUVs', 'Preorder Only'].map(tab => {
+                const isActive = activePillTab === tab;
+                return (
+                  <button 
+                    key={tab} 
+                    onClick={() => {
+                      setActivePillTab(tab);
+                      if (tab === 'Preorder Only') setFilterStatus('Preorder');
+                      else if (tab === 'Ready to Drive') setFilterStatus('Readily Available');
+                      else setFilterStatus('All');
+                    }}
+                    className={`whitespace-nowrap px-5 py-2 rounded-full font-bold text-[10px] uppercase tracking-widest transition-all ${
+                      isActive 
+                        ? 'bg-luxury-gold text-on-primary shadow-lg shadow-luxury-gold/10' 
+                        : 'glass-card text-on-surface-variant hover:text-on-surface'
+                    }`}
+                  >
+                    {tab}
+                  </button>
+                );
+              })}
+            </div>
+            <button 
+              onClick={() => {
+                setActivePillTab('All Vehicles');
+                setFilterStatus('All');
+                setSearchQuery('');
+                handleClearFilters();
+              }} 
+              className="text-xs font-bold text-on-surface-variant hover:text-primary transition-colors cursor-pointer"
+            >
+              Clear All
+            </button>
+          </div>
+
+          {/* Grid Area */}
+          {filteredCars.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-on-surface-variant opacity-60">
+              <span className="text-sm font-bold">No vehicles found matching your refinement criteria.</span>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {filteredCars.map((car, index) => (
-                <div key={car.id} style={{ display: 'contents' }}>
+                <div key={car.id} className="contents">
                   <VehicleCard car={car} onInquiry={onInquiry} />
                   
-                  {/* Doom Scroll Breaks: Every 8 items, show a promotional break for full page inventory */}
-                  {!isHomeWidget && (index + 1) % 8 === 0 && (
-                    <div className="doom-scroll-break glass" style={{ gridColumn: '1 / -1', padding: '3rem', borderRadius: '1.5rem', margin: '2rem 0', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(90deg, rgba(197,160,89,0.1), rgba(0,0,0,0.2))', border: '1px solid rgba(197,160,89,0.2)' }}>
-                      <div style={{ textAlign: 'center' }}>
-                        <span style={{ color: 'var(--accent-gold)', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '4px' }}>DISCOVER THE EXTRAORDINARY</span>
-                        <h3 className="luxury-font" style={{ fontSize: '1.5rem', marginTop: '0.5rem' }}>Looking for something specific?</h3>
-                        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.5rem' }}>Our curators can source any masterpiece globally.</p>
-                        <button className="btn-gold" style={{ marginTop: '1.5rem', padding: '0.6rem 2rem' }}>Request Sourcing</button>
+                  {/* Doom scroll break card */}
+                  {!isHomeWidget && (index + 1) % 6 === 0 && (
+                    <div className="md:col-span-2 xl:col-span-3 glass-card rounded-xl p-8 text-left relative overflow-hidden bg-gradient-to-r from-luxury-gold/5 to-transparent border border-glass-border flex items-center justify-between gap-6 flex-wrap">
+                      <div className="max-w-xl">
+                        <span className="text-label-caps font-label-caps text-luxury-gold text-[10px] tracking-wider font-bold mb-1.5 block">CONCIERGE ACQUISITIONS</span>
+                        <h3 className="text-xl font-headline-lg font-bold text-on-surface mb-1">Looking for a specific masterpiece?</h3>
+                        <p className="text-xs text-on-surface-variant leading-relaxed">
+                          Our elite curators source high-spec, foreign-used, and brand new vehicles from globally verified private networks.
+                        </p>
                       </div>
+                      <button 
+                        onClick={() => window.dispatchEvent(new CustomEvent('select-car', { detail: { openPreorder: true } }))}
+                        className="bg-luxury-gold text-on-primary px-6 py-2.5 rounded-lg text-label-caps font-label-caps text-xs font-bold hover:brightness-110 active:scale-95 transition-all"
+                      >
+                        REQUEST CUSTOM SOURCING
+                      </button>
                     </div>
                   )}
                 </div>
               ))}
-            </AnimatePresence>
-          </motion.div>
+            </div>
+          )}
 
           {/* Infinite Scroll Trigger */}
           {hasMore && !isHomeWidget && (
@@ -330,21 +270,18 @@ export const Inventory = ({ onInquiry, initialStatus = 'All', hideFilters = fals
                   observer.observe(el);
                 }
               }} 
-              style={{ height: '100px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '2rem 0' }}
+              className="py-10 flex justify-center items-center"
             >
               {isLoading && (
-                <div className="loading-spinner-small" style={{ width: '30px', height: '30px', border: '3px solid rgba(255,255,255,0.1)', borderTopColor: 'var(--accent-gold)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                <div className="w-8 h-8 border-2 border-glass-border border-t-luxury-gold rounded-full animate-spin"></div>
               )}
             </div>
           )}
+
         </div>
       </div>
 
-      <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-      `}</style>
-
-      {/* Mobile Filter Drawer */}
+      {/* Mobile Filters Drawer */}
       <AnimatePresence>
         {showMobileFilters && (
           <>
@@ -352,7 +289,7 @@ export const Inventory = ({ onInquiry, initialStatus = 'All', hideFilters = fals
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="mobile-filter-overlay"
+              className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[1000] z-index-mobile-overlay"
               onClick={() => setShowMobileFilters(false)}
             />
             <motion.div 
@@ -360,11 +297,11 @@ export const Inventory = ({ onInquiry, initialStatus = 'All', hideFilters = fals
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="mobile-filter-drawer"
+              className="fixed bottom-0 left-0 right-0 max-h-[85vh] bg-surface z-[1001] rounded-t-2xl p-6 overflow-y-auto space-y-6 text-left border-t border-glass-border"
             >
-              <div className="mobile-filter-header">
-                <span className="luxury-font" style={{ fontSize: '1.2rem' }}>Refine Selection</span>
-                <button className="close-filter-btn" onClick={() => setShowMobileFilters(false)}>
+              <div className="flex justify-between items-center mb-4">
+                <span className="font-headline-md text-lg text-luxury-gold font-bold">Refine Selection</span>
+                <button className="text-on-surface-variant hover:text-luxury-gold" onClick={() => setShowMobileFilters(false)}>
                   <X size={24} />
                 </button>
               </div>
@@ -372,11 +309,9 @@ export const Inventory = ({ onInquiry, initialStatus = 'All', hideFilters = fals
                 filters={filters} 
                 onFilterChange={setFilters} 
                 priceBounds={dynamicPriceBounds} 
-                counts={counts}
               />
               <button 
-                className="btn-gold" 
-                style={{ width: '100%', marginTop: '1.5rem', padding: '1rem' }}
+                className="w-full bg-luxury-gold text-on-primary py-3 rounded-lg text-label-caps font-label-caps text-xs font-bold hover:brightness-110 active:scale-95 transition-all mt-4"
                 onClick={() => setShowMobileFilters(false)}
               >
                 APPLY FILTERS ({filteredCars.length} Results)
@@ -387,6 +322,26 @@ export const Inventory = ({ onInquiry, initialStatus = 'All', hideFilters = fals
       </AnimatePresence>
     </div>
   );
+
+  function handleClearFilters() {
+    setFilters({
+      priceRange: dynamicPriceBounds,
+      yearRange: [1900, 2100],
+      mileageRange: [0, 1000000],
+      conditions: [],
+      makes: [],
+      models: [],
+      bodyTypes: [],
+      locations: [],
+      transmissions: [],
+      fuels: [],
+      powertrains: [],
+      colors: [],
+      engineSize: '',
+      registeredOnly: false,
+      exchangeOnly: false,
+      verifiedOnly: false,
+      discountOnly: false
+    });
+  }
 };
-
-

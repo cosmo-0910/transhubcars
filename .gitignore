@@ -25,3 +25,7 @@ dist-ssr
 mobile/transhubcars-release.jks
 .env.example
 .env.example
+
+# Redesign assets and zips
+modern_interface_redesign/
+stitch_modern_interface_redesign.zip
