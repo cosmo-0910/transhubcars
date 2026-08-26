@@ -31,8 +31,23 @@ import { MaintenanceGuard } from '../shared/components/MaintenanceGuard.tsx';
 import { ChatSystem } from '../shared/components/ChatSystem.tsx';
 import type { Car } from '../shared/lib/db.ts';
 
+type ViewType = 'home' | 'preorder' | 'services' | 'inventory' | 'collections' | 'brands' | 'categories' | 'messages' | 'profile' | 'vendor' | 'privacy' | 'terms';
+
+const getInitialView = (): ViewType => {
+  if (typeof window === 'undefined') return 'home';
+  const path = window.location.pathname.replace(/^\/+|\/+$/g, '').toLowerCase();
+  if (path === 'privacy') return 'privacy';
+  if (path === 'terms') return 'terms';
+  if (path === 'inventory') return 'inventory';
+  if (path === 'preorder' || path === 'source') return 'preorder';
+  if (path === 'services') return 'services';
+  if (path === 'messages') return 'messages';
+  if (path === 'profile') return 'profile';
+  return 'home';
+};
+
 function AppContent() {
-  const [currentView, setCurrentView] = useState<'home' | 'preorder' | 'services' | 'inventory' | 'collections' | 'brands' | 'categories' | 'messages' | 'profile' | 'vendor' | 'privacy' | 'terms'>('home');
+  const [currentView, setCurrentView] = useState<ViewType>(getInitialView);
   const [showInquiry, setShowInquiry] = useState<{ type: 'Inspection' | 'Purchase' | 'Preorder', carName?: string } | null>(null);
   const [selectedCar, setSelectedCar] = useState<Car | null>(null);
   const [showAuth, setShowAuth] = useState<'login' | 'signup' | null>(null);
@@ -46,25 +61,48 @@ function AppContent() {
   const { user, profile, signOut } = useAuth();
   const isAdmin = profile?.role === 'admin';
 
+  const navigateToView = (view: ViewType) => {
+    setCurrentView(view);
+    const targetPath = view === 'home' ? '/' : `/${view}`;
+    if (window.location.pathname !== targetPath) {
+      window.history.pushState({ view }, '', targetPath);
+    }
+    window.scrollTo(0, 0);
+  };
+
   useEffect(() => {
     const handleSelectCar = (e: any) => {
       setSelectedCar(e.detail.car);
     };
     const handleOpenChat = (e: any) => {
       if (window.innerWidth < 768) {
-         setCurrentView('messages');
+         navigateToView('messages');
          setChatModal({ carId: e.detail.carId, vendorId: e.detail.vendorId });
       } else {
          setChatModal({ carId: e.detail.carId, vendorId: e.detail.vendorId });
       }
     };
 
+    const handlePopState = () => {
+      const path = window.location.pathname.replace(/^\/+|\/+$/g, '').toLowerCase();
+      if (path === 'privacy') setCurrentView('privacy');
+      else if (path === 'terms') setCurrentView('terms');
+      else if (path === 'inventory') setCurrentView('inventory');
+      else if (path === 'preorder' || path === 'source') setCurrentView('preorder');
+      else if (path === 'services') setCurrentView('services');
+      else if (path === 'messages') setCurrentView('messages');
+      else if (path === 'profile') setCurrentView('profile');
+      else setCurrentView('home');
+    };
+
     window.addEventListener('select-car', handleSelectCar);
     window.addEventListener('open-chat', handleOpenChat);
+    window.addEventListener('popstate', handlePopState);
 
     return () => {
       window.removeEventListener('select-car', handleSelectCar);
       window.removeEventListener('open-chat', handleOpenChat);
+      window.removeEventListener('popstate', handlePopState);
     };
   }, []);
 
@@ -73,17 +111,28 @@ function AppContent() {
       setShowInquiry({ type: 'Preorder' });
       return;
     }
-    setCurrentView(view);
-    window.scrollTo(0, 0);
+    navigateToView(view);
   };
 
   return (
     <div className="min-h-screen" style={{ background: '#000' }}>
       
       <SEO 
-        title={currentView === 'home' ? 'The Elite Collection' : currentView.charAt(0).toUpperCase() + currentView.slice(1)} 
+        title={
+          currentView === 'home' 
+            ? 'The Elite Collection' 
+            : currentView === 'privacy'
+            ? 'Privacy Policy'
+            : currentView === 'terms'
+            ? 'Terms of Service'
+            : currentView.charAt(0).toUpperCase() + currentView.slice(1)
+        } 
         description={
-          currentView === 'preorder' 
+          currentView === 'privacy'
+            ? 'Transhub official privacy policy and data protection guidelines.'
+            : currentView === 'terms'
+            ? 'Transhub terms of service, user agreement, and escrow policies.'
+            : currentView === 'preorder' 
             ? 'Preorder your dream luxury car from our global network of verified vendors.' 
             : currentView === 'services'
             ? 'Professional automotive services including maintenance, logistics, and inspections.'
@@ -96,17 +145,16 @@ function AppContent() {
           onAdminToggle={() => window.location.href = '/admin.html'} 
           isAdmin={isAdmin} 
           onAuthClick={() => setShowAuth('login')}
-          onProfileClick={() => setCurrentView('profile')}
+          onProfileClick={() => navigateToView('profile')}
           user={user}
           onSignOut={signOut}
           currentView={currentView}
           onViewChange={(view) => {
-            setCurrentView(view);
-            window.scrollTo(0, 0);
+            navigateToView(view);
           }}
           onSearch={(query) => {
             setGlobalSearchQuery(query);
-            if (currentView !== 'inventory') setCurrentView('inventory');
+            if (currentView !== 'inventory') navigateToView('inventory');
           }}
         />
       )}
@@ -224,12 +272,12 @@ function AppContent() {
         {(currentView === 'privacy' || currentView === 'terms') && (
           <LegalPages 
             initialTab={currentView}
-            onClose={() => setCurrentView('home')}
-            onViewChange={(v) => setCurrentView(v)}
+            onClose={() => navigateToView('home')}
+            onViewChange={(v) => navigateToView(v)}
           />
         )}
 
-        <Footer onViewChange={(v) => { setCurrentView(v); window.scrollTo(0, 0); }} />
+        <Footer onViewChange={(v) => navigateToView(v)} />
       </main>
 
       <AnimatePresence mode="wait">
