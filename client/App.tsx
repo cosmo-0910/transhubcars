@@ -20,6 +20,7 @@ import { BrandsPage } from './components/BrandsPage.tsx';
 import { CollectionsPage } from './components/CollectionsPage.tsx';
 import { CategoriesPage } from './components/CategoriesPage.tsx';
 import { VendorApplication } from './components/VendorApplication.tsx';
+import { LegalPages } from './components/LegalPages.tsx';
 import SEO from './components/SEO.tsx';
 
 import { InstallPrompt } from '../shared/components/InstallPrompt.tsx';
@@ -31,7 +32,7 @@ import { ChatSystem } from '../shared/components/ChatSystem.tsx';
 import type { Car } from '../shared/lib/db.ts';
 
 function AppContent() {
-  const [currentView, setCurrentView] = useState<'home' | 'preorder' | 'services' | 'inventory' | 'collections' | 'brands' | 'categories' | 'messages' | 'profile' | 'vendor'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'preorder' | 'services' | 'inventory' | 'collections' | 'brands' | 'categories' | 'messages' | 'profile' | 'vendor' | 'privacy' | 'terms'>('home');
   const [showInquiry, setShowInquiry] = useState<{ type: 'Inspection' | 'Purchase' | 'Preorder', carName?: string } | null>(null);
   const [selectedCar, setSelectedCar] = useState<Car | null>(null);
   const [showAuth, setShowAuth] = useState<'login' | 'signup' | null>(null);
@@ -52,8 +53,6 @@ function AppContent() {
     const handleOpenChat = (e: any) => {
       if (window.innerWidth < 768) {
          setCurrentView('messages');
-         // We can't easily pass state to the view via enum alone without some sophisticated routing,
-         // but we can use the chatModal state or just trigger the startConversation in MessagingPanel.
          setChatModal({ carId: e.detail.carId, vendorId: e.detail.vendorId });
       } else {
          setChatModal({ carId: e.detail.carId, vendorId: e.detail.vendorId });
@@ -222,7 +221,15 @@ function AppContent() {
            />
         )}
 
-        <Footer />
+        {(currentView === 'privacy' || currentView === 'terms') && (
+          <LegalPages 
+            initialTab={currentView}
+            onClose={() => setCurrentView('home')}
+            onViewChange={(v) => setCurrentView(v)}
+          />
+        )}
+
+        <Footer onViewChange={(v) => { setCurrentView(v); window.scrollTo(0, 0); }} />
       </main>
 
       <AnimatePresence mode="wait">

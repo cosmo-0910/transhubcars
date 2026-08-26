@@ -12,8 +12,8 @@ interface NavbarProps {
   onProfileClick?: () => void;
   user?: any | null;
   onSignOut?: () => void;
-  currentView: 'home' | 'preorder' | 'services' | 'inventory' | 'collections' | 'brands' | 'categories' | 'messages' | 'profile' | 'vendor';
-  onViewChange: (view: 'home' | 'preorder' | 'services' | 'inventory' | 'collections' | 'brands' | 'categories' | 'messages' | 'profile' | 'vendor') => void;
+  currentView: 'home' | 'preorder' | 'services' | 'inventory' | 'collections' | 'brands' | 'categories' | 'messages' | 'profile' | 'vendor' | 'privacy' | 'terms';
+  onViewChange: (view: 'home' | 'preorder' | 'services' | 'inventory' | 'collections' | 'brands' | 'categories' | 'messages' | 'profile' | 'vendor' | 'privacy' | 'terms') => void;
   onSearch?: (query: string) => void;
 }
 
@@ -30,7 +30,7 @@ export const Navbar = ({ onAdminToggle, isAdmin, onAuthClick, onProfileClick, us
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const navLinks: { label: string, view: 'home' | 'preorder' | 'services' | 'inventory' | 'collections' | 'brands' | 'categories' | 'messages' | 'profile' | 'vendor' }[] = [
+  const navLinks: { label: string, view: 'home' | 'preorder' | 'services' | 'inventory' | 'collections' | 'brands' | 'categories' | 'messages' | 'profile' | 'vendor' | 'privacy' | 'terms' }[] = [
     { label: 'HOME', view: 'home' },
     { label: 'INVENTORY', view: 'inventory' },
     { label: 'SOURCE', view: 'preorder' },

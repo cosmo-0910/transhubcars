@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import { createClient } from '@supabase/supabase-js';
+import { Resend } from 'resend';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -48,9 +49,67 @@ if (supabaseUrl && supabaseServiceKey) {
   console.warn('Supabase credentials missing in server environment. Admin creation will fail.');
 }
 
+const resendApiKey = process.env.RESEND_API_KEY;
+let resend: Resend | null = null;
+
+if (resendApiKey && resendApiKey !== 're_your_api_key_here') {
+  resend = new Resend(resendApiKey);
+} else {
+  console.warn('RESEND_API_KEY missing or placeholder in .env file. Email sending will be disabled.');
+}
+
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// --- OAUTH PROXY ROUTE ---
+app.get('/api/auth/google', async (req, res) => {
+  if (!supabaseUrl) {
+    res.status(500).json({ error: 'Supabase URL misconfigured' });
+    return;
+  }
+  const redirectTo = (req.query.redirectTo as string) || 'http://localhost:5173/auth/callback';
+  const supabaseOAuthUrl = `${supabaseUrl}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(redirectTo)}`;
+  res.redirect(supabaseOAuthUrl);
+});
+
+// --- EMAIL NOTIFICATIONS ---
+app.post('/api/notifications/send-email', async (req, res) => {
+  const { to, subject, html, text, from } = req.body;
+
+  if (!resend) {
+    res.status(500).json({ error: 'Resend API key is not configured on the server.' });
+    return;
+  }
+
+  if (!to || !subject || (!html && !text)) {
+    res.status(400).json({ error: 'Missing required parameters: to, subject, and html/text content are required.' });
+    return;
+  }
+
+  try {
+    const sender = from || 'TranshubNG <noreply@transhub.ng>';
+    const { data, error } = await resend.emails.send({
+      from: sender,
+      to: Array.isArray(to) ? to : [to],
+      subject: subject,
+      html: html,
+      text: text,
+    });
+
+    if (error) {
+      console.error('[Resend Error]:', error);
+      res.status(400).json({ error: error.message });
+      return;
+    }
+
+    console.log(`[Email Sent] Message ID: ${data?.id} to ${to}`);
+    res.json({ success: true, messageId: data?.id });
+  } catch (error: any) {
+    console.error('[Email Exception]:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // --- ADMIN MANAGEMENT ---
 app.post('/api/admin/create', async (req, res) => {
@@ -140,3 +199,4 @@ const PORT = 3001;
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
+

@@ -1,6 +1,33 @@
  import { Facebook, Instagram, Twitter, Linkedin, Mail, MapPin, Phone } from 'lucide-react';
 
-export const Footer = () => {
+interface FooterProps {
+  onViewChange?: (view: any) => void;
+}
+
+export const Footer = ({ onViewChange }: FooterProps) => {
+  const handleLinkClick = (e: React.MouseEvent, item: string) => {
+    e.preventDefault();
+    if (!onViewChange) return;
+
+    const lower = item.toLowerCase();
+    if (lower === 'privacy' || lower === 'security') {
+      onViewChange('privacy');
+      window.scrollTo(0, 0);
+    } else if (lower === 'terms') {
+      onViewChange('terms');
+      window.scrollTo(0, 0);
+    } else if (lower === 'inventory') {
+      onViewChange('inventory');
+      window.scrollTo(0, 0);
+    } else if (lower === 'preorder' || lower === 'source') {
+      onViewChange('preorder');
+      window.scrollTo(0, 0);
+    } else if (lower === 'services') {
+      onViewChange('services');
+      window.scrollTo(0, 0);
+    }
+  };
+
   return (
     <footer className="footer-main" style={{ 
       padding: '6rem 1.5rem 2rem', 
@@ -88,13 +115,13 @@ export const Footer = () => {
         {/* Column 2: Quick Links */}
         <div>
           <h4 className="footer-heading">QUICK LINKS</h4>
-          <FooterLinks items={['Inventory', 'Preorder', 'Services', 'About Us', 'Contact Us']} />
+          <FooterLinks items={['Inventory', 'Preorder', 'Services', 'About Us', 'Contact Us']} onClick={handleLinkClick} />
         </div>
 
         {/* Column 3: Support */}
         <div>
           <h4 className="footer-heading">SUPPORT</h4>
-          <FooterLinks items={['FAQs', 'Delivery Info', 'Payment Options', 'Terms', 'Privacy']} />
+          <FooterLinks items={['FAQs', 'Delivery Info', 'Payment Options', 'Terms', 'Privacy']} onClick={handleLinkClick} />
         </div>
 
         {/* Column 4: Contact */}
@@ -114,14 +141,14 @@ export const Footer = () => {
         </div>
         <div className="footer-legal">
           {['Security', 'Privacy', 'Terms', 'Sitemap'].map(l => (
-            <a key={l} href="#" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textDecoration: 'none' }}>{l}</a>
+            <a key={l} href="#" onClick={(e) => handleLinkClick(e, l)} style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textDecoration: 'none' }}>{l}</a>
           ))}
         </div>
       </div>
 
       <style>{`
         .footer-heading {
-          fontSize: 0.75rem;
+          font-size: 0.75rem;
           font-weight: 800;
           letter-spacing: 2px;
           color: var(--text-main);
@@ -144,11 +171,11 @@ const SocialLink = ({ icon }: { icon: any }) => (
   </a>
 );
 
-const FooterLinks = ({ items }: { items: string[] }) => (
+const FooterLinks = ({ items, onClick }: { items: string[], onClick: (e: React.MouseEvent, item: string) => void }) => (
   <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
     {items.map(l => (
       <li key={l}>
-        <a href="#" style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textDecoration: 'none', transition: 'all 0.2s' }} 
+        <a href="#" onClick={(e) => onClick(e, l)} style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textDecoration: 'none', transition: 'all 0.2s' }} 
            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-main)'; e.currentTarget.style.paddingLeft = '5px'; }} 
            onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.paddingLeft = '0'; }}>
           {l}
@@ -164,3 +191,4 @@ const ContactItem = ({ icon, text }: { icon: any, text: string }) => (
     <span>{text}</span>
   </li>
 );
+

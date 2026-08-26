@@ -33,15 +33,12 @@ export const AuthForm = ({ type: initialType, onSuccess }: { type: 'login' | 'si
     }
   }, []);
 
-  const handleSocialLogin = async (provider: 'google') => {
+  const handleSocialLogin = async (_provider: 'google') => {
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`
-        }
-      });
-      if (error) throw error;
+      const redirectUrl = `${window.location.origin}/auth/callback`;
+      // Route through server proxy so domain reflects your backend server
+      const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      window.location.href = `${backendUrl}/api/auth/google?redirectTo=${encodeURIComponent(redirectUrl)}`;
     } catch (err: any) {
       setMessage({ type: 'error', text: err.message });
     }
@@ -266,10 +263,10 @@ export const AuthForm = ({ type: initialType, onSuccess }: { type: 'login' | 'si
 
       {/* Social login divider */}
       {(authType === 'login' || authType === 'signup') && (
-        <div className="space-y-6 pt-4">
+        <div className="space-y-4 pt-4">
           <div className="relative text-center">
             <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-glass-border/40"></div></div>
-            <span className="relative px-3 bg-background text-[10px] font-label-caps text-on-surface-variant/40 tracking-wider">
+            <span className="relative px-3 bg-surface-container text-[10px] font-label-caps text-on-surface-variant tracking-wider">
               OR CONTINUE WITH
             </span>
           </div>
@@ -277,10 +274,10 @@ export const AuthForm = ({ type: initialType, onSuccess }: { type: 'login' | 'si
           <button 
             type="button" 
             onClick={() => handleSocialLogin('google')}
-            className="w-full border border-glass-border hover:bg-surface-container/20 text-on-surface text-xs font-bold py-3.5 flex items-center justify-center gap-2.5 transition-colors"
+            className="w-full bg-surface-container-high hover:bg-surface-container-highest border border-glass-border text-on-surface text-xs font-bold py-3.5 px-4 rounded-md flex items-center justify-center gap-3 transition-all shadow-sm hover:shadow-md cursor-pointer"
           >
             <GoogleIcon />
-            <span>GOOGLE ACCESS</span>
+            <span className="tracking-wide">CONTINUE WITH GOOGLE</span>
           </button>
         </div>
       )}
