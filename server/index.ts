@@ -64,11 +64,20 @@ app.use(express.json());
 
 // --- OAUTH PROXY ROUTE ---
 app.get('/api/auth/google', async (req, res) => {
+  const googleClientId = process.env.GOOGLE_CLIENT_ID;
+  const redirectTo = (req.query.redirectTo as string) || 'https://www.transhub.ng/auth/callback';
+
+  if (googleClientId) {
+    const scope = encodeURIComponent('email profile openid');
+    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${googleClientId}&redirect_uri=${encodeURIComponent(redirectTo)}&response_type=code&scope=${scope}&access_type=offline`;
+    res.redirect(googleAuthUrl);
+    return;
+  }
+
   if (!supabaseUrl) {
     res.status(500).json({ error: 'Supabase URL misconfigured' });
     return;
   }
-  const redirectTo = (req.query.redirectTo as string) || 'http://localhost:5173/auth/callback';
   const supabaseOAuthUrl = `${supabaseUrl}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(redirectTo)}`;
   res.redirect(supabaseOAuthUrl);
 });
