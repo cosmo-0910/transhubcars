@@ -33,12 +33,23 @@ export const AuthForm = ({ type: initialType, onSuccess }: { type: 'login' | 'si
     }
   }, []);
 
-  const handleSocialLogin = async (_provider: 'google') => {
+  const handleSocialLogin = async (provider: 'google') => {
     try {
       const redirectUrl = `${window.location.origin}/auth/callback`;
-      // Route through server proxy so domain reflects your backend server
-      const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-      window.location.href = `${backendUrl}/api/auth/google?redirectTo=${encodeURIComponent(redirectUrl)}`;
+      const backendUrl = import.meta.env.VITE_API_URL;
+
+      if (backendUrl) {
+        window.location.href = `${backendUrl}/api/auth/google?redirectTo=${encodeURIComponent(redirectUrl)}`;
+      } else {
+        // Direct Supabase OAuth redirect if VITE_API_URL is not configured
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider,
+          options: {
+            redirectTo: redirectUrl
+          }
+        });
+        if (error) throw error;
+      }
     } catch (err: any) {
       setMessage({ type: 'error', text: err.message });
     }
